@@ -59,7 +59,22 @@ def _run_server():
 _ui_app = None
 
 def _launch_ui():
+    """Launch Tkinter UI. Disabled on macOS 26+ where Tk crashes when
+    combined with pystray's NSApplication (macOSVersion selector missing)."""
     global _ui_app
+    if sys.platform == "darwin":
+        try:
+            import platform
+            ver = tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2])
+            if ver >= (26, 0):
+                import logging
+                logging.warning(
+                    "Tkinter UI disabled on macOS %s (Tk/NSApplication conflict). "
+                    "Use the tray icon or Chrome extension.", platform.mac_ver()[0]
+                )
+                return
+        except Exception:
+            pass
     from ui import ReadOutApp
     _ui_app = ReadOutApp()
     _ui_app.mainloop()
