@@ -1,7 +1,9 @@
 """
-server.py — ReadOut REST API
+server.py ReadOut REST API
 Endpoints:  POST /speak   POST /stop   GET /status   GET /voices   PATCH /config
-CORS open to localhost — browser extension hits this directly.
+CORS restricted to the companion Chrome extension and localhost dev tools.
+Config responses redact provider API keys so the server never echoes back
+the OpenAI / ElevenLabs credentials a user just stored.
 """
 from __future__ import annotations
 
@@ -14,12 +16,35 @@ import config as cfg_module
 
 app = FastAPI(title="ReadOut TTS", version="1.0.0")
 
+# Allow only the companion Chrome extension and local dev origins.
+# The service listens on 127.0.0.1:7778 so a wildcard CORS policy was
+# letting any website in the browser reach the local daemon. Pinning the
+# origin closes that drive-by path.
+_ALLOWED_ORIGIN_REGEX = (
+    r"^(chrome-extension://.*"
+    r"|http://localhost(:\d+)?"
+    r"|http://127\.0\.0\.1(:\d+)?)$"
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # restrict to chrome-extension://... in production
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origin_regex=_ALLOWED_ORIGIN_REGEX,
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type"],
+    allow_credentials=False,
 )
+
+# Fields that must never appear in an HTTP response body. Keep this list
+# in sync with any new provider credential added to ConfigUpdate below.
+_SECRET_FIELDS = frozenset({"openai_api_key", "elevenlabs_api_key"})
+
+
+def _public_config(cfg: dict) -> dict:
+    """Return a copy of cfg safe to send over HTTP (credentials redacted)."""
+    return {
+        key: ("***" if key in _SECRET_FIELDS and value else value)
+        for key, value in cfg.items()
+    }
 
 
 # ── Request / response models ─────────────────────────────────────────────────
@@ -94,7 +119,10 @@ def voices():
 def update_config(update: ConfigUpdate):
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     cfg_module.set_config(updates)
-    return {"status": "updated", "config": cfg_module.get_config()}
+    # Never echo provider API keys back in an HTTP response. The client
+    # just sent them; it does not need them returned, and logs or XSS
+    # elsewhere in the browser could surface the response body.
+    return {"status": "updated", "config": _public_config(cfg_module.get_config())}
 
 
 # ── Engine fallbacks ──────────────────────────────────────────────────────────
