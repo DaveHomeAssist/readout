@@ -6,9 +6,18 @@
 ```bash
 cd readout
 source .venv/bin/activate
-python main.py
+python main.py --headless --no-browser
 ```
-A system tray icon (soundwave bars) appears in your menu bar. First launch downloads the Kokoro voice model (~300 MB) — one-time only. The main UI window opens automatically.
+A system tray icon (soundwave bars) appears in your menu bar. First launch downloads the Kokoro voice model (~300 MB) — one-time only.
+
+If Homebrew Python crashes while opening the desktop window because it is linked
+against Tk 9 on a newer macOS build, use the browser fallback instead:
+
+```bash
+python main.py --headless --no-browser
+```
+
+Then open the local control panel at `http://127.0.0.1:7778/control`.
 
 ### 2. Install the browser extension
 1. Open Chrome → `chrome://extensions`

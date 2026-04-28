@@ -13,23 +13,46 @@
 
 import sys
 import os
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
 block_cipher = None
+entry_script = 'main_app.py' if sys.platform == 'darwin' else 'main.py'
+extra_datas = [
+    *collect_data_files('misaki'),
+    *collect_data_files('espeakng_loader'),
+    *collect_data_files('language_tags'),
+]
+extra_binaries = collect_dynamic_libs('espeakng_loader')
+tk_hiddenimports = []
+if sys.platform != 'darwin':
+    tk_hiddenimports = [
+        'tkinter',
+        'tkinter.ttk',
+        'tkinter.font',
+    ]
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
 a = Analysis(
-    ['main.py'],
+    [entry_script],
     pathex=['.'],
-    binaries=[],
+    binaries=[
+        *extra_binaries,
+    ],
     datas=[
         # Bundle the assets folder
         ('assets', 'assets'),
+        *extra_datas,
     ],
     hiddenimports=[
         # kokoro / torch
         'kokoro',
         'misaki',
         'misaki.en',
+        'espeakng_loader',
+        'language_tags',
+        'phonemizer',
+        'phonemizer.backend',
+        'phonemizer.backend.espeak.wrapper',
         'torch',
         'torch.nn',
         'torchaudio',
@@ -68,16 +91,12 @@ a = Analysis(
         'PIL.Image',
         'PIL.ImageDraw',
 
-        # tkinter
-        'tkinter',
-        'tkinter.ttk',
-        'tkinter.font',
-
         # stdlib
         'json',
         'threading',
         'urllib.request',
         'urllib.error',
+        *tk_hiddenimports,
     ],
     hookspath=[],
     hooksconfig={},
@@ -91,6 +110,7 @@ a = Analysis(
         'pandas',
         'sklearn',
         'cv2',
+        *(["tkinter"] if sys.platform == 'darwin' else []),
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

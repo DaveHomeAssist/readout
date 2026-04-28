@@ -12,10 +12,13 @@ Quitting the tray icon stops the process; all daemon threads die with it.
 """
 from __future__ import annotations
 
+import argparse
 import os
+import subprocess
 import sys
 import threading
 import time
+import webbrowser
 
 import pystray
 from PIL import Image, ImageDraw
@@ -57,33 +60,131 @@ def _run_server():
 # ── UI window ─────────────────────────────────────────────────────────────────
 
 _ui_app = None
+_ui_runtime = None
+
+
+def _parse_args(argv: list[str] | None = None):
+    parser = argparse.ArgumentParser(description="ReadOut desktop TTS")
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run the local API + browser control panel without tray or Tk UI.",
+    )
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Do not auto-open the browser control panel in headless mode.",
+    )
+    return parser.parse_args(argv)
+
+
+def _get_control_url() -> str:
+    cfg = get_config()
+    return f"http://127.0.0.1:{cfg.get('port', 7778)}/control"
+
+
+def _should_auto_open_control_panel() -> bool:
+    value = os.getenv("READOUT_AUTO_OPEN_CONTROL", "").strip().lower()
+    if value in {"0", "false", "no", "off"}:
+        return False
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    return True
+
+
+def _open_control_panel(delay: float = 0.0) -> None:
+    def _open():
+        if delay > 0:
+            time.sleep(delay)
+        webbrowser.open(_get_control_url())
+
+    threading.Thread(target=_open, daemon=True).start()
+
+
+def _get_ui_runtime():
+    global _ui_runtime
+    if _ui_runtime is not None:
+        return _ui_runtime
+
+    if os.getenv("READOUT_FORCE_TK", "").lower() in {"1", "true", "yes"}:
+        _ui_runtime = (True, "")
+        return _ui_runtime
+
+    if os.getenv("READOUT_DISABLE_UI", "").lower() in {"1", "true", "yes"}:
+        _ui_runtime = (False, "Desktop UI disabled via READOUT_DISABLE_UI.")
+        return _ui_runtime
+
+    if sys.platform != "darwin":
+        _ui_runtime = (True, "")
+        return _ui_runtime
+
+    try:
+        import _tkinter
+        linked = subprocess.run(
+            ["otool", "-L", _tkinter.__file__],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
+        if "libtcl9tk9.0.dylib" in linked or "libtcl9.0.dylib" in linked:
+            _ui_runtime = (
+                False,
+                "Homebrew Tk 9 is linked into this Python build. Using browser control panel instead.",
+            )
+            return _ui_runtime
+    except Exception:
+        # If inspection fails, prefer attempting the UI rather than disabling it.
+        pass
+
+    _ui_runtime = (True, "")
+    return _ui_runtime
 
 def _launch_ui():
-    """Launch Tkinter UI. Disabled on macOS 26+ where Tk crashes when
-    combined with pystray's NSApplication (macOSVersion selector missing)."""
     global _ui_app
-    if sys.platform == "darwin":
-        try:
-            import platform
-            ver = tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2])
-            if ver >= (26, 0):
-                import logging
-                logging.warning(
-                    "Tkinter UI disabled on macOS %s (Tk/NSApplication conflict). "
-                    "Use the tray icon or Chrome extension.", platform.mac_ver()[0]
-                )
-                return
-        except Exception:
-            pass
     from ui import ReadOutApp
     _ui_app = ReadOutApp()
     _ui_app.mainloop()
+
+
+def _launch_ui_or_fallback(icon: pystray.Icon | None = None, *, open_browser: bool | None = None) -> bool:
+    ui_ok, reason = _get_ui_runtime()
+    if not ui_ok:
+        should_open_browser = _should_auto_open_control_panel() if open_browser is None else open_browser
+        if icon is not None:
+            icon.notify(reason, "ReadOut")
+        if should_open_browser:
+            _open_control_panel(delay=1.0)
+        return False
+
+    _launch_ui()
+    return True
+
+
+def _warmup_model(icon: pystray.Icon | None = None) -> None:
+    try:
+        def _progress(msg: str):
+            if icon is None:
+                return
+            if msg == "loading_model":
+                icon.notify("Downloading voice model (~300 MB). One-time only…", "ReadOut")
+            elif msg == "ready":
+                icon.notify("Voice model ready.", "ReadOut")
+
+        tts_engine.get_pipeline(on_progress=_progress)
+    except Exception as exc:
+        if icon is not None:
+            icon.notify(f"Model error: {exc}", "ReadOut")
 
 
 # ── Tray menu actions ─────────────────────────────────────────────────────────
 
 def _on_show_window(icon, item):
     global _ui_app
+    ui_ok, _reason = _get_ui_runtime()
+    if not ui_ok:
+        _open_control_panel()
+        return
+
     if _ui_app is None or not _ui_app.winfo_exists():
         t = threading.Thread(target=_launch_ui, daemon=True)
         t.start()
@@ -98,6 +199,10 @@ def _on_show_window(icon, item):
 
 def _on_stop_audio(icon, item):
     tts_engine.stop_audio()
+
+
+def _on_open_control_panel(icon, item):
+    _open_control_panel()
 
 
 def _on_quit(icon, item):
@@ -122,16 +227,21 @@ def _engine_setter(engine: str):
 def _build_tray() -> pystray.Icon:
     img   = _make_icon_image()
     voices = tts_engine.list_voices()
+    ui_ok, _reason = _get_ui_runtime()
 
     voice_items = [
         pystray.MenuItem(v, _voice_setter(v))
         for v in voices
     ]
 
-    menu = pystray.Menu(
+    menu_items = [
         pystray.MenuItem("ReadOut — Running", None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Show Window", _on_show_window),
+        pystray.MenuItem("Show Window" if ui_ok else "Open Control Panel", _on_show_window),
+    ]
+    if ui_ok:
+        menu_items.append(pystray.MenuItem("Open Control Panel", _on_open_control_panel))
+    menu_items.extend([
         pystray.MenuItem("Stop Audio",  _on_stop_audio),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Voice",  pystray.Menu(*voice_items)),
@@ -142,7 +252,9 @@ def _build_tray() -> pystray.Icon:
         )),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", _on_quit),
-    )
+    ])
+
+    menu = pystray.Menu(*menu_items)
 
     return pystray.Icon("ReadOut", img, "ReadOut TTS", menu)
 
@@ -158,29 +270,37 @@ def _setup(icon: pystray.Icon):
     server_thread.start()
 
     # 2. Warm up Kokoro model
-    def _warmup():
-        try:
-            def _progress(msg: str):
-                if msg == "loading_model":
-                    icon.notify("Downloading voice model (~300 MB). One-time only…",
-                                "ReadOut")
-                elif msg == "ready":
-                    icon.notify("Voice model ready.", "ReadOut")
-            tts_engine.get_pipeline(on_progress=_progress)
-        except Exception as exc:
-            icon.notify(f"Model error: {exc}", "ReadOut")
-
-    warmup_thread = threading.Thread(target=_warmup, daemon=True)
+    warmup_thread = threading.Thread(target=lambda: _warmup_model(icon), daemon=True)
     warmup_thread.start()
 
     # 3. Launch the UI window
-    _launch_ui()
+    cfg = get_config()
+    if cfg.get("window_visible", True):
+        launched = _launch_ui_or_fallback(icon, open_browser=None)
+        if not launched and not _should_auto_open_control_panel():
+            icon.notify(
+                f"ReadOut is running at {_get_control_url()}. Use the tray menu to open the control panel.",
+                "ReadOut",
+            )
 
 
-def main():
+def _run_headless(open_browser: bool = True):
+    warmup_thread = threading.Thread(target=_warmup_model, daemon=True)
+    warmup_thread.start()
+    if open_browser:
+        _open_control_panel(delay=1.0)
+    _run_server()
+
+
+def main(argv: list[str] | None = None):
     # On macOS M1-M4, enable Metal fallback for PyTorch
     if sys.platform == "darwin":
         os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+
+    args = _parse_args(argv)
+    if args.headless or os.getenv("READOUT_HEADLESS", "").lower() in {"1", "true", "yes"}:
+        _run_headless(open_browser=not args.no_browser)
+        return
 
     icon = _build_tray()
     # pystray.Icon.run() MUST be on the main thread on macOS.

@@ -40,8 +40,18 @@ pip install -r requirements.txt
 export PYTORCH_ENABLE_MPS_FALLBACK=1   # add to ~/.zshrc permanently
 
 # 5. Run
-python main.py
+python main.py --headless --no-browser
 ```
+
+If the desktop Tk window crashes on newer macOS builds because Homebrew Python is
+linked to Tk 9, run the browser-first fallback instead:
+
+```bash
+python main.py --headless --no-browser
+```
+
+That starts the local API without using Tk. Then open:
+`http://127.0.0.1:7778/control`
 
 First launch downloads the Kokoro model weights (~300 MB) from Hugging Face.  
 A tray notification shows progress. Subsequent launches are instant.
@@ -57,6 +67,9 @@ chmod +x build_mac.sh
 # Output: dist/ReadOut.app
 open dist/ReadOut.app
 ```
+
+The packaged macOS app runs as a menu-bar app and does not use the Tk desktop
+window. Open the control panel from the tray icon via `Open Control Panel`.
 
 To install permanently:
 ```bash

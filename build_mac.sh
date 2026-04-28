@@ -5,37 +5,47 @@ set -euo pipefail
 
 echo "── ReadOut macOS Build ──────────────────────────────────"
 
-# 1. Ensure we're on Python 3.10–3.12
-PY=$(python3 --version 2>&1)
+# 1. Resolve a supported Python interpreter (3.10–3.12)
+PYTHON_BIN=""
+if [ -x ".venv/bin/python" ]; then
+  PYTHON_BIN=".venv/bin/python"
+elif [ -x "/opt/homebrew/opt/python@3.12/bin/python3.12" ]; then
+  PYTHON_BIN="/opt/homebrew/opt/python@3.12/bin/python3.12"
+elif command -v python3.12 >/dev/null 2>&1; then
+  PYTHON_BIN="$(command -v python3.12)"
+elif python3 - <<'PYEOF' >/dev/null 2>&1
+import sys
+raise SystemExit(0 if (3, 10) <= sys.version_info[:2] < (3, 13) else 1)
+PYEOF
+then
+  PYTHON_BIN="$(command -v python3)"
+else
+  echo "❌  Python 3.10–3.12 required. Install python@3.12 and retry."
+  exit 1
+fi
+
+PY="$("$PYTHON_BIN" --version 2>&1)"
 echo "Python: $PY"
 
 # 2. Create / activate venv
 if [ ! -d ".venv" ]; then
   echo "Creating venv..."
-  python3 -m venv .venv
+  "$PYTHON_BIN" -m venv .venv
 fi
 source .venv/bin/activate
 
 # 3. Install deps
 echo "Installing dependencies..."
-pip install --upgrade pip -q
-pip install -r requirements.txt -q
+.venv/bin/python -m pip install --upgrade pip -q
+.venv/bin/python -m pip install -r requirements.txt -q
 
-# 4. Install espeak-ng via Homebrew (required by kokoro/misaki)
-if ! command -v espeak-ng &>/dev/null; then
-  echo "Installing espeak-ng via Homebrew..."
-  brew install espeak-ng
-else
-  echo "espeak-ng already installed."
-fi
-
-# 5. Set MPS fallback for M-series chips
+# 4. Set MPS fallback for M-series chips
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 
-# 6. Generate placeholder icon if not present
+# 5. Generate placeholder icon if not present
 if [ ! -f "assets/icon.icns" ]; then
   echo "Generating placeholder icon..."
-  python3 - <<'PYEOF'
+  .venv/bin/python - <<'PYEOF'
 from PIL import Image, ImageDraw
 import os
 os.makedirs("assets", exist_ok=True)
@@ -60,14 +70,14 @@ print("icon.icns generated.")
 PYEOF
 fi
 
-# 7. Clean previous build
+# 6. Clean previous build
 rm -rf build dist
 
-# 8. PyInstaller
-echo "Running PyInstaller..."
-pyinstaller ReadOut.spec
+# 7. PyInstaller
+echo "Running PyInstaller (macOS app mode: tray + control panel, no Tk window)..."
+.venv/bin/pyinstaller ReadOut.spec
 
-# 9. Verify
+# 8. Verify
 if [ -d "dist/ReadOut.app" ]; then
   echo ""
   echo "✅  Build complete: dist/ReadOut.app"
@@ -76,6 +86,7 @@ if [ -d "dist/ReadOut.app" ]; then
   echo "To run:         open dist/ReadOut.app"
   echo "To install:     cp -r dist/ReadOut.app /Applications/"
   echo "To add to login items: System Settings → General → Login Items"
+  echo "Control panel:  Use the tray icon → Open Control Panel"
 else
   echo "❌  Build failed — check output above."
   exit 1
