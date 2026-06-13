@@ -6,4 +6,4 @@
 pytest>=7.0
 fastapi
 httpx<0.28        # starlette TestClient transport
-uvicorn           # live source HTTP smoke / release_preflight -RunSourceSmoke
+uvicorn           # tests/e2e + live source HTTP smoke / release_preflight -RunSourceSmoke
