@@ -35,6 +35,15 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 | ID | Severity | Status | Title | Notes |
 |----|----------|--------|-------|-------|
 | 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+ |
+| 002 | P1 | resolved | Control-panel commit reverted CORS + key redaction | Commit 93f3944 branched off a pre-security server.py and dropped the 0055aa7 hardening (wildcard CORS + unredacted PATCH /config). Restored, with regression tests in tests/test_server_cors.py and tests/test_server_api.py |
+
+## Testing
+
+- **Install dev deps**: `pip install -r requirements-dev.txt` (pytest + fastapi + httpx; no torch/kokoro needed)
+- **Run**: `python -m pytest` from the repo root
+- The suite mocks the heavy ML/audio stack (numpy, sounddevice, soundfile, kokoro) via fixtures in `tests/conftest.py`, so it runs on any Python 3.10-3.12 without a model download or audio hardware.
+- Coverage: config load/merge/corruption, the Kokoro `speak()` flow, audio helpers, every REST endpoint, the CORS policy (regression guard for issue 002), API-key redaction, and the OpenAI/ElevenLabs fallbacks.
+- CI runs the suite on push/PR across Python 3.10-3.12 (`.github/workflows/tests.yml`).
 
 ## Deployment
 

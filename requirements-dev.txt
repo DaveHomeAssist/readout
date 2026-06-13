@@ -1,0 +1,8 @@
+# ReadOut — test/development dependencies
+# Installable on any Python 3.10+ without the heavy ML stack (torch/kokoro).
+# The test suite mocks numpy / sounddevice / soundfile / kokoro, so none of
+# the runtime audio dependencies are required to run the tests.
+
+pytest>=7.0
+fastapi
+httpx<0.28        # starlette TestClient transport
