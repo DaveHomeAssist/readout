@@ -17,16 +17,27 @@ _sf = None
 _KPipeline = None
 
 
-def _ensure_imports():
-    global _np, _sd, _sf, _KPipeline
-    if _np is None:
+def _ensure_audio():
+    """Import the audio stack (numpy/sounddevice/soundfile) without Kokoro.
+
+    The OpenAI / ElevenLabs fallbacks need playback but not the 300 MB model,
+    so they can warm up audio without pulling in torch + kokoro.
+    """
+    global _np, _sd, _sf
+    if _sd is None:
         import numpy
         import sounddevice
         import soundfile
-        from kokoro import KPipeline as KP
         _np = numpy
         _sd = sounddevice
         _sf = soundfile
+
+
+def _ensure_imports():
+    global _KPipeline
+    _ensure_audio()
+    if _KPipeline is None:
+        from kokoro import KPipeline as KP
         _KPipeline = KP
 
 # ── Model state ──────────────────────────────────────────────────────────────
@@ -131,26 +142,48 @@ def speak(
     full_audio  = _np.concatenate(all_audio)
     sample_rate = 24000   # Kokoro always outputs at 24 kHz
 
-    # Non-blocking playback
-    _sd.stop()
-    _sd.play(full_audio, samplerate=sample_rate)
+    play_audio(full_audio, sample_rate)
 
     result: dict = {"status": "playing", "voice": voice, "speed": speed}
 
     # Optional file save
     if save or cfg.get("always_save", False):
-        save_dir = cfg.get("save_dir", os.path.expanduser("~/Desktop/ReadOut"))
-        os.makedirs(save_dir, exist_ok=True)
-        filename = f"readout_{int(time.time())}.wav"
-        filepath = os.path.join(save_dir, filename)
-        _sf.write(filepath, full_audio, sample_rate)
-        result["saved_to"] = filepath
+        result["saved_to"] = save_wav(full_audio, sample_rate)
 
     return result
 
 
+def play_audio(data, samplerate) -> None:
+    """Stop any current playback and play `data` non-blocking.
+
+    Shared by Kokoro and the OpenAI / ElevenLabs fallbacks so a new request
+    always replaces the previous one and stop_audio() can halt any of them.
+    """
+    _ensure_audio()
+    _sd.stop()
+    _sd.play(data, samplerate=samplerate)
+
+
+def read_audio(raw: bytes):
+    """Decode raw audio bytes (e.g. an API response body) → (data, samplerate)."""
+    import io
+    _ensure_audio()
+    return _sf.read(io.BytesIO(raw))
+
+
+def save_wav(data, samplerate) -> str:
+    """Write `data` to the configured save_dir as a timestamped WAV; return path."""
+    cfg = get_config()
+    save_dir = cfg.get("save_dir", os.path.expanduser("~/Desktop/ReadOut"))
+    os.makedirs(save_dir, exist_ok=True)
+    filepath = os.path.join(save_dir, f"readout_{int(time.time())}.wav")
+    _ensure_audio()
+    _sf.write(filepath, data, samplerate)
+    return filepath
+
+
 def stop_audio() -> None:
-    """Immediately stop any playing audio."""
+    """Immediately stop any playing audio (Kokoro or API fallback)."""
     if _sd is not None:
         _sd.stop()
 
