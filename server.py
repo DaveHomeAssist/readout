@@ -17,10 +17,11 @@ import config as cfg_module
 
 app = FastAPI(title="ReadOut TTS", version="1.0.0")
 
-# Allow only the companion Chrome extension and local dev origins.
-# The service listens on 127.0.0.1:7778 so a wildcard CORS policy was
-# letting any website in the browser reach the local daemon. Pinning the
-# origin closes that drive-by path.
+# Allow Chrome extension origins and local dev origins only. The service
+# listens on 127.0.0.1:7778, so the previous wildcard CORS policy let any
+# website the user visited drive the local daemon; pinning the origin closes
+# that drive-by path. Note: chrome-extension://.* permits any extension, not
+# just the companion one — the published extension ID is not pinned yet.
 _ALLOWED_ORIGIN_REGEX = (
     r"^(chrome-extension://.*"
     r"|http://localhost(:\d+)?"
@@ -513,6 +514,9 @@ def _speak_elevenlabs(req: SpeakRequest, cfg: dict) -> dict:
             # instead of letting soundfile choke on non-audio bytes.
             return {"status": "error", "message": f"ElevenLabs API {r.status_code}: {r.text[:200]}"}
 
+        # This endpoint streams MP3 by default and offers no WAV option (unlike
+        # the OpenAI path's response_format="wav"), so decoding relies on a
+        # soundfile/libsndfile build with MPEG support (libsndfile >= 1.1).
         data, sr = tts_engine.read_audio(r.content)
         tts_engine.play_audio(data, sr)
         result = {"status": "playing", "engine": "elevenlabs"}

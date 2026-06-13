@@ -36,6 +36,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 |----|----------|--------|-------|-------|
 | 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+ |
 | 002 | P1 | resolved | Control-panel commit reverted CORS + key redaction | Commit 93f3944 branched off a pre-security server.py and dropped the 0055aa7 hardening (wildcard CORS + unredacted PATCH /config). Restored, with regression tests in tests/test_server_cors.py and tests/test_server_api.py |
+| 003 | P3 | open | /speak and /config unauthenticated; /stop reachable cross-origin | CORS blocks cross-origin *reads* and preflighted requests, but it is not CSRF protection: `POST /stop` is a CORS-simple request, so any page can fire it as a side effect (impact: halts local playback only). `/speak` and `PATCH /config` require `application/json`, which forces a preflight that the origin policy blocks. Real fix is a shared-secret header + coordinated extension update (noted in 0055aa7). |
 
 ## Testing
 
