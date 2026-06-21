@@ -7,20 +7,58 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 import tts_engine
 import config as cfg_module
 
-app = FastAPI(title="ReadOut TTS", version="1.0.0")
+# Hard cap on a single /speak request, so a hostile or runaway caller can't pin
+# the CPU/RAM by submitting an enormous block of text to synthesise.
+MAX_TEXT_CHARS = 20_000
 
+# Config keys that hold secrets — never echoed back in an API response.
+_SECRET_KEYS = ("openai_api_key", "elevenlabs_api_key")
+
+# Interactive docs are disabled: this is a local control surface for known
+# clients, not a public API, so the schema browser only widens the surface.
+app = FastAPI(
+    title="ReadOut TTS",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
+
+# DNS-rebinding guard. The server only binds loopback, but a remote page can try
+# to rebind a hostname it controls to 127.0.0.1 and reach us from the browser.
+# Such a request still carries the attacker's Host header, so we reject anything
+# that isn't loopback. (Starlette compares the host without the port.)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1"],
+)
+
+# CORS is locked to browser extensions — the only legitimate cross-origin caller.
+# The control panel is served from this same origin and needs no CORS grant, and
+# the desktop UI talks over plain Python (no browser, no CORS). Denying arbitrary
+# web origins stops any page you visit from driving the local server or reading
+# stored API keys back out of it.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # restrict to chrome-extension://... in production
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origin_regex=r"^chrome-extension://[a-p]{32}$",
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
+
+
+def _safe_config() -> dict:
+    """Config snapshot with secrets reduced to a presence flag, never the value."""
+    snapshot = dict(cfg_module.get_config())
+    for key in _SECRET_KEYS:
+        snapshot[key] = bool(snapshot.get(key))   # True if set, never the secret
+    return snapshot
 
 
 CONTROL_PANEL_HTML = """<!doctype html>
@@ -391,6 +429,12 @@ def speak(req: SpeakRequest):
     Synthesise and play text.
     Routes to the active engine from config.
     """
+    if len(req.text) > MAX_TEXT_CHARS:
+        return {
+            "status": "error",
+            "message": f"Text too long ({len(req.text)} chars; max {MAX_TEXT_CHARS}).",
+        }
+
     cfg    = cfg_module.get_config()
     engine = cfg.get("engine", "kokoro")
 
@@ -437,7 +481,7 @@ def voices():
 def update_config(update: ConfigUpdate):
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     cfg_module.set_config(updates)
-    return {"status": "updated", "config": cfg_module.get_config()}
+    return {"status": "updated", "config": _safe_config()}
 
 
 # ── Engine fallbacks ──────────────────────────────────────────────────────────

@@ -44,8 +44,18 @@ def set_config(updates: dict) -> None:
     current = get_config()
     current.update(updates)
     os.makedirs(CONFIG_DIR, exist_ok=True)
+    # The config holds plaintext API keys; keep it owner-only so other local
+    # accounts can't read them. Best-effort (no-op on filesystems without chmod).
+    try:
+        os.chmod(CONFIG_DIR, 0o700)
+    except OSError:
+        pass
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(current, f, indent=2)
+    try:
+        os.chmod(CONFIG_PATH, 0o600)
+    except OSError:
+        pass
 
 
 def asset_path(name: str) -> str:

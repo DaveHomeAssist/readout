@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import socket
 import subprocess
 import sys
 import threading
@@ -54,7 +55,31 @@ def _run_server():
     cfg  = get_config()
     port = cfg.get("port", 7778)
     from server import app
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    # Pin the stdlib asyncio loop instead of uvloop. uvloop gives no meaningful
+    # benefit for this low-traffic local server, and importing its native
+    # extension during startup can stall for seconds (macOS Gatekeeper verifies
+    # the unsigned .so on first load), delaying the bind. asyncio is already
+    # imported, so the server comes up immediately and deterministically.
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning", loop="asyncio")
+
+
+def _wait_for_server(port: int, timeout: float = 30.0) -> bool:
+    """Block (cheaply) until the local API is accepting connections.
+
+    Used to gate the heavy Kokoro/transformers/torch import behind server
+    startup: importing that stack concurrently with uvicorn's own startup
+    imports can deadlock the bind on Python's global import lock. Polling a
+    socket does no heavy importing and releases the GIL, so uvicorn can finish
+    binding first.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                return True
+        except OSError:
+            time.sleep(0.2)
+    return False
 
 
 # ── UI window ─────────────────────────────────────────────────────────────────
@@ -161,6 +186,9 @@ def _launch_ui_or_fallback(icon: pystray.Icon | None = None, *, open_browser: bo
 
 
 def _warmup_model(icon: pystray.Icon | None = None) -> None:
+    # Let the API server bind before pulling in the heavy model stack, so the two
+    # don't race on Python's import lock (which can hang the server's startup).
+    _wait_for_server(get_config().get("port", 7778))
     try:
         def _progress(msg: str):
             if icon is None:

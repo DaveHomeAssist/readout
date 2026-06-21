@@ -35,6 +35,11 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 | ID | Severity | Status | Title | Notes |
 |----|----------|--------|-------|-------|
 | 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+ |
+| 002 | P1 | resolved | CORS open to all origins | `allow_origins=["*"]` let any visited web page drive the local API. Locked to `chrome-extension://` via regex; added TrustedHostMiddleware (loopback-only) for DNS-rebinding; disabled /docs+/openapi.json (2026-06-21) |
+| 003 | P1 | resolved | API keys echoed by PATCH /config | Response returned full config incl. plaintext keys. Now redacted to a presence flag via `_safe_config()`; config.json written 0600 (2026-06-21) |
+| 004 | P2 | resolved | Unbounded /speak input | No length limit; large text = CPU/RAM DoS. Capped at MAX_TEXT_CHARS=20000 before synthesis (2026-06-21) |
+| 005 | P2 | resolved | Startup hang on cold launch | Warmup thread's kokoro/transformers import raced uvicorn's startup imports on the Python import lock, hanging the bind. Gated heavy import behind `_wait_for_server`; pinned asyncio loop to avoid slow uvloop native load (2026-06-21) |
+| 006 | P3 | resolved | Extension over-permissioned | Dropped unused `storage` permission; manifest 1.1 → 1.2 (2026-06-21) |
 
 ## Deployment
 
