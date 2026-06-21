@@ -1,64 +1,55 @@
 """
 server.py — ReadOut REST API
 Endpoints:  POST /speak   POST /stop   GET /status   GET /voices   PATCH /config
-CORS open to localhost — browser extension hits this directly.
+CORS restricted to the companion Chrome extension and localhost dev tools.
+Config responses redact provider API keys so the server never echoes back
+the OpenAI / ElevenLabs credentials a user just stored.
 """
 from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 import tts_engine
 import config as cfg_module
 
-# Hard cap on a single /speak request, so a hostile or runaway caller can't pin
-# the CPU/RAM by submitting an enormous block of text to synthesise.
+app = FastAPI(title="ReadOut TTS", version="1.0.0")
+
+# Cap synthesis input so a huge paste can't pin CPU/RAM (issue 004).
 MAX_TEXT_CHARS = 20_000
 
-# Config keys that hold secrets — never echoed back in an API response.
-_SECRET_KEYS = ("openai_api_key", "elevenlabs_api_key")
-
-# Interactive docs are disabled: this is a local control surface for known
-# clients, not a public API, so the schema browser only widens the surface.
-app = FastAPI(
-    title="ReadOut TTS",
-    version="1.0.0",
-    docs_url=None,
-    redoc_url=None,
-    openapi_url=None,
+# Allow Chrome extension origins and local dev origins only. The service
+# listens on 127.0.0.1:7778, so the previous wildcard CORS policy let any
+# website the user visited drive the local daemon; pinning the origin closes
+# that drive-by path. Note: chrome-extension://.* permits any extension, not
+# just the companion one — the published extension ID is not pinned yet.
+_ALLOWED_ORIGIN_REGEX = (
+    r"^(chrome-extension://.*"
+    r"|http://localhost(:\d+)?"
+    r"|http://127\.0\.0\.1(:\d+)?)$"
 )
 
-# DNS-rebinding guard. The server only binds loopback, but a remote page can try
-# to rebind a hostname it controls to 127.0.0.1 and reach us from the browser.
-# Such a request still carries the attacker's Host header, so we reject anything
-# that isn't loopback. (Starlette compares the host without the port.)
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1"],
-)
-
-# CORS is locked to browser extensions — the only legitimate cross-origin caller.
-# The control panel is served from this same origin and needs no CORS grant, and
-# the desktop UI talks over plain Python (no browser, no CORS). Denying arbitrary
-# web origins stops any page you visit from driving the local server or reading
-# stored API keys back out of it.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^chrome-extension://[a-p]{32}$",
+    allow_origin_regex=_ALLOWED_ORIGIN_REGEX,
     allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type"],
+    allow_credentials=False,
 )
 
+# Fields that must never appear in an HTTP response body. Keep this list
+# in sync with any new provider credential added to ConfigUpdate below.
+_SECRET_FIELDS = frozenset({"openai_api_key", "elevenlabs_api_key"})
 
-def _safe_config() -> dict:
-    """Config snapshot with secrets reduced to a presence flag, never the value."""
-    snapshot = dict(cfg_module.get_config())
-    for key in _SECRET_KEYS:
-        snapshot[key] = bool(snapshot.get(key))   # True if set, never the secret
-    return snapshot
+
+def _public_config(cfg: dict) -> dict:
+    """Return a copy of cfg safe to send over HTTP (credentials redacted)."""
+    return {
+        key: ("***" if key in _SECRET_FIELDS and value else value)
+        for key, value in cfg.items()
+    }
 
 
 CONTROL_PANEL_HTML = """<!doctype html>
@@ -1026,7 +1017,7 @@ def status():
         "speed":         cfg.get("speed"),
         "always_save":   cfg.get("always_save"),
         "save_dir":      cfg.get("save_dir"),
-        # API keys are never echoed — only a presence flag, mirroring _safe_config().
+        # API keys are never echoed — only a presence flag, mirroring _public_config().
         "openai_api_key":     bool(cfg.get("openai_api_key")),
         "elevenlabs_api_key": bool(cfg.get("elevenlabs_api_key")),
         "model_ready":   not tts_engine.is_first_run(),
@@ -1045,39 +1036,39 @@ def voices():
 def update_config(update: ConfigUpdate):
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
     cfg_module.set_config(updates)
-    return {"status": "updated", "config": _safe_config()}
+    # Never echo provider API keys back in an HTTP response. The client
+    # just sent them; it does not need them returned, and logs or XSS
+    # elsewhere in the browser could surface the response body.
+    return {"status": "updated", "config": _public_config(cfg_module.get_config())}
 
 
 # ── Engine fallbacks ──────────────────────────────────────────────────────────
 
 def _speak_openai(req: SpeakRequest, cfg: dict) -> dict:
     try:
-        import io
         import openai
-        import sounddevice as sd
-        import soundfile as sf
 
         client   = openai.OpenAI(api_key=cfg["openai_api_key"])
         response = client.audio.speech.create(
-            model = "tts-1",
-            voice = req.voice or "alloy",
-            input = req.text,
-            speed = req.speed or 1.0,
+            model           = "tts-1",
+            voice           = req.voice or "alloy",
+            input           = req.text,
+            speed           = req.speed or 1.0,
+            response_format = "wav",   # WAV decodes reliably via soundfile
         )
-        buf  = io.BytesIO(response.content)
-        data, sr = sf.read(buf)
-        sd.play(data, samplerate=sr)
-        return {"status": "playing", "engine": "openai"}
+        data, sr = tts_engine.read_audio(response.content)
+        tts_engine.play_audio(data, sr)
+        result = {"status": "playing", "engine": "openai"}
+        if req.save or cfg.get("always_save", False):
+            result["saved_to"] = tts_engine.save_wav(data, sr)
+        return result
     except Exception as exc:
         return {"status": "error", "message": str(exc)}
 
 
 def _speak_elevenlabs(req: SpeakRequest, cfg: dict) -> dict:
     try:
-        import io
         import requests
-        import sounddevice as sd
-        import soundfile as sf
 
         vid     = req.voice or "21m00Tcm4TlvDq8ikWAM"   # Rachel default
         url     = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}/stream"
@@ -1091,9 +1082,19 @@ def _speak_elevenlabs(req: SpeakRequest, cfg: dict) -> dict:
             headers = headers,
             timeout = 30,
         )
-        buf  = io.BytesIO(r.content)
-        data, sr = sf.read(buf)
-        sd.play(data, samplerate=sr)
-        return {"status": "playing", "engine": "elevenlabs"}
+        if not r.ok:
+            # ElevenLabs returns a JSON error body on failure; surface it
+            # instead of letting soundfile choke on non-audio bytes.
+            return {"status": "error", "message": f"ElevenLabs API {r.status_code}: {r.text[:200]}"}
+
+        # This endpoint streams MP3 by default and offers no WAV option (unlike
+        # the OpenAI path's response_format="wav"), so decoding relies on a
+        # soundfile/libsndfile build with MPEG support (libsndfile >= 1.1).
+        data, sr = tts_engine.read_audio(r.content)
+        tts_engine.play_audio(data, sr)
+        result = {"status": "playing", "engine": "elevenlabs"}
+        if req.save or cfg.get("always_save", False):
+            result["saved_to"] = tts_engine.save_wav(data, sr)
+        return result
     except Exception as exc:
         return {"status": "error", "message": str(exc)}
