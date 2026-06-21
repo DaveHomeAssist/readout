@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReadOut — TTS Desktop</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #080808;
+    --surface: #111;
+    --surface2: #181818;
+    --surface3: #202020;
+    --border: #252525;
+    --border2: #2e2e2e;
+    --accent: #b8f542;
+    --accent-dim: rgba(184,245,66,0.1);
+    --accent-glow: rgba(184,245,66,0.15);
+    --text: #efefef;
+    --text-dim: #aaa;
+    --text-muted: #555;
+    --red: #ff5252;
+    --blue: #52a8ff;
+    --orange: #ffaa52;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── WINDOW CHROME ── */
+  .window {
+    width: 560px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .titlebar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  .traffic-lights {
+    display: flex;
+    gap: 6px;
+    -webkit-app-region: no-drag;
+  }
+  .traffic-light {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+  }
+  .tl-close { background: #ff5f57; }
+  .tl-min { background: #febc2e; }
+  .tl-max { background: #28c840; }
+
+  .window-title {
+    flex: 1;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-left: -57px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: glow 2s infinite;
+  }
+  @keyframes glow {
+    0%,100% { box-shadow: 0 0 4px var(--accent); }
+    50% { box-shadow: 0 0 10px var(--accent); }
+  }
+
+  .body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ── VOICE SELECTOR ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .voice-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px;
+  }
+  .voice-tab {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .voice-tab:hover { color: var(--text-dim); }
+  .voice-tab.active {
+    background: var(--surface3);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .voice-tab .tab-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+  .badge-free { background: var(--accent-dim); color: var(--accent); }
+  .badge-api { background: rgba(82,168,255,0.12); color: var(--blue); }
+  .badge-premium { background: rgba(255,170,82,0.12); color: var(--orange); }
+
+  /* ── TEXT INPUT ── */
+  .text-input-wrap {
+    position: relative;
+  }
+  .text-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 12px 14px 36px;
+    resize: none;
+    height: 110px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .text-input:focus { border-color: var(--border2); }
+  .text-input::placeholder { color: var(--text-muted); }
+
+  .char-count {
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .char-count.warn { color: var(--orange); }
+
+  .input-actions {
+    position: absolute;
+    bottom: 10px; left: 12px;
+    display: flex;
+    gap: 6px;
+  }
+  .icon-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--border2); color: var(--text-dim); }
+
+  /* ── VOICE + SPEED ROW ── */
+  .controls-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .control-group label {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .select-wrap {
+    position: relative;
+  }
+  .select-wrap select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 7px 28px 7px 10px;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .select-wrap select:focus { border-color: var(--border2); }
+  .select-wrap::after {
+    content: '▾';
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    font-size: 10px;
+  }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .speed-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--border2);
+    border-radius: 1px;
+    outline: none;
+  }
+  .speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+  .speed-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* ── WAVEFORM ── */
+  .waveform-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  .wave-bar {
+    width: 2px;
+    background: var(--border2);
+    border-radius: 1px;
+    transition: height 0.08s ease, background 0.2s;
+  }
+  .waveform-wrap.playing .wave-bar {
+    background: var(--accent);
+    animation: wavePulse var(--dur, 0.4s) ease-in-out infinite alternate;
+    animation-delay: var(--delay, 0s);
+  }
+  @keyframes wavePulse {
+    from { height: var(--min-h, 4px); }
+    to { height: var(--max-h, 28px); }
+  }
+  .waveform-label {
+    position: absolute;
+    right: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+  .playhead {
+    position: absolute;
+    left: 16px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(184,245,66,0.4);
+    display: none;
+  }
+  .waveform-wrap.playing .playhead {
+    display: block;
+    animation: playheadMove 3s linear infinite;
+  }
+  @keyframes playheadMove {
+    from { left: 16px; }
+    to { left: calc(100% - 28px); }
+  }
+
+  /* ── PLAYBACK CONTROLS ── */
+  .playback-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn-play {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    color: #000;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 16px var(--accent-glow);
+    flex-shrink: 0;
+  }
+  .btn-play:hover { transform: scale(1.06); box-shadow: 0 6px 20px var(--accent-glow); }
+  .btn-play:active { transform: scale(0.96); }
+
+  .btn-secondary {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-secondary:hover { border-color: var(--border2); color: var(--text); }
+  .btn-secondary.active {
+    background: var(--accent-dim);
+    border-color: rgba(184,245,66,0.3);
+    color: var(--accent);
+  }
+
+  /* ── QUEUE / HISTORY ── */
+  .queue-section { }
+  .queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  .queue-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 12px;
+    transition: border-color 0.15s;
+  }
+  .queue-item:hover { border-color: var(--border2); }
+  .queue-item.playing-now {
+    border-color: rgba(184,245,66,0.3);
+    background: var(--accent-dim);
+  }
+  .queue-idx {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    min-width: 14px;
+  }
+  .queue-text { flex: 1; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue-item.playing-now .queue-text { color: var(--accent); }
+  .queue-duration {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+  .queue-dl {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .queue-dl:hover { color: var(--accent); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── SOURCE BADGE in corner ── */
+  .model-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: auto;
+  }
+  .model-kokoro { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(184,245,66,0.2); }
+  .model-openai { background: rgba(82,168,255,0.1); color: var(--blue); border: 1px solid rgba(82,168,255,0.2); }
+  .model-eleven { background: rgba(255,170,82,0.1); color: var(--orange); border: 1px solid rgba(255,170,82,0.2); }
+</style>
+</head>
+<body>
+
+<div class="window">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+    <div class="window-title">ReadOut — Text to Speech</div>
+    <div class="status-dot"></div>
+  </div>
+
+  <div class="body">
+
+    <!-- VOICE ENGINE TABS -->
+    <div>
+      <div class="section-label">Voice engine</div>
+      <div class="voice-tabs" id="voice-tabs">
+        <div class="voice-tab active" data-engine="kokoro">
+          Kokoro <span class="tab-badge badge-free">LOCAL</span>
+        </div>
+        <div class="voice-tab" data-engine="openai">
+          OpenAI <span class="tab-badge badge-api">API</span>
+        </div>
+        <div class="voice-tab" data-engine="elevenlabs">
+          ElevenLabs <span class="tab-badge badge-premium">API</span>
+        </div>
+        <div class="voice-tab" data-engine="browser">
+          Browser <span class="tab-badge badge-free">FREE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEXT INPUT -->
+    <div class="text-input-wrap">
+      <textarea class="text-input" id="text-input"
+        placeholder="Paste text here, or select text on any page and hit the extension button..."></textarea>
+      <div class="input-actions">
+        <button class="icon-btn" onclick="pasteClipboard()">paste</button>
+        <button class="icon-btn" onclick="clearText()">clear</button>
+      </div>
+      <div class="char-count" id="char-count">0</div>
+    </div>
+
+    <!-- VOICE + SPEED -->
+    <div class="controls-row">
+      <div class="control-group">
+        <label>Voice</label>
+        <div class="select-wrap">
+          <select id="voice-select">
+            <option>af_heart (warm, feminine)</option>
+            <option>af_sky (bright, clear)</option>
+            <option>am_adam (deep, neutral)</option>
+            <option>am_echo (casual, male)</option>
+            <option>bf_emma (British, feminine)</option>
+            <option>bm_lewis (British, male)</option>
+          </select>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>Speed</label>
+        <div class="speed-control">
+          <input type="range" class="speed-slider" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+          <span class="speed-value" id="speed-val">1.0×</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WAVEFORM -->
+    <div class="waveform-wrap" id="waveform">
+      <div class="playhead"></div>
+      <!-- bars generated by JS -->
+      <span class="waveform-label" id="wave-label">READY</span>
+    </div>
+
+    <!-- PLAYBACK CONTROLS -->
+    <div class="playback-row">
+      <button class="btn-play" id="btn-play" title="Speak">▶</button>
+      <button class="btn-secondary" id="btn-save" onclick="saveFn()">⬇ Save MP3</button>
+      <button class="btn-secondary" id="btn-auto" onclick="toggleAuto(this)">⚡ Auto-read</button>
+      <span class="model-badge model-kokoro" id="model-badge">KOKORO</span>
+    </div>
+
+    <!-- QUEUE -->
+    <div class="queue-section">
+      <div class="section-label">Recent / Queue</div>
+      <div class="queue-list" id="queue-list">
+        <div class="queue-item playing-now">
+          <span class="queue-idx">▶</span>
+          <span class="queue-text">Kokoro is an open-weight TTS model with 82 million parameters...</span>
+          <span class="queue-duration">0:08</span>
+          <button class="queue-dl" title="Download">↓</button>
+        </div>
+        <div class="queue-item">
+          <span class="queue-idx">2</span>
+          <span class="queue-text">PromptLab improves, expands, and compares your AI prompts in seconds...</span>
+          <span class="queue-duration">0:11</span>
+          <button class="queue-dl" title="Download">↓</button>
+        </div>
+        <div class="queue-item">
+          <span class="queue-idx">3</span>
+          <span class="queue-text">ShieldBox Security — Philadelphia Event Security. 24-hour turnaround...</span>
+          <span class="queue-duration">0:09</span>
+          <button class="queue-dl" title="Download">↓</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── WAVEFORM BARS ──
+  const waveform = document.getElementById('waveform');
+  const waveLabel = document.getElementById('wave-label');
+  const NUM_BARS = 52;
+
+  for (let i = 0; i < NUM_BARS; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'wave-bar';
+    const h = 4 + Math.random() * 8;
+    bar.style.height = h + 'px';
+    bar.style.setProperty('--min-h', (3 + Math.random() * 4) + 'px');
+    bar.style.setProperty('--max-h', (12 + Math.random() * 20) + 'px');
+    bar.style.setProperty('--dur', (0.3 + Math.random() * 0.5) + 's');
+    bar.style.setProperty('--delay', (Math.random() * 0.4) + 's');
+    waveform.insertBefore(bar, waveform.querySelector('.waveform-label'));
+  }
+
+  // ── PLAY BUTTON ──
+  let isPlaying = false;
+  const btnPlay = document.getElementById('btn-play');
+
+  btnPlay.addEventListener('click', () => {
+    const text = document.getElementById('text-input').value.trim();
+    if (!text) return;
+
+    isPlaying = !isPlaying;
+    if (isPlaying) {
+      waveform.classList.add('playing');
+      btnPlay.textContent = '⏸';
+      btnPlay.style.background = '#ff5252';
+      waveLabel.textContent = 'PLAYING';
+
+      // Use browser TTS as demo
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(text.slice(0, 300));
+        utt.rate = parseFloat(document.getElementById('speed-slider').value);
+        utt.onend = () => {
+          stopPlayback();
+        };
+        window.speechSynthesis.speak(utt);
+      }
+    } else {
+      stopPlayback();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+  });
+
+  function stopPlayback() {
+    isPlaying = false;
+    waveform.classList.remove('playing');
+    btnPlay.textContent = '▶';
+    btnPlay.style.background = 'var(--accent)';
+    waveLabel.textContent = 'READY';
+  }
+
+  // ── CHAR COUNT ──
+  const textInput = document.getElementById('text-input');
+  const charCount = document.getElementById('char-count');
+  textInput.addEventListener('input', () => {
+    const len = textInput.value.length;
+    charCount.textContent = len.toLocaleString();
+    charCount.classList.toggle('warn', len > 2000);
+  });
+
+  // ── SPEED ──
+  const speedSlider = document.getElementById('speed-slider');
+  const speedVal = document.getElementById('speed-val');
+  speedSlider.addEventListener('input', () => {
+    speedVal.textContent = parseFloat(speedSlider.value).toFixed(1) + '×';
+  });
+
+  // ── VOICE TABS ──
+  const modelBadge = document.getElementById('model-badge');
+  const voiceSelect = document.getElementById('voice-select');
+  const engineConfigs = {
+    kokoro: {
+      label: 'KOKORO', cls: 'model-kokoro',
+      voices: ['af_heart (warm, feminine)', 'af_sky (bright, clear)', 'am_adam (deep, neutral)', 'am_echo (casual, male)', 'bf_emma (British, feminine)', 'bm_lewis (British, male)']
+    },
+    openai: {
+      label: 'OPENAI TTS-1', cls: 'model-openai',
+      voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+    },
+    elevenlabs: {
+      label: 'ELEVENLABS', cls: 'model-eleven',
+      voices: ['Rachel', 'Domi', 'Bella', 'Antoni', 'Elli', 'Josh', 'Arnold', 'Adam', 'Sam']
+    },
+    browser: {
+      label: 'WEB SPEECH', cls: 'model-kokoro',
+      voices: ['Default System Voice', 'Google US English', 'Google UK English', 'Samantha (macOS)', 'Alex (macOS)']
+    }
+  };
+
+  document.getElementById('voice-tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.voice-tab');
+    if (!tab) return;
+    document.querySelectorAll('.voice-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    const engine = tab.dataset.engine;
+    const cfg = engineConfigs[engine];
+    modelBadge.textContent = cfg.label;
+    modelBadge.className = 'model-badge ' + cfg.cls;
+
+    voiceSelect.innerHTML = cfg.voices.map(v => `<option>${v}</option>`).join('');
+  });
+
+  // ── UTILS ──
+  function pasteClipboard() {
+    navigator.clipboard.readText().then(t => {
+      textInput.value = t;
+      charCount.textContent = t.length.toLocaleString();
+    }).catch(() => {
+      textInput.value = 'PromptLab improves, expands, and compares your AI prompts in seconds — so you spend less time wrestling with language and more time getting results.';
+      charCount.textContent = textInput.value.length;
+    });
+  }
+
+  function clearText() {
+    textInput.value = '';
+    charCount.textContent = '0';
+    stopPlayback();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
+
+  function saveFn() {
+    const btn = document.getElementById('btn-save');
+    btn.classList.add('active');
+    btn.textContent = '✓ Saved';
+    setTimeout(() => {
+      btn.classList.remove('active');
+      btn.textContent = '⬇ Save MP3';
+    }, 1800);
+  }
+
+  function toggleAuto(btn) {
+    btn.classList.toggle('active');
+    btn.textContent = btn.classList.contains('active') ? '⚡ Auto-read ON' : '⚡ Auto-read';
+  }
+</script>
+</body>
+</html>
