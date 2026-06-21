@@ -11,7 +11,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 - Kokoro TTS engine (82M param model, ~300 MB, Hugging Face download)
 - PyTorch with MPS Metal acceleration on Apple Silicon
 - pystray (system tray icon)
-- Tkinter (desktop UI window, disabled on macOS 26+ due to Tk/NSApplication crash)
+- Web control panel at `/control` (the desktop UI, served by FastAPI; opened in the browser)
 - Chrome extension (MV3, right-click to speak selected text)
 - espeak-ng (phonemizer backend, required system dependency)
 
@@ -21,8 +21,8 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 - Port 7778 (DaveLLM uses 7777, both can run simultaneously).
 - Config stored at `~/.readout/config.json`, hot-reloadable without restart.
 - Kokoro model downloads on first run (~300 MB from Hugging Face).
-- macOS 26+: Tkinter UI disabled due to Tk/NSApplication `macOSVersion` selector crash. Tray + server + Chrome extension remain fully functional.
-- Thread layout: main thread = pystray tray, daemon threads = uvicorn server + Kokoro warmup + Tkinter UI (when available).
+- Desktop UI is the web control panel at `/control`. The legacy Tkinter window was removed (it crashed on macOS 26+ via a Tk/NSApplication `macOSVersion` selector conflict, issue 001); the control panel supersedes it on every platform.
+- Thread layout: main thread = pystray tray, daemon threads = uvicorn server + Kokoro warmup.
 - Tool execution and file paths use safe patterns (no shell=True).
 
 ## Documentation Maintenance
@@ -34,7 +34,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 
 | ID | Severity | Status | Title | Notes |
 |----|----------|--------|-------|-------|
-| 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+ |
+| 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+; Tk fully removed 2026-06-21 (ui.py deleted, Tk machinery stripped from main.py) — the web control panel is the canonical desktop UI on all platforms |
 | 002 | P1 | resolved | CORS open to all origins | `allow_origins=["*"]` let any visited web page drive the local API. Locked to `chrome-extension://` via regex; added TrustedHostMiddleware (loopback-only) for DNS-rebinding; disabled /docs+/openapi.json (2026-06-21) |
 | 003 | P1 | resolved | API keys echoed by PATCH /config | Response returned full config incl. plaintext keys. Now redacted via `_public_config()` (`***`); config.json written 0600 (2026-06-21) |
 | 004 | P2 | resolved | Unbounded /speak input | No length limit; large text = CPU/RAM DoS. Capped at MAX_TEXT_CHARS=20000 before synthesis (2026-06-21) |

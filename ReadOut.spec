@@ -23,13 +23,8 @@ extra_datas = [
     *collect_data_files('language_tags'),
 ]
 extra_binaries = collect_dynamic_libs('espeakng_loader')
+# Tk was retired (the desktop UI is the web control panel); no tkinter imports.
 tk_hiddenimports = []
-if sys.platform != 'darwin':
-    tk_hiddenimports = [
-        'tkinter',
-        'tkinter.ttk',
-        'tkinter.font',
-    ]
 
 # ── Analysis ──────────────────────────────────────────────────────────────────
 a = Analysis(
