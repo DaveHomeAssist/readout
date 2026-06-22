@@ -9,6 +9,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 - Python 3.10-3.12 (Kokoro requires < 3.13)
 - FastAPI + uvicorn (local REST server on port 7778)
 - Kokoro TTS engine (82M param model, ~300 MB, Hugging Face download)
+- Pluggable engines (`engines/` package + registry): Kokoro (local) / OpenAI TTS / ElevenLabs behind one `TTSEngine` interface
 - PyTorch with MPS Metal acceleration on Apple Silicon
 - pystray (system tray icon)
 - Web control panel at `/control` (the desktop UI, served by FastAPI; opened in the browser)
@@ -23,6 +24,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 - Kokoro model downloads on first run (~300 MB from Hugging Face).
 - Desktop UI is the web control panel at `/control`. The legacy Tkinter window was removed (it crashed on macOS 26+ via a Tk/NSApplication `macOSVersion` selector conflict, issue 001); the control panel supersedes it on every platform.
 - Thread layout: main thread = pystray tray, daemon threads = uvicorn server + Kokoro warmup.
+- Engines are pluggable behind a single `TTSEngine` interface (`engines/base.py`) with `engines/registry.py` as the one extension point (each engine owns its synthesis, voice catalogue, and capability metadata: is_local / requires_key / supports_blend). `GET /voices` returns the registry `engines` catalogue, which the control panel and extension consume instead of hardcoding voice lists. Adding a backend = implement `TTSEngine` + register.
 - Tool execution and file paths use safe patterns (no shell=True).
 
 ## Documentation Maintenance
