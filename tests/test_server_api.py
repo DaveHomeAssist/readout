@@ -31,6 +31,14 @@ def test_control_panel_serves_html(client):
     assert "ReadOut Control Panel" in r.text
 
 
+def test_control_panel_phase1_controls_are_current(client):
+    r = client.get("/control")
+    assert "Speak &amp; Save WAV" in r.text
+    assert "Save MP3" not in r.text
+    assert "Auto-read" not in r.text
+    assert 'value="browser"' not in r.text
+
+
 # ── /status ───────────────────────────────────────────────────────────────────
 
 def test_status_ready(client, monkeypatch):
@@ -59,6 +67,9 @@ def test_voices_returns_catalogue(client):
     data = client.get("/voices").json()
     assert isinstance(data["voices"], list)
     assert {"id", "label"} <= data["voices"][0].keys()
+    engine_names = [engine["name"] for engine in data["engines"]]
+    assert engine_names == ["kokoro", "openai", "elevenlabs"]
+    assert "browser" not in engine_names
 
 
 # ── /speak routing ────────────────────────────────────────────────────────────
@@ -140,6 +151,14 @@ def test_patch_config_ignores_unset_fields(client):
     client.patch("/config", json={"speed": 1.5})  # voice not included
     assert config.get_config()["voice"] == "bf_emma"
     assert config.get_config()["speed"] == 1.5
+
+
+def test_patch_config_rejects_browser_engine(client):
+    import config
+    r = client.patch("/config", json={"engine": "browser"})
+    assert r.status_code == 400
+    assert r.json()["detail"] == "Unsupported engine: browser"
+    assert config.get_config()["engine"] == "kokoro"
 
 
 def test_empty_key_is_not_redacted_to_stars(client):

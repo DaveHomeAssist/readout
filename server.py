@@ -7,7 +7,7 @@ the OpenAI / ElevenLabs credentials a user just stored.
 """
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
@@ -1060,6 +1060,10 @@ def voices():
 @app.patch("/config")
 def update_config(update: ConfigUpdate):
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
+    engine = updates.get("engine")
+    if engine is not None and engine not in registry.names():
+        raise HTTPException(status_code=400, detail=f"Unsupported engine: {engine}")
+
     cfg_module.set_config(updates)
     # Never echo provider API keys back in an HTTP response. The client
     # just sent them; it does not need them returned, and logs or XSS

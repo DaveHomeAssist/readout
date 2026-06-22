@@ -6,12 +6,11 @@
 ```bash
 cd readout
 source .venv/bin/activate
-python main.py --headless --no-browser
+python main.py
 ```
 A system tray icon (soundwave bars) appears in your menu bar. First launch downloads the Kokoro voice model (~300 MB) — one-time only.
 
-If Homebrew Python crashes while opening the desktop window because it is linked
-against Tk 9 on a newer macOS build, use the browser fallback instead:
+For API-only development without the tray or auto-opened control panel:
 
 ```bash
 python main.py --headless --no-browser
@@ -37,10 +36,10 @@ Then open the local control panel at `http://127.0.0.1:7778/control`.
 - It shows connection status, voice, engine, and speed controls
 - Select text on a page, then click **"Read Selection"**
 
-**From the desktop window:**
+**From the local control panel:**
 - Paste or type text in the text area
 - Pick a voice and speed
-- Hit the green play button
+- Click **Speak**
 
 ---
 
@@ -48,7 +47,7 @@ Then open the local control panel at `http://127.0.0.1:7778/control`.
 
 ### Voices
 18 built-in Kokoro voices. Change via:
-- The desktop UI voice dropdown
+- The control panel voice dropdown
 - The extension popup dropdown
 - The system tray → Voice menu
 - API: `PATCH http://localhost:7778/config` with `{"voice": "am_adam"}`
@@ -62,10 +61,10 @@ ReadOut supports three TTS backends:
 - **OpenAI TTS** — requires an API key in `~/.readout/config.json`
 - **ElevenLabs** — requires an API key in `~/.readout/config.json`
 
-Switch engines from the desktop UI tabs, the extension popup, or the tray menu.
+Switch engines from the control panel, the extension popup, or the tray menu.
 
 ### Saving audio
-- Click **"Save MP3"** in the desktop UI to save current text as a WAV file
+- Click **"Speak & Save WAV"** in the control panel to save current text as a WAV file
 - Right-click selected text → **"Read aloud & save WAV"** from the extension
 - Files save to `~/Desktop/ReadOut/` by default
 

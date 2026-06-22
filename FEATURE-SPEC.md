@@ -1,12 +1,11 @@
 # ReadOut — Feature Specification
 
 **Status:** as-built description of the current codebase
-**Date:** 2026-06-21
-**Reported versions:** API server `1.0.0` (server.py) · extension `1.1` (manifest.json)
-**Scope:** local-first desktop text-to-speech with a browser companion. This
-document describes what the app *actually does today*, including partial /
-cosmetic features and known gaps. It is a description of the current state, not
-a roadmap.
+**Date:** 2026-06-22
+**Reported versions:** API server `1.0.0` (server.py) · extension `1.3` (manifest.json)
+**Scope:** private by default desktop text-to-speech with a browser companion.
+This document describes what the app *actually does today*, including known
+gaps. It is a description of the current state, not a roadmap.
 
 ---
 
@@ -16,11 +15,11 @@ ReadOut turns selected or pasted text into spoken audio. Its headline mode runs
 the **Kokoro 82M** model fully on-device (no API cost, no data leaves the
 machine). It also offers two cloud engines (OpenAI TTS, ElevenLabs) as opt-in
 alternatives. A local FastAPI server on `localhost:7778` is the hub; a Chrome
-extension, a browser control panel, a Tkinter desktop window, and a system-tray
-menu are all clients of that server.
+extension, the `/control` web control panel, and a system-tray menu are clients
+of that server.
 
 **Core value props**
-- Local-first / private by default (Kokoro never sends text off-device).
+- Private by default when using Kokoro (Kokoro never sends text off-device).
 - "Read aloud" anything you select in the browser via right-click.
 - Multiple engines and 18 local voices, switchable at runtime.
 - Hot-reloadable config; no restart to change voice/speed/engine.
@@ -35,19 +34,19 @@ menu are all clients of that server.
                 └───────────────▲───────────────▲───────────────▲───────────────▲────────┘
                                 │               │               │               │
             ┌───────────────────┘   ┌───────────┘     ┌─────────┘      ┌─────────┘
-   Chrome extension (MV3)   Browser control panel   Tkinter desktop UI   System tray menu
-   - context menus          (/control, served HTML) (ui.py; disabled on  (pystray; process
-   - popup player/guide                              macOS 26+/Tk9)       anchor on macOS)
+   Chrome extension (MV3)        Browser control panel        System tray menu
+   - context menus               (/control, served HTML)      (pystray; process
+   - popup player/guide                                       anchor on macOS)
    - content toast
 
-   Engine layer:  tts_engine.py (Kokoro local)  ·  server._speak_openai  ·  server._speak_elevenlabs
+   Engine layer:  engines/registry.py  ·  tts_engine.py (Kokoro local)  ·  OpenAI  ·  ElevenLabs
    Config:        ~/.readout/config.json (flat JSON, re-read every request)
    Audio out:     sounddevice (non-blocking play) + soundfile (WAV save)
 ```
 
 **Process / thread model** (`main.py`): main thread = pystray tray (macOS
-requires the tray on the main thread); daemon threads = uvicorn server, Kokoro
-warm-up, and the Tk UI when enabled. Quitting the tray stops the process.
+requires the tray on the main thread); daemon threads = uvicorn server and
+Kokoro warm-up. Quitting the tray stops the process.
 
 ---
 
@@ -58,10 +57,10 @@ warm-up, and the Tk UI when enabled. Quitting the tray stops the process.
 | **Kokoro** | `kokoro` | On-device | none | Kokoro 82M, 18 voices, 24 kHz mono | Default, fully working |
 | **OpenAI TTS** | `openai` | Cloud | `openai_api_key` | `tts-1`; alloy/echo/fable/onyx/nova/shimmer | Implemented (`_speak_openai`) |
 | **ElevenLabs** | `elevenlabs` | Cloud | `elevenlabs_api_key` | `eleven_monolingual_v1`; Rachel default | Implemented (`_speak_elevenlabs`) |
-| **Browser** | `browser` | (n/a) | none | Shown in desktop UI tabs only | **Cosmetic — not wired to the server** |
 
 - `/speak` routes by the **config** `engine` value, not by a per-request engine
   field. Kokoro is the default path.
+- `PATCH /config` rejects unsupported engine values.
 - Kokoro details: `KPipeline(lang_code=...)`, `lang_code` `a` = American EN /
   `b` = British EN. Output fixed at 24 kHz. On Apple Silicon,
   `PYTORCH_ENABLE_MPS_FALLBACK=1` is set for Metal acceleration.
@@ -76,8 +75,8 @@ warm-up, and the Tk UI when enabled. Quitting the tray stops the process.
   female `af_*` (heart, sky, bella, sarah, nicole, jessica, nova, river, kore,
   aoede), American male `am_*` (adam, echo, michael, fenrir), British `bf_emma`,
   `bf_isabella`, `bm_george`, `bm_lewis`. `af_heart` is the default.
-- Exposed via `GET /voices` (labeled), the tray Voice submenu, the desktop UI
-  dropdown, the extension popup, and the control panel.
+- Exposed via `GET /voices` (labeled), the tray Voice submenu, the control
+  panel, and the extension popup.
 - **Speed**: 0.5×–2.0× (default 1.0×) everywhere there's a slider.
 - **Voice blending** (`af_heart:60,am_adam:40`): documented in README and the
   in-app guide. It is passed straight through to Kokoro — the app does not parse
@@ -95,8 +94,8 @@ warm-up, and the Tk UI when enabled. Quitting the tray stops the process.
 | POST | `/speak` | `{text, voice?, speed?, save?}` | `{status, voice, speed, saved_to?}` | Routes to active engine |
 | POST | `/stop` | — | `{status:"stopped"}` | Stops `sounddevice` playback |
 | GET | `/status` | — | `{status, engine, voice, speed, model_ready, load_error, version}` | Health + config snapshot |
-| GET | `/voices` | — | `{voices:[{id,label}...]}` | 18 entries |
-| PATCH | `/config` | `{voice?, speed?, engine?, always_save?, *_api_key?}` | `{status:"updated", config:{...}}` | Persists to disk |
+| GET | `/voices` | — | `{voices:[...], engines:[...]}` | Kokoro compatibility list plus registry catalogue |
+| PATCH | `/config` | `{voice?, speed?, engine?, always_save?, *_api_key?}` | `{status:"updated", config:{...}}` | Persists supported settings to disk |
 
 - CORS is locked to `chrome-extension://` origins; arbitrary web pages are
   denied (see §11). A `TrustedHostMiddleware` also rejects non-loopback Host
@@ -105,6 +104,7 @@ warm-up, and the Tk UI when enabled. Quitting the tray stops the process.
 - `/speak` rejects text longer than `MAX_TEXT_CHARS` (20 000) before synthesis.
 - `PATCH /config` never echoes secret values back — API keys are reduced to a
   boolean presence flag.
+- `PATCH /config` rejects unsupported engine names with HTTP 400.
 - `status` is `loading` while the model initializes, then `ready`.
 - Verified live on 2026-06-21: server boots, reaches `ready`, serves `/control`
   (HTTP 200), `/voices` (18), and `/speak` produced a valid 5.15 s / 24 kHz WAV.
@@ -114,45 +114,32 @@ warm-up, and the Tk UI when enabled. Quitting the tray stops the process.
 ## 6. Browser control panel (`/control`)
 
 A single self-contained HTML page embedded in `server.py`, served as the
-**fallback UI** when the Tk desktop window can't run (the standard path on
-current macOS). Features:
+canonical desktop UI. Features:
 
 - Engine selector (Kokoro / OpenAI / ElevenLabs), voice dropdown (client-side
   voice lists per engine), text area, speed slider with live readout.
-- Actions: **Speak**, **Speak + Save WAV**, **Stop**, **Refresh Status**.
+- Actions: **Speak**, **Speak & Save WAV**, **Stop**, **Refresh Status**.
 - Status pill (Ready / Loading / Offline) driven by polling `GET /status`;
   engine/voice/speed changes persist via `PATCH /config`.
 - Dark theme, acid-green (`#b8f542`) accent, responsive down to mobile widths.
 
 ---
 
-## 7. Desktop UI (`ui.py`, Tkinter)
+## 7. Static design reference (`extension/design/tts-desktop-ui.html`)
 
-A richer native window styled to a dark "studio" mockup. **Auto-disabled on
-macOS 26+ / Homebrew-Tk-9 builds** (detected via `otool -L` on `_tkinter`);
-on those systems the app falls back to the browser control panel.
+The old Tkinter desktop window has been retired; there is no runtime `ui.py`.
+`extension/design/tts-desktop-ui.html` remains as a static visual reference for
+the control-panel style. It is not served by the app and does not drive the
+server.
 
-Implemented:
-- Custom title bar (traffic-light dots, status dot), **Player / Guide** view
-  tabs.
-- Engine tabs (Kokoro · OpenAI · ElevenLabs · Browser) with LOCAL/API/FREE
-  badges; model badge updates with selection.
-- Text input with placeholder, **paste** / **clear** buttons, live character
-  count (turns orange past 2000 chars).
-- Voice dropdown (per-engine list) and speed slider (0.5–2.0×).
-- Animated **waveform** canvas (idle vs. playing states).
-- Play/Stop button (posts to `/speak` / `/stop` on a worker thread).
-- **Save MP3** button (note: actually writes a **WAV**), with saving/saved
-  feedback.
-- **Recent / Queue** list (last 5 items with estimated duration).
-- Built-in scrollable **Guide** (Quick Start, Extension, Voices, Engines,
-  Saving, Config, API, Troubleshooting).
-- Status dot polls `GET /status` every 3 s (green/orange/red).
+Current reference surface:
+- Engine tabs: Kokoro · OpenAI · ElevenLabs.
+- Text input with placeholder, paste / clear buttons, live character count.
+- Voice dropdown and speed slider (0.5–2.0×).
+- Animated waveform canvas and play button for visual reference.
+- **Save WAV** button copy only; no MP3 label.
 
-Partial / cosmetic in the desktop UI (see §11): the **Browser** engine tab, the
-**Auto-read** toggle, and the per-row queue **download (↓)** buttons have no
-backing behavior; engine-tab selection does not `PATCH /config`, so it does not
-actually switch the server's active backend.
+Removed from the reference: stale controls that had no server-backed behavior.
 
 ---
 
@@ -161,8 +148,7 @@ actually switch the server's active backend.
 The tray icon is the **process anchor on macOS** and must not be removed. Menu:
 
 - `ReadOut — Running` (disabled header)
-- **Show Window** (or **Open Control Panel** when Tk is unavailable)
-- **Open Control Panel** (when Tk is available)
+- **Open Control Panel**
 - **Stop Audio**
 - **Voice ▸** (all 18 voices)
 - **Engine ▸** (Kokoro / OpenAI / ElevenLabs)
@@ -206,11 +192,10 @@ re-read on every request → hot-reload, no restart):
 | `window_visible` | `true` | Open the desktop window on launch |
 
 **Run modes & env toggles** (`main.py`):
-- Default: tray + server + warm-up + (Tk UI or browser fallback).
-- `--headless` (or `READOUT_HEADLESS=1`): API only, no tray/Tk; optionally opens
+- Default: tray + server + warm-up + control-panel auto-open.
+- `--headless` (or `READOUT_HEADLESS=1`): API only, no tray; optionally opens
   the control panel. `--no-browser` suppresses that auto-open.
-- `READOUT_FORCE_TK` / `READOUT_DISABLE_UI` force or disable the Tk window;
-  `READOUT_AUTO_OPEN_CONTROL` controls control-panel auto-open.
+- `READOUT_AUTO_OPEN_CONTROL` controls control-panel auto-open.
 - `main_app.py` is the packaged-macOS entry point: forces `READOUT_DISABLE_UI=1`
   and `READOUT_AUTO_OPEN_CONTROL=0` (tray + on-demand control panel).
 
@@ -221,7 +206,7 @@ first-run. Playback is non-blocking via `sounddevice`; WAV files are written via
 `soundfile` as `readout_<epoch>.wav` in `save_dir`.
 
 **Packaging** (`ReadOut.spec`, `build_mac.sh`, `build_windows.ps1`): PyInstaller
-builds `dist/ReadOut.app` (macOS menu-bar app, no Tk window) and
+builds `dist/ReadOut.app` (macOS menu-bar app) and
 `dist/ReadOut/ReadOut.exe` (Windows). Asset paths resolve under PyInstaller's
 `_MEIPASS` when bundled.
 
@@ -248,23 +233,19 @@ Silicon (MPS) and Windows; `espeak-ng` required as a system dependency.
   behind server readiness (`_wait_for_server`) and the server pins the stdlib
   asyncio loop, so the heavy import can no longer block uvicorn's bind on the
   Python import lock (a real startup hang).
-- **Extension least privilege.** Dropped the unused `storage` permission
-  (manifest `1.1` → `1.2`).
+- **Extension least privilege.** Dropped the unused `storage` permission.
+- **Phase 1 UI cleanup.** Removed stale reference-only controls, updated WAV
+  save copy, and made `/config` reject unsupported engines.
 
 **Still open (behavioral, not addressed here):**
 
-1. **Desktop UI "Browser" engine** is cosmetic — no server route exists.
-2. **Desktop UI engine tabs don't switch the backend** — selecting OpenAI/
-   ElevenLabs there doesn't `PATCH /config`, so `/speak` still uses the config
-   engine. (The extension popup *does* persist engine changes.)
-3. **Desktop UI Auto-read toggle** and **queue download (↓) buttons** have no
-   behavior.
-4. **"Save MP3" mislabeled** — the desktop button produces a WAV, not MP3.
-5. **Tk desktop UI is effectively dormant** on current macOS; the browser
-   control panel is the de-facto primary UI.
-6. **Hardcoded port** in the extension (`background.js`, `popup.js`) must be
+1. **Hardcoded port** in the extension (`background.js`, `popup.js`) must be
    kept in sync with `config.json` `port`.
-7. **No automated tests** in the repo.
+2. **`/speak` and `/config` unauthenticated.** CORS blocks the extension flow
+   from most arbitrary origins, but the stronger fix is a shared-secret header
+   coordinated with the extension.
+3. **Voice blending is pass-through.** The app forwards Kokoro blend syntax but
+   does not parse or validate it.
 
 ---
 
@@ -272,11 +253,10 @@ Silicon (MPS) and Windows; `espeak-ng` required as a system dependency.
 
 | File | Role |
 |---|---|
-| `main.py` | Entry point; tray + server + warm-up + UI/fallback orchestration |
-| `main_app.py` | Packaged-macOS entry (tray + control panel, no Tk) |
+| `main.py` | Entry point; tray + server + warm-up + control-panel orchestration |
+| `main_app.py` | Packaged-macOS entry (tray + control panel) |
 | `server.py` | FastAPI REST API + embedded `/control` panel + cloud-engine fallbacks |
 | `tts_engine.py` | Kokoro pipeline, playback, WAV save, voice catalogue |
-| `ui.py` | Tkinter desktop window (disabled on macOS 26+/Tk9) |
 | `config.py` | `~/.readout/config.json` load/merge/save + asset paths |
 | `extension/` | Chrome MV3 extension (background, content, popup) |
 | `extension/design/tts-desktop-ui.html` | Static desktop-UI design mockup (reference) |

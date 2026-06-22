@@ -375,55 +375,6 @@
     color: var(--accent);
   }
 
-  /* ── QUEUE / HISTORY ── */
-  .queue-section { }
-  .queue-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 100px;
-    overflow-y: auto;
-  }
-  .queue-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    font-size: 12px;
-    transition: border-color 0.15s;
-  }
-  .queue-item:hover { border-color: var(--border2); }
-  .queue-item.playing-now {
-    border-color: rgba(184,245,66,0.3);
-    background: var(--accent-dim);
-  }
-  .queue-idx {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    color: var(--text-muted);
-    min-width: 14px;
-  }
-  .queue-text { flex: 1; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .queue-item.playing-now .queue-text { color: var(--accent); }
-  .queue-duration {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    color: var(--text-muted);
-  }
-  .queue-dl {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 11px;
-    padding: 0 2px;
-    transition: color 0.15s;
-  }
-  .queue-dl:hover { color: var(--accent); }
-
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -470,9 +421,6 @@
         </div>
         <div class="voice-tab" data-engine="elevenlabs">
           ElevenLabs <span class="tab-badge badge-premium">API</span>
-        </div>
-        <div class="voice-tab" data-engine="browser">
-          Browser <span class="tab-badge badge-free">FREE</span>
         </div>
       </div>
     </div>
@@ -522,34 +470,8 @@
     <!-- PLAYBACK CONTROLS -->
     <div class="playback-row">
       <button class="btn-play" id="btn-play" title="Speak">▶</button>
-      <button class="btn-secondary" id="btn-save" onclick="saveFn()">⬇ Save MP3</button>
-      <button class="btn-secondary" id="btn-auto" onclick="toggleAuto(this)">⚡ Auto-read</button>
+      <button class="btn-secondary" id="btn-save" onclick="saveFn()">⬇ Save WAV</button>
       <span class="model-badge model-kokoro" id="model-badge">KOKORO</span>
-    </div>
-
-    <!-- QUEUE -->
-    <div class="queue-section">
-      <div class="section-label">Recent / Queue</div>
-      <div class="queue-list" id="queue-list">
-        <div class="queue-item playing-now">
-          <span class="queue-idx">▶</span>
-          <span class="queue-text">Kokoro is an open-weight TTS model with 82 million parameters...</span>
-          <span class="queue-duration">0:08</span>
-          <button class="queue-dl" title="Download">↓</button>
-        </div>
-        <div class="queue-item">
-          <span class="queue-idx">2</span>
-          <span class="queue-text">PromptLab improves, expands, and compares your AI prompts in seconds...</span>
-          <span class="queue-duration">0:11</span>
-          <button class="queue-dl" title="Download">↓</button>
-        </div>
-        <div class="queue-item">
-          <span class="queue-idx">3</span>
-          <span class="queue-text">ShieldBox Security — Philadelphia Event Security. 24-hour turnaround...</span>
-          <span class="queue-duration">0:09</span>
-          <button class="queue-dl" title="Download">↓</button>
-        </div>
-      </div>
     </div>
 
   </div>
@@ -587,20 +509,8 @@
       btnPlay.textContent = '⏸';
       btnPlay.style.background = '#ff5252';
       waveLabel.textContent = 'PLAYING';
-
-      // Use browser TTS as demo
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utt = new SpeechSynthesisUtterance(text.slice(0, 300));
-        utt.rate = parseFloat(document.getElementById('speed-slider').value);
-        utt.onend = () => {
-          stopPlayback();
-        };
-        window.speechSynthesis.speak(utt);
-      }
     } else {
       stopPlayback();
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     }
   });
 
@@ -643,10 +553,6 @@
     elevenlabs: {
       label: 'ELEVENLABS', cls: 'model-eleven',
       voices: ['Rachel', 'Domi', 'Bella', 'Antoni', 'Elli', 'Josh', 'Arnold', 'Adam', 'Sam']
-    },
-    browser: {
-      label: 'WEB SPEECH', cls: 'model-kokoro',
-      voices: ['Default System Voice', 'Google US English', 'Google UK English', 'Samantha (macOS)', 'Alex (macOS)']
     }
   };
 
@@ -679,7 +585,6 @@
     textInput.value = '';
     charCount.textContent = '0';
     stopPlayback();
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
   function saveFn() {
@@ -688,13 +593,8 @@
     btn.textContent = '✓ Saved';
     setTimeout(() => {
       btn.classList.remove('active');
-      btn.textContent = '⬇ Save MP3';
+      btn.textContent = '⬇ Save WAV';
     }, 1800);
-  }
-
-  function toggleAuto(btn) {
-    btn.classList.toggle('active');
-    btn.textContent = btn.classList.contains('active') ? '⚡ Auto-read ON' : '⚡ Auto-read';
   }
 </script>
 </body>

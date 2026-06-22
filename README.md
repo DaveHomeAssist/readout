@@ -1,7 +1,7 @@
 # ReadOut — Desktop TTS
 
-Local-first text-to-speech desktop app.  
-Kokoro 82M model runs entirely on your machine — no API costs, no data leaves.  
+Private by default text-to-speech desktop app.
+Kokoro 82M model runs entirely on your machine — no API costs, no data leaves when Kokoro is selected.
 FastAPI local server on `localhost:7778` accepts calls from the browser extension.
 
 ---
@@ -39,19 +39,17 @@ pip install -r requirements.txt
 # 4. macOS M-series only — enable Metal GPU acceleration
 export PYTORCH_ENABLE_MPS_FALLBACK=1   # add to ~/.zshrc permanently
 
-# 5. Run
-python main.py --headless --no-browser
+# 5. Run the tray app + local control panel
+python main.py
 ```
 
-If the desktop Tk window crashes on newer macOS builds because Homebrew Python is
-linked to Tk 9, run the browser-first fallback instead:
+For API-only development without the tray or auto-opened control panel:
 
 ```bash
 python main.py --headless --no-browser
 ```
 
-That starts the local API without using Tk. Then open:
-`http://127.0.0.1:7778/control`
+Then open `http://127.0.0.1:7778/control`.
 
 First launch downloads the Kokoro model weights (~300 MB) from Hugging Face.  
 A tray notification shows progress. Subsequent launches are instant.
@@ -97,11 +95,12 @@ Set-ItemProperty -Path $reg -Name "ReadOut" -Value $exe
 
 ```
 readout/
-├── main.py          Entry point — tray + server + UI
-├── ui.py            Tkinter window (matches screenshot)
+├── main.py          Entry point — tray + server + /control orchestration
+├── main_app.py      Packaged macOS entry point
 ├── server.py        FastAPI REST API  (localhost:7778)
 ├── tts_engine.py    Kokoro wrapper + playback + save
 ├── config.py        ~/.readout/config.json manager
+├── extension/       Chrome MV3 extension + design reference
 ├── assets/
 │   ├── icon.png     64×64 tray icon
 │   ├── icon.icns    macOS app icon (auto-generated)
@@ -121,8 +120,8 @@ readout/
 | POST | /speak | `{text, voice?, speed?, save?}` | Speak text |
 | POST | /stop | — | Stop playback |
 | GET | /status | — | Health + current config |
-| GET | /voices | — | Voice catalogue |
-| PATCH | /config | `{voice?, speed?, engine?, ...}` | Update settings |
+| GET | /voices | — | Voice and engine catalogue |
+| PATCH | /config | `{voice?, speed?, engine?, ...}` | Update settings; rejects unsupported engines |
 
 ---
 

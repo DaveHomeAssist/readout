@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device with zero API costs. FastAPI server on `localhost:7778` accepts calls from a companion Chrome extension. Supports Kokoro (local), OpenAI TTS, and ElevenLabs as engine options.
+Private by default text-to-speech desktop app. Kokoro 82M model runs entirely on-device with zero API costs. FastAPI server on `localhost:7778` accepts calls from a companion Chrome extension. Supports Kokoro (local), OpenAI TTS, and ElevenLabs as engine options.
 
 ## Stack
 
@@ -18,7 +18,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 
 ## Key Decisions
 
-- Local-first: no data leaves the machine when using Kokoro engine.
+- Kokoro privacy default: no data leaves the machine when using the Kokoro engine.
 - Port 7778 (DaveLLM uses 7777, both can run simultaneously).
 - Config stored at `~/.readout/config.json`, hot-reloadable without restart.
 - Kokoro model downloads on first run (~300 MB from Hugging Face).
@@ -30,7 +30,7 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 ## Documentation Maintenance
 
 - **Issues**: Track in CLAUDE.md issue tracker table below
-- **Session log**: Append to `/Users/daverobertson/Desktop/Code/95-docs-personal/today.csv` after each meaningful change
+- **Session log**: Append to `/Users/daverobertson/Desktop/Code/90-governance/docs/today.csv` after each meaningful change
 
 ## Issue Tracker
 
