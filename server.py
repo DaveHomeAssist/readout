@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 import tts_engine
 import config as cfg_module
+from engines import registry
 
 app = FastAPI(title="ReadOut TTS", version="1.0.0")
 
@@ -1029,7 +1030,13 @@ def status():
 
 @app.get("/voices")
 def voices():
-    return {"voices": tts_engine.list_voices_labeled()}
+    # `voices` stays the Kokoro catalogue for backward compatibility; `engines`
+    # is the unified, registry-sourced catalogue (per-engine voices + caps) that
+    # the control panel and extension consume instead of hardcoding lists.
+    return {
+        "voices":  tts_engine.list_voices_labeled(),
+        "engines": registry.catalogue(),
+    }
 
 
 @app.patch("/config")
@@ -1043,58 +1050,12 @@ def update_config(update: ConfigUpdate):
 
 
 # ── Engine fallbacks ──────────────────────────────────────────────────────────
+# The synthesis logic now lives in the engines/ package; these remain as the
+# entrypoints /speak routes to (see the engine registry in engines/registry.py).
 
 def _speak_openai(req: SpeakRequest, cfg: dict) -> dict:
-    try:
-        import openai
-
-        client   = openai.OpenAI(api_key=cfg["openai_api_key"])
-        response = client.audio.speech.create(
-            model           = "tts-1",
-            voice           = req.voice or "alloy",
-            input           = req.text,
-            speed           = req.speed or 1.0,
-            response_format = "wav",   # WAV decodes reliably via soundfile
-        )
-        data, sr = tts_engine.read_audio(response.content)
-        tts_engine.play_audio(data, sr)
-        result = {"status": "playing", "engine": "openai"}
-        if req.save or cfg.get("always_save", False):
-            result["saved_to"] = tts_engine.save_wav(data, sr)
-        return result
-    except Exception as exc:
-        return {"status": "error", "message": str(exc)}
+    return registry.get("openai").synthesize(req, cfg)
 
 
 def _speak_elevenlabs(req: SpeakRequest, cfg: dict) -> dict:
-    try:
-        import requests
-
-        vid     = req.voice or "21m00Tcm4TlvDq8ikWAM"   # Rachel default
-        url     = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}/stream"
-        headers = {
-            "xi-api-key":    cfg["elevenlabs_api_key"],
-            "Content-Type":  "application/json",
-        }
-        r    = requests.post(
-            url,
-            json    = {"text": req.text, "model_id": "eleven_monolingual_v1"},
-            headers = headers,
-            timeout = 30,
-        )
-        if not r.ok:
-            # ElevenLabs returns a JSON error body on failure; surface it
-            # instead of letting soundfile choke on non-audio bytes.
-            return {"status": "error", "message": f"ElevenLabs API {r.status_code}: {r.text[:200]}"}
-
-        # This endpoint streams MP3 by default and offers no WAV option (unlike
-        # the OpenAI path's response_format="wav"), so decoding relies on a
-        # soundfile/libsndfile build with MPEG support (libsndfile >= 1.1).
-        data, sr = tts_engine.read_audio(r.content)
-        tts_engine.play_audio(data, sr)
-        result = {"status": "playing", "engine": "elevenlabs"}
-        if req.save or cfg.get("always_save", False):
-            result["saved_to"] = tts_engine.save_wav(data, sr)
-        return result
-    except Exception as exc:
-        return {"status": "error", "message": str(exc)}
+    return registry.get("elevenlabs").synthesize(req, cfg)
