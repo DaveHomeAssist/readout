@@ -2,6 +2,8 @@
 
 const READOUT_URL = "http://localhost:7778";
 
+// Offline fallback only; the authoritative source is `catalogue`, loaded from
+// the server's /voices endpoint (engines = the server-side registry).
 const VOICES = {
   kokoro: [
     "af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole",
@@ -13,6 +15,21 @@ const VOICES = {
   elevenlabs: ["Rachel", "Domi", "Bella", "Antoni", "Elli", "Josh", "Arnold", "Adam", "Sam"],
 };
 
+// Per-engine catalogue from /voices: { engine: [{id, label}, ...] }
+const catalogue = {};
+
+async function loadVoices() {
+  try {
+    const res = await fetch(`${READOUT_URL}/voices`, { signal: AbortSignal.timeout(2000) });
+    const data = await res.json();
+    if (Array.isArray(data.engines)) {
+      for (const e of data.engines) {
+        catalogue[e.name] = (e.voices || []).map((v) => ({ id: v.id, label: v.label || v.id }));
+      }
+    }
+  } catch { /* keep fallback */ }
+}
+
 const els = {
   status: document.getElementById("status"),
   engine: document.getElementById("engine"),
@@ -23,10 +40,11 @@ const els = {
   btnStop: document.getElementById("btn-stop"),
 };
 
-// Populate voice dropdown for selected engine
+// Populate voice dropdown for selected engine (catalogue first, fallback to VOICES)
 function updateVoices(engine) {
-  const list = VOICES[engine] || [];
-  els.voice.innerHTML = list.map((v) => `<option value="${v}">${v}</option>`).join("");
+  const cat = catalogue[engine];
+  const list = cat && cat.length ? cat : (VOICES[engine] || []).map((v) => ({ id: v, label: v }));
+  els.voice.innerHTML = list.map((v) => `<option value="${v.id}">${v.label}</option>`).join("");
 }
 
 // Check server status
@@ -132,4 +150,4 @@ tabGuide.addEventListener("click", () => {
 
 // Init
 updateVoices("kokoro");
-checkStatus();
+loadVoices().then(() => checkStatus());

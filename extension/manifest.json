@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ReadOut",
   "description": "Right-click any selected text to read it aloud via ReadOut desktop TTS",
-  "version": "1.2",
+  "version": "1.3",
   "permissions": ["contextMenus", "activeTab", "scripting"],
   "host_permissions": ["http://localhost:7778/*"],
   "background": {

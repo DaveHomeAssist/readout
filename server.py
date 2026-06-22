@@ -657,8 +657,9 @@ CONTROL_PANEL_HTML = """<!doctype html>
     const MAX_CHARS_DEFAULT = 20000;
     let MAX_CHARS = MAX_CHARS_DEFAULT;
 
-    // Hardcoded fallback voice lists. /voices is authoritative for Kokoro;
-    // OpenAI/ElevenLabs have no list endpoint, so these always apply.
+    // Minimal offline fallback used only before the first successful /voices
+    // fetch. The authoritative source is the per-engine `catalogue` below,
+    // populated from /voices (engines = the server-side registry).
     const FALLBACK_VOICES = {
       kokoro: [
         "af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole",
@@ -669,6 +670,8 @@ CONTROL_PANEL_HTML = """<!doctype html>
       openai: ["alloy", "echo", "fable", "onyx", "nova", "shimmer"].map((id) => ({ id, label: id })),
       elevenlabs: ["Rachel", "Domi", "Bella", "Antoni", "Elli", "Josh", "Arnold", "Adam", "Sam"].map((id) => ({ id, label: id }))
     };
+    // Per-engine catalogue from /voices: { engine: {voices:[{id,label}], requires_key, supports_blend} }
+    const catalogue = {};
     let kokoroVoices = FALLBACK_VOICES.kokoro;
 
     const $ = (id) => document.getElementById(id);
@@ -701,6 +704,9 @@ CONTROL_PANEL_HTML = """<!doctype html>
     }
 
     function voicesFor(engine) {
+      if (catalogue[engine] && catalogue[engine].voices && catalogue[engine].voices.length) {
+        return catalogue[engine].voices;
+      }
       return engine === "kokoro" ? kokoroVoices : (FALLBACK_VOICES[engine] || []);
     }
 
@@ -717,7 +723,8 @@ CONTROL_PANEL_HTML = """<!doctype html>
         els.voice.appendChild(opt);
       }
       if (!els.voice.value && list.length) els.voice.value = list[0].id;
-      els.voiceHint.hidden = engine !== "kokoro";
+      const blends = catalogue[engine] ? catalogue[engine].supports_blend : engine === "kokoro";
+      els.voiceHint.hidden = !blends;
     }
 
     function reflectEngineKeys(engine) {
@@ -769,7 +776,18 @@ CONTROL_PANEL_HTML = """<!doctype html>
       try {
         const res = await fetch(`${BASE}/voices`, { signal: AbortSignal.timeout(2500) });
         const data = await res.json();
-        if (Array.isArray(data.voices) && data.voices.length) {
+        // Unified per-engine catalogue (voices + capabilities) from the registry.
+        if (Array.isArray(data.engines)) {
+          for (const e of data.engines) {
+            catalogue[e.name] = {
+              voices: (e.voices || []).map((v) => ({ id: v.id, label: v.label || v.id })),
+              requires_key: e.requires_key || null,
+              supports_blend: !!e.supports_blend
+            };
+          }
+          if (catalogue.kokoro && catalogue.kokoro.voices.length) kokoroVoices = catalogue.kokoro.voices;
+        } else if (Array.isArray(data.voices) && data.voices.length) {
+          // Back-compat: server without the engines catalogue.
           kokoroVoices = data.voices.map((v) =>
             typeof v === "string" ? { id: v, label: v } : { id: v.id, label: v.label || v.id });
         }
