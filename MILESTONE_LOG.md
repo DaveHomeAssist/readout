@@ -576,3 +576,19 @@
 - **Evidence:** `py -0p` reported only `-3.13-64`; `Get-Command espeak-ng` returned no path; `Test-Path dist\ReadOut\ReadOut.exe` returned `False`; `.\tools\windows_packaging_prereqs.ps1` reported FAIL for Python 3.10-3.12, `espeak-ng on PATH`, and existing Windows package; release preflight failed `Python 3.10-3.12` and `espeak-ng on PATH` while passing required file, syntax, Git upstream currency, and secret-scan checks.
 - **Notes / risks:** No Windows package build was attempted because the build script is designed to fail before dependency install when supported Python or `espeak-ng` is absent. This is the correct show-safe behavior for release packaging.
 - **Follow-ups:** Install Python 3.12/3.11/3.10 and `espeak-ng`, then run `.\build_windows.ps1` and `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe`.
+
+## Status update - 2026-06-23 14:48 -04:00
+- **Now:** Source-only live API/control and CORS evidence was refreshed without installers, package builds, audio playback, or GUI launch.
+- **Next:** Keep target packaging, manual interactive smoke, and Architect acceptance as separate release blockers.
+- **Tests:** Temporary Uvicorn server passed `.\tools\server_smoke.ps1` and `.\tools\cors_origin_matrix.ps1`.
+- **Blockers:** Python 3.10-3.12, `espeak-ng`, packaged app artifacts, package smoke evidence, manual smoke evidence, and Architect sign-off remain unresolved.
+
+### Source Live Server/CORS Evidence - Refreshed
+- **Done when:** Non-audio source-server checks prove the local API, browser control surface, and exact-origin CORS behavior still work on the integration branch.
+- **What changed:** No product code changed. The evidence log and Architect packet were updated to record the current source-only proof and remove stale upstream-blocker wording from the sign-off packet.
+- **Tests run:**
+  - Temporary `python -m uvicorn server:app --host 127.0.0.1 --port 7778 --log-level warning`
+  - `.\tools\server_smoke.ps1 -BaseUrl http://127.0.0.1:7778`
+  - `.\tools\cors_origin_matrix.ps1 -BaseUrl http://127.0.0.1:7778`
+- **Evidence:** Server smoke passed `GET /status`, `GET /voices`, `GET /history`, and `GET /control`; `/status` returned `dependency_issues=3`, matching the known local prerequisite gaps. CORS matrix passed no-origin status, allowed local status, allowed local config preflight, blocked evil status, and blocked evil stop. The temporary Uvicorn process was stopped after the checks.
+- **Notes / risks:** This is not package smoke evidence and does not prove audible Preview Voice, Speak, Save WAV, Stop playback, Tk desktop, Chrome extension, macOS app lifecycle, or Windows `ReadOut.exe` lifecycle.

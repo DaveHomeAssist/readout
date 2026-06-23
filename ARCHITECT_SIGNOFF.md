@@ -1,6 +1,6 @@
 # ReadOut Architect Sign-off Packet
 
-Last updated: 2026-06-23 06:33 -04:00
+Last updated: 2026-06-23 14:48 -04:00
 
 Purpose: give the Architect one compact place to accept or revise the roadmap
 decisions that are implemented but still waiting on owner sign-off.
@@ -25,7 +25,8 @@ decisions that are implemented but still waiting on owner sign-off.
 | P3-A4 | Accept `RELEASE_CHECKLIST.md` as the required release gate. | `RELEASE_CHECKLIST.md`, `ROADMAP_STATUS.md`, `tests/test_release_docs.py` | [ ] | [ ] | |
 
 ## Current Non-Architect Blockers
-- Local `main` is still behind `origin/main` by 10 commits at the Git graph level. Engine registry, unified voice catalogue consumption, startup-race hardening, extension least privilege, docs/OpenAPI disabling, config-file permission hardening, and loopback Host guard have been ported locally. Remaining upstream UI/spec/packaging deltas still need review without weakening the exact-origin CORS allowlist or dropping preview/history/dependency/release-gate artifacts.
+- Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; `ROADMAP_STATUS.md` and `UPSTREAM_RECONCILIATION.md` now track the clean-branch state. The original dirty local `main` worktree remains a safety copy and should not be blindly pulled, merged, reset, or overwritten.
+- Fresh source-only live checks passed on 2026-06-23 14:48 -04:00: temporary Uvicorn server, `tools/server_smoke.ps1` non-audio API/control smoke, and `tools/cors_origin_matrix.ps1` CORS matrix. These checks do not replace target package smoke, audible preview, Tk desktop, Chrome extension, or Architect acceptance.
 - P3-A1 still needs macOS PyInstaller build and tray/control-panel lifecycle validation on macOS.
 - P3-A2 still needs a Windows target with Python 3.10-3.12 and `espeak-ng` installed, then `ReadOut.exe` build and server lifecycle validation.
 - Manual smoke tests still remain for Tk desktop, Chrome extension popup, audio preview, packaged macOS lifecycle, and packaged Windows lifecycle.
