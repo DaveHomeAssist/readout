@@ -166,6 +166,7 @@ def test_package_smoke_workflow_builds_and_smokes_both_targets():
         "brew install espeak-ng",
         ".\\build_windows.ps1",
         ".\\tools\\windows_package_smoke.ps1",
+        "-TimeoutSec 90",
         "./build_mac.sh",
         "./tools/mac_package_smoke.sh --app dist/ReadOut.app",
         "actions/upload-artifact@v4",

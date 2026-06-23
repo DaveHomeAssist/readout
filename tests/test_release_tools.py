@@ -454,6 +454,10 @@ def test_windows_package_smoke_validates_packaged_exe_lifecycle():
     assert "dist\\ReadOut\\ReadOut.exe" in text
     assert "Start-Process" in text
     assert "Stop-Process" in text
+    assert "--headless" in text
+    assert "--no-browser" in text
+    assert "RedirectStandardOutput" in text
+    assert "Get-LogTail" in text
     assert "GET /status" not in text  # implementation probes the URL, output stays operator-oriented
     assert "/status" in text
     assert "server_smoke.ps1" in text

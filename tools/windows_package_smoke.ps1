@@ -13,6 +13,8 @@ $ErrorActionPreference = "Stop"
 
 $results = New-Object System.Collections.Generic.List[object]
 $process = $null
+$stdoutLog = Join-Path $env:TEMP "readout-package-smoke-$PID.stdout.log"
+$stderrLog = Join-Path $env:TEMP "readout-package-smoke-$PID.stderr.log"
 
 function Add-Result {
     param(
@@ -54,6 +56,21 @@ function Invoke-Helper {
     return $LASTEXITCODE
 }
 
+function Get-LogTail {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) {
+        return "missing"
+    }
+
+    $tail = @(Get-Content -Path $Path -Tail 20 -ErrorAction SilentlyContinue)
+    if ($tail.Count -eq 0) {
+        return "empty"
+    }
+
+    return (($tail -join " / ") -replace "\|", "/")
+}
+
 try {
     if (-not (Test-Path $ExePath)) {
         throw "Executable not found: $ExePath"
@@ -67,8 +84,14 @@ try {
     Add-Result -Check "Port available" -Result "PASS" -Detail $BaseUrl
 
     $resolvedExe = (Resolve-Path $ExePath).Path
-    $process = Start-Process -FilePath $resolvedExe -PassThru -WindowStyle Hidden
-    Add-Result -Check "Launch packaged exe" -Result "PASS" -Detail "pid=$($process.Id)"
+    $process = Start-Process `
+        -FilePath $resolvedExe `
+        -ArgumentList @("--headless", "--no-browser") `
+        -PassThru `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $stdoutLog `
+        -RedirectStandardError $stderrLog
+    Add-Result -Check "Launch packaged exe" -Result "PASS" -Detail "pid=$($process.Id); mode=headless"
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     $ready = $false
@@ -89,7 +112,9 @@ try {
     }
 
     if (-not $ready) {
-        throw "Server did not respond at $BaseUrl within $TimeoutSec seconds."
+        $stdoutTail = Get-LogTail -Path $stdoutLog
+        $stderrTail = Get-LogTail -Path $stderrLog
+        throw "Server did not respond at $BaseUrl within $TimeoutSec seconds. stdout=$stdoutTail; stderr=$stderrTail"
     }
     Add-Result -Check "Server ready" -Result "PASS" -Detail $readyDetail
 

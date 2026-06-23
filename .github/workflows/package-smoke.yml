@@ -70,7 +70,7 @@ jobs:
         shell: pwsh
         run: |
           $pwsh = (Get-Process -Id $PID).Path
-          & $pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe *>&1 | Tee-Object -FilePath windows-package-smoke.md
+          & $pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe -TimeoutSec 90 *>&1 | Tee-Object -FilePath windows-package-smoke.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Windows package and evidence
