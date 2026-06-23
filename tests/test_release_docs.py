@@ -92,6 +92,7 @@ def test_readme_links_release_readiness_artifacts():
     assert "ARCHITECT_SIGNOFF.md" in text
     assert "PACKAGING_VALIDATION.md" in text
     assert "MANUAL_SMOKE_VALIDATION.md" in text
+    assert "NEXT_EXECUTOR_PROMPT.md" in text
     assert "RELEASE_CHECKLIST.md" in text
     assert "ROADMAP_STATUS.md" in text
     assert "UPSTREAM_RECONCILIATION.md" in text
@@ -108,6 +109,23 @@ def test_readme_links_release_readiness_artifacts():
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
     assert ".github/workflows/package-smoke.yml" in text
+
+
+def test_next_executor_prompt_tracks_remaining_release_gates():
+    text = (ROOT / "NEXT_EXECUTOR_PROMPT.md").read_text(encoding="utf-8")
+    for required in [
+        "roadmap-integration",
+        "28051156266",
+        "28051156286",
+        "architect_signoff_check.ps1",
+        "packaging_validation_check.ps1",
+        "manual_smoke_check.ps1",
+        "Menu-bar/tray icon visible",
+        "Windows: verify audible preview/speak/stop lifecycle",
+        "Do not install Python or `espeak-ng`",
+        "Report GREEN only after",
+    ]:
+        assert required in text
 
 
 def test_architect_signoff_packet_covers_pending_owner_decisions():

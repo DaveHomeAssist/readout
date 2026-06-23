@@ -55,6 +55,67 @@ function Test-SupportedPython {
     }
 }
 
+function Convert-MarkdownTableRow {
+    param([string]$Line)
+
+    if ($Line -notmatch "^\|") {
+        return $null
+    }
+
+    $columns = $Line.Trim().Trim("|") -split "\|" | ForEach-Object { $_.Trim() }
+    if ($columns.Count -lt 3) {
+        return $null
+    }
+
+    if ($columns[0] -in @("---", "Check", "Item", "Gap")) {
+        return $null
+    }
+
+    return $columns
+}
+
+function Test-ReleaseEvidencePass {
+    param([string]$Result, [string]$Evidence)
+
+    return (
+        $Result.Trim() -match "^(PASS|PASSED|OK|DONE|COMPLETE|COMPLETED)$" -and
+        $Evidence.Trim() -ne "" -and
+        $Evidence.Trim() -notmatch "^(TBD|Pending)$"
+    )
+}
+
+function Get-PackagingEvidence {
+    param([string]$Check)
+
+    if (-not (Test-Path "PACKAGING_VALIDATION.md")) {
+        return $null
+    }
+
+    foreach ($line in Get-Content -Path "PACKAGING_VALIDATION.md") {
+        $columns = Convert-MarkdownTableRow -Line $line
+        if (-not $columns) {
+            continue
+        }
+
+        if ($columns[0] -eq $Check -and (Test-ReleaseEvidencePass -Result $columns[1] -Evidence $columns[2])) {
+            return $columns[2]
+        }
+    }
+
+    return $null
+}
+
+function Limit-Detail {
+    param([string]$Text, [int]$Length = 160)
+
+    $cleaned = ($Text -replace "\|", "/" -replace "\s+", " ").Trim()
+    if ($cleaned.Length -le $Length) {
+        return $cleaned
+    }
+
+    return $cleaned.Substring(0, $Length) + "..."
+}
+
 function Get-PythonVersionText {
     param(
         [string]$Exe,
@@ -127,6 +188,7 @@ $requiredFiles = @(
     "ARCHITECT_SIGNOFF.md",
     "PACKAGING_VALIDATION.md",
     "MANUAL_SMOKE_VALIDATION.md",
+    "NEXT_EXECUTOR_PROMPT.md",
     "RELEASE_CHECKLIST.md",
     "ROADMAP_STATUS.md",
     "MILESTONE_LOG.md",
@@ -191,15 +253,21 @@ try {
     Add-Check -Check "Git upstream currency" -Result "FAIL" -Detail $_.Exception.Message
 }
 
+$pythonEvidence = Get-PackagingEvidence -Check "Python 3.10-3.12 confirmed"
 $python = Resolve-SupportedPython
 if ($python) {
     Add-Check -Check "Python 3.10-3.12" -Result "PASS" -Detail "$($python.Version) via $($python.Label)"
+} elseif ($pythonEvidence) {
+    Add-Check -Check "Python 3.10-3.12" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $pythonEvidence))
 } else {
     Add-Check -Check "Python 3.10-3.12" -Result "FAIL" -Detail "Install Python 3.12, 3.11, or 3.10 before packaging."
 }
 
+$espeakEvidence = Get-PackagingEvidence -Check '`espeak-ng` confirmed on PATH'
 if (Get-Command espeak-ng -ErrorAction SilentlyContinue) {
     Add-Check -Check "espeak-ng on PATH" -Result "PASS" -Detail "found"
+} elseif ($espeakEvidence) {
+    Add-Check -Check "espeak-ng on PATH" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $espeakEvidence))
 } else {
     Add-Check -Check "espeak-ng on PATH" -Result "FAIL" -Detail "Install espeak-ng and add it to PATH before packaging."
 }

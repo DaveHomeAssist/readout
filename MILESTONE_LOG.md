@@ -640,3 +640,15 @@
   - GitHub Actions tests workflow run `28051156286`
 - **Evidence:** Run `28051156266` passed overall at head `b2f02cee11ff6340ad5fcec51db4bb29e2856fdc`. Windows job `83041801593` built `dist\ReadOut\ReadOut.exe`, reported `Executable exists PASS`, `Server ready PASS`, `Non-audio server smoke PASS`, `CORS origin matrix PASS`, and `Stop packaged exe PASS`, then uploaded artifact `readout-windows-package-smoke` id `7831258309` with digest `sha256:6bfa7ce5974e8f13bdf335e4b1e967ea8efdff6dec04d213e3e4d2980a91f57d`. macOS job `83041801690` built `dist/ReadOut.app` size `593M`, reported `App bundle exists PASS`, `Launch packaged app PASS`, `Server ready PASS`, `/status`, `/voices`, `/history`, `/control`, and blocked-origin checks PASS, then uploaded artifact `readout-macos-package-smoke` id `7831229443` with digest `sha256:26bdd209799a0dd36eda66efcbd985d7b6a26c0c2c4242c6c66b37299462d335`. Tests run `28051156286` passed Python 3.10, 3.11, and 3.12 jobs on the same head SHA. `.\tools\roadmap_audit.ps1` now reports Python 3.10-3.12 PASS and `espeak-ng` PASS from hosted/target evidence, then still fails Architect sign-off, packaging validation, and manual smoke validation.
 - **Notes / risks:** This clears the hosted Python/`espeak-ng` package-build path. It does not prove visible macOS tray/menu-bar behavior, audible preview/speak/stop lifecycle, Chrome extension manual smoke, or Architect acceptance.
+
+## Status update - 2026-06-23 15:55 -04:00
+- **Now:** The next executor handoff is captured in `NEXT_EXECUTOR_PROMPT.md`.
+- **Next:** Use the prompt to complete Architect sign-off, packaging manual rows, and interactive manual smoke without repeating the completed hosted package-smoke prerequisite work.
+- **Tests:** Full suite passed with `145 passed, 1 warning in 37.55s`; focused release docs/tool tests passed with `27 passed in 31.32s`; `git diff --check` passed with CRLF warnings only.
+- **Blockers:** Same remaining owner/manual gates: Architect sign-off, packaging manual rows, and manual smoke worksheet evidence.
+
+### Next Executor Handoff - Added
+- **Done when:** The next executor can start from the current source-of-truth evidence and open rows without rediscovering the old Python/`espeak-ng` package blocker.
+- **What changed:** Added `NEXT_EXECUTOR_PROMPT.md`, linked it from README and `RELEASE_CHECKLIST.md`, and made release preflight require it as a tracked release artifact. `tools/release_preflight.ps1` now also accepts recorded hosted/target Python and `espeak-ng` evidence, matching `tools/roadmap_audit.ps1`.
+- **Evidence:** The prompt names the successful package-smoke run `28051156266`, tests run `28051156286`, the exact remaining worksheet rows, and the final commands required before reporting green. `.\tools\release_preflight.ps1` now reports Python 3.10-3.12 PASS and `espeak-ng on PATH` PASS from hosted/target evidence, then still fails only Architect sign-off, packaging validation, and manual smoke evidence.
+- **Notes / risks:** This is a handoff/control artifact only. It does not complete Architect acceptance or manual smoke validation.

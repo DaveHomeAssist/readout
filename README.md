@@ -221,6 +221,9 @@ These checks explain the issue before the first model warmup fails.
   and file delta without fetching, merging, or editing files.
 - `.\tools\release_preflight.ps1 -RunSourceSmoke` also runs the in-process
   source HTTP smoke test without requiring a manually started app.
+- `NEXT_EXECUTOR_PROMPT.md` is the current handoff prompt for finishing the
+  remaining manual smoke and Architect sign-off gates without repeating already
+  completed hosted packaging work.
 - `.\tools\architect_signoff_check.ps1` verifies required Architect rows in
   `ARCHITECT_SIGNOFF.md` are accepted before release.
 - `.\tools\packaging_validation_check.ps1` verifies target macOS/Windows

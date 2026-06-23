@@ -89,6 +89,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "ARCHITECT_SIGNOFF.md",
         "PACKAGING_VALIDATION.md",
         "MANUAL_SMOKE_VALIDATION.md",
+        "NEXT_EXECUTOR_PROMPT.md",
         "RELEASE_CHECKLIST.md",
         "ROADMAP_STATUS.md",
         "MILESTONE_LOG.md",
@@ -111,6 +112,8 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
 
     assert "Python 3.10-3.12" in text
     assert "espeak-ng on PATH" in text
+    assert "Get-PackagingEvidence" in text
+    assert "Hosted/target evidence recorded" in text
     assert "Git upstream currency" in text
     assert "safe.directory=$script:GitSafeDirectory" in text
     assert "rev-list" in text
