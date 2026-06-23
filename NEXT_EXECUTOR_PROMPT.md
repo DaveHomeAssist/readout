@@ -13,7 +13,7 @@ Do not restart the old packaging prerequisite loop. Hosted evidence already
 proves Python 3.10-3.12, `espeak-ng`, Windows package build, macOS package
 build, and non-audio package smoke:
 
-- GitHub Actions package-smoke run `28062313500` passed on current head
+- GitHub Actions package-smoke run `28062313500` passed on package-producing commit
   `440cb577875dfd2aad8a359df972471e5c207511`.
 - Windows job `83079089531` built `dist\ReadOut\ReadOut.exe`, passed server,
   `/control`, CORS, and process-stop checks, and uploaded artifact
@@ -23,7 +23,12 @@ build, and non-audio package smoke:
   checks, verified clean quit, and uploaded artifact
   `readout-macos-package-smoke` id `7835539633`.
 - Tests workflow run `28062313482` passed Python 3.10, 3.11, and 3.12 jobs on
-  the same current head SHA.
+  the same package-producing commit.
+
+Later documentation-only commits may advance the branch head without
+invalidating that package evidence. Rerun package-smoke only if package/runtime
+source changes or the release process requires artifacts from the exact final
+commit.
 
 First verify current state:
 

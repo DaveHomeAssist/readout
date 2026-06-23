@@ -20,9 +20,9 @@ column names the accepted risk.
 | Check | Result | Notes |
 |---|---|---|
 | `ARCHITECT_SIGNOFF.md` reviewed | Pending | Required rows are still unsigned. |
-| `.\tools\release_preflight.ps1` or target equivalent run | PASS | Target-equivalent GitHub Actions package-smoke run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed on current head `440cb577875dfd2aad8a359df972471e5c207511`; local full preflight remains blocked by sign-off and manual evidence gates. |
+| `.\tools\release_preflight.ps1` or target equivalent run | PASS | Target-equivalent GitHub Actions package-smoke run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed on package-producing commit `440cb577875dfd2aad8a359df972471e5c207511`; local full preflight remains blocked by sign-off and manual evidence gates. |
 | GitHub Actions `package-smoke` workflow run, if used | PASS | Run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed; Windows job `83079089531` and macOS job `83079089516` both succeeded. |
-| Python 3.10-3.12 confirmed | PASS | Tests workflow [28062313482](https://github.com/DaveHomeAssist/readout/actions/runs/28062313482) passed Python 3.10, 3.11, and 3.12 jobs on current head; package-smoke used Python 3.12 on Windows and macOS. |
+| Python 3.10-3.12 confirmed | PASS | Tests workflow [28062313482](https://github.com/DaveHomeAssist/readout/actions/runs/28062313482) passed Python 3.10, 3.11, and 3.12 jobs on the package-producing commit; package-smoke used Python 3.12 on Windows and macOS. |
 | `espeak-ng` confirmed on PATH | PASS | Package-smoke run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed `Install espeak-ng` and package build steps on both Windows and macOS. |
 | Full test suite run | PASS | Tests workflow [28062313482](https://github.com/DaveHomeAssist/readout/actions/runs/28062313482) passed on head `440cb577875dfd2aad8a359df972471e5c207511` for Python 3.10, 3.11, and 3.12. |
 
