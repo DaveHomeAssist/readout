@@ -65,7 +65,7 @@ Finish these open rows:
 4. Final release gate
    - Run `python -m pytest`.
    - Run `.\tools\secret_scan.ps1`.
-   - Run `.\tools\extension_static_smoke.ps1`.
+   - Confirm `.\tools\release_preflight.ps1` reports `Extension static smoke` as PASS.
    - With ReadOut running, run `.\tools\control_workflow_smoke.ps1`.
    - Run `.\tools\release_preflight.ps1`.
    - Run `git diff --check`.

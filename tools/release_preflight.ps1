@@ -178,6 +178,23 @@ function Invoke-GitText {
     return $output
 }
 
+function Invoke-PreflightCommand {
+    param([scriptblock]$Command)
+
+    $global:LASTEXITCODE = 0
+    & $Command
+    $commandSucceeded = $?
+    if ($LASTEXITCODE -is [int]) {
+        return $LASTEXITCODE
+    }
+
+    if ($commandSucceeded) {
+        return 0
+    }
+
+    return 1
+}
+
 Write-Host "ReadOut release preflight"
 Write-Host "Working directory: $(Get-Location)"
 
@@ -275,29 +292,36 @@ if (Get-Command espeak-ng -ErrorAction SilentlyContinue) {
 }
 
 try {
-    & .\tools\secret_scan.ps1 -Root . -Quiet
-    Add-Check -Check "Secret scan" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "secret_scan.ps1 exit=$LASTEXITCODE"
+    $exitCode = Invoke-PreflightCommand { & .\tools\secret_scan.ps1 -Root . -Quiet }
+    Add-Check -Check "Secret scan" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "secret_scan.ps1 exit=$exitCode"
 } catch {
     Add-Check -Check "Secret scan" -Result "FAIL" -Detail $_.Exception.Message
 }
 
 try {
-    & .\tools\architect_signoff_check.ps1 -Quiet
-    Add-Check -Check "Architect sign-off" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "architect_signoff_check.ps1 exit=$LASTEXITCODE"
+    $exitCode = Invoke-PreflightCommand { & .\tools\extension_static_smoke.ps1 -Quiet }
+    Add-Check -Check "Extension static smoke" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "extension_static_smoke.ps1 exit=$exitCode"
+} catch {
+    Add-Check -Check "Extension static smoke" -Result "FAIL" -Detail $_.Exception.Message
+}
+
+try {
+    $exitCode = Invoke-PreflightCommand { & .\tools\architect_signoff_check.ps1 -Quiet }
+    Add-Check -Check "Architect sign-off" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "architect_signoff_check.ps1 exit=$exitCode"
 } catch {
     Add-Check -Check "Architect sign-off" -Result "FAIL" -Detail $_.Exception.Message
 }
 
 try {
-    & .\tools\packaging_validation_check.ps1 -Quiet
-    Add-Check -Check "Packaging validation evidence" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "packaging_validation_check.ps1 exit=$LASTEXITCODE"
+    $exitCode = Invoke-PreflightCommand { & .\tools\packaging_validation_check.ps1 -Quiet }
+    Add-Check -Check "Packaging validation evidence" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "packaging_validation_check.ps1 exit=$exitCode"
 } catch {
     Add-Check -Check "Packaging validation evidence" -Result "FAIL" -Detail $_.Exception.Message
 }
 
 try {
-    & .\tools\manual_smoke_check.ps1 -Quiet
-    Add-Check -Check "Manual smoke evidence" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "manual_smoke_check.ps1 exit=$LASTEXITCODE"
+    $exitCode = Invoke-PreflightCommand { & .\tools\manual_smoke_check.ps1 -Quiet }
+    Add-Check -Check "Manual smoke evidence" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "manual_smoke_check.ps1 exit=$exitCode"
 } catch {
     Add-Check -Check "Manual smoke evidence" -Result "FAIL" -Detail $_.Exception.Message
 }
@@ -308,8 +332,8 @@ if ($RunPytest) {
     } else {
         try {
             $testArgs = @($python.Args + @("-m", "pytest"))
-            & $python.Exe @testArgs
-            Add-Check -Check "python -m pytest" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$LASTEXITCODE"
+            $exitCode = Invoke-PreflightCommand { & $python.Exe @testArgs }
+            Add-Check -Check "python -m pytest" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$exitCode"
         } catch {
             Add-Check -Check "python -m pytest" -Result "FAIL" -Detail $_.Exception.Message
         }
@@ -324,8 +348,8 @@ if ($RunSourceSmoke) {
     } else {
         try {
             $smokeArgs = @($python.Args + @("-m", "pytest", "tests/test_live_http_smoke.py"))
-            & $python.Exe @smokeArgs
-            Add-Check -Check "Source live HTTP smoke" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "tests/test_live_http_smoke.py exit=$LASTEXITCODE"
+            $exitCode = Invoke-PreflightCommand { & $python.Exe @smokeArgs }
+            Add-Check -Check "Source live HTTP smoke" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "tests/test_live_http_smoke.py exit=$exitCode"
         } catch {
             Add-Check -Check "Source live HTTP smoke" -Result "FAIL" -Detail $_.Exception.Message
         }
@@ -337,24 +361,32 @@ if ($RunSourceSmoke) {
 if ($RunLiveChecks) {
     try {
         if ($IncludeAudio) {
-            & .\tools\server_smoke.ps1 -BaseUrl $BaseUrl -IncludeAudio
+            $exitCode = Invoke-PreflightCommand { & .\tools\server_smoke.ps1 -BaseUrl $BaseUrl -IncludeAudio }
         } else {
-            & .\tools\server_smoke.ps1 -BaseUrl $BaseUrl
+            $exitCode = Invoke-PreflightCommand { & .\tools\server_smoke.ps1 -BaseUrl $BaseUrl }
         }
-        Add-Check -Check "Live server smoke" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "server_smoke.ps1 exit=$LASTEXITCODE"
+        Add-Check -Check "Live server smoke" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "server_smoke.ps1 exit=$exitCode"
     } catch {
         Add-Check -Check "Live server smoke" -Result "FAIL" -Detail $_.Exception.Message
     }
 
     try {
-        & .\tools\cors_origin_matrix.ps1 -BaseUrl $BaseUrl
-        Add-Check -Check "Live CORS matrix" -Result ($(if ($LASTEXITCODE -eq 0) { "PASS" } else { "FAIL" })) -Detail "cors_origin_matrix.ps1 exit=$LASTEXITCODE"
+        $exitCode = Invoke-PreflightCommand { & .\tools\cors_origin_matrix.ps1 -BaseUrl $BaseUrl }
+        Add-Check -Check "Live CORS matrix" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "cors_origin_matrix.ps1 exit=$exitCode"
     } catch {
         Add-Check -Check "Live CORS matrix" -Result "FAIL" -Detail $_.Exception.Message
+    }
+
+    try {
+        $exitCode = Invoke-PreflightCommand { & .\tools\control_workflow_smoke.ps1 -BaseUrl $BaseUrl -Quiet }
+        Add-Check -Check "Live control workflow smoke" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "control_workflow_smoke.ps1 exit=$exitCode"
+    } catch {
+        Add-Check -Check "Live control workflow smoke" -Result "FAIL" -Detail $_.Exception.Message
     }
 } else {
     Add-Check -Check "Live server smoke" -Result "SKIP" -Detail "Use -RunLiveChecks after starting ReadOut."
     Add-Check -Check "Live CORS matrix" -Result "SKIP" -Detail "Use -RunLiveChecks after starting ReadOut."
+    Add-Check -Check "Live control workflow smoke" -Result "SKIP" -Detail "Use -RunLiveChecks after starting ReadOut."
 }
 
 Write-Host ""

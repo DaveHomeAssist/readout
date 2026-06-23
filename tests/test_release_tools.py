@@ -171,6 +171,9 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
     assert "--left-right" in text
     assert "--count" in text
     assert "Secret scan" in text
+    assert "Extension static smoke" in text
+    assert "Invoke-PreflightCommand" in text
+    assert "extension_static_smoke.ps1 exit=$exitCode" in text
     assert "-Quiet" in text
     assert "Architect sign-off" in text
     assert "architect_signoff_check.ps1" in text
@@ -185,6 +188,8 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
     assert "RunLiveChecks" in text
     assert "server_smoke.ps1" in text
     assert "cors_origin_matrix.ps1" in text
+    assert "Live control workflow smoke" in text
+    assert "control_workflow_smoke.ps1 exit=$exitCode" in text
     assert "exit 1" in text
 
 

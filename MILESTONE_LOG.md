@@ -688,3 +688,15 @@
 - **What changed:** Added `tools/extension_static_smoke.ps1`, linked it from README, `RELEASE_CHECKLIST.md`, `NEXT_EXECUTOR_PROMPT.md`, release preflight required-file/syntax checks, and manual smoke support evidence.
 - **Evidence:** The helper checks Manifest V3, least-privilege permissions, exact localhost host permission, popup/default icon files, popup status and preview controls, popup endpoint wiring, context-menu IDs, `/speak` and `/stop` wiring, and content-script toast wiring. It passed all rows on 2026-06-23 17:58 -04:00.
 - **Notes / risks:** This does not prove the extension can be loaded in Chrome, that the extension origin is allowlisted, that popup READY/OFFLINE paths render at runtime, or that audio playback works.
+
+## Status update - 2026-06-23 18:05 -04:00
+- **Now:** Release preflight executes the safe extension static smoke by default and can run the stateful `/control` workflow smoke under `-RunLiveChecks`.
+- **Next:** Continue to use manual smoke worksheets for actual Chrome runtime, audible playback, desktop, and package visual checks.
+- **Tests:** Full suite passed with `147 passed, 1 warning in 35.00s`; `.\tools\release_preflight.ps1` now reports `Extension static smoke | PASS`; `.\tools\release_preflight.ps1 -BaseUrl http://127.0.0.1:7787 -RunLiveChecks` reports `Live server smoke | PASS`, `Live CORS matrix | PASS`, and `Live control workflow smoke | PASS`; focused release docs/tools/extension popup tests passed with `33 passed in 31.16s`; `git diff --check` passed with CRLF warnings only; `.\tools\roadmap_audit.ps1` still fails only the expected Architect sign-off, packaging validation, and manual smoke gates.
+- **Blockers:** Architect acceptance, package manual rows, and manual smoke evidence remain incomplete.
+
+### Release Preflight Smoke Wiring - Added
+- **Done when:** Safe non-interactive smoke helpers are part of the standard release preflight instead of only being listed as required files.
+- **What changed:** `tools/release_preflight.ps1` now runs `tools/extension_static_smoke.ps1` by default and reports `Extension static smoke`; `-RunLiveChecks` now also runs `tools/control_workflow_smoke.ps1` and reports `Live control workflow smoke`.
+- **Evidence:** A temporary Uvicorn server on `127.0.0.1:7787` passed the preflight live server smoke, CORS matrix, and control workflow smoke rows. Preflight still correctly fails Architect sign-off, packaging validation evidence, and manual smoke evidence.
+- **Notes / risks:** `Live control workflow smoke` remains opt-in because it requires a running local ReadOut server and temporarily mutates local config/history before restoring them.
