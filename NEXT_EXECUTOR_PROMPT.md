@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 15:55 -04:00
+Last updated: 2026-06-23 18:11 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -27,10 +27,11 @@ build, and non-audio package smoke:
 First verify current state:
 
 1. Run `git status --short --branch`.
-2. Run `.\tools\roadmap_audit.ps1`.
-3. Run `.\tools\packaging_validation_check.ps1`.
-4. Run `.\tools\manual_smoke_check.ps1`.
-5. Run `.\tools\architect_signoff_check.ps1`.
+2. Run `.\tools\upstream_reconciliation.ps1`.
+3. Run `.\tools\roadmap_audit.ps1`.
+4. Run `.\tools\packaging_validation_check.ps1`.
+5. Run `.\tools\manual_smoke_check.ps1`.
+6. Run `.\tools\architect_signoff_check.ps1`.
 
 Expected current state is YELLOW, not GREEN:
 
@@ -65,7 +66,8 @@ Finish these open rows:
 4. Final release gate
    - Run `python -m pytest`.
    - Run `.\tools\secret_scan.ps1`.
-   - Confirm `.\tools\release_preflight.ps1` reports `Extension static smoke` as PASS.
+   - Confirm `.\tools\release_preflight.ps1` reports `Upstream reconciliation`
+     and `Extension static smoke` as PASS.
    - With ReadOut running, run `.\tools\control_workflow_smoke.ps1`.
    - Run `.\tools\release_preflight.ps1`.
    - Run `git diff --check`.
@@ -77,7 +79,8 @@ Status reporting rules:
 - Use traffic light output.
 - Report GREEN only after `roadmap_audit.ps1`, `architect_signoff_check.ps1`,
   `packaging_validation_check.ps1`, `manual_smoke_check.ps1`,
-  `release_preflight.ps1`, tests, secret scan, and diff check all pass.
+  `upstream_reconciliation.ps1`, `release_preflight.ps1`, tests, secret scan,
+  and diff check all pass.
 - Report YELLOW while any manual or sign-off row is incomplete but progress is
   recorded.
 - Report RED for failed builds, failed smoke tests, or rejected Architect rows.

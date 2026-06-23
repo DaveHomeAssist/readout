@@ -4,6 +4,7 @@
 
 param(
     [string]$BaseUrl = "http://127.0.0.1:7778",
+    [string]$UpstreamRef = "origin/main",
     [switch]$RunPytest,
     [switch]$RunSourceSmoke,
     [switch]$RunLiveChecks,
@@ -244,11 +245,11 @@ try {
     $inside = Invoke-GitText -GitArgs @("rev-parse", "--is-inside-work-tree")
     if (($inside | Select-Object -First 1) -eq "true") {
         try {
-            $upstream = Invoke-GitText -GitArgs @("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+            $trackingBranch = Invoke-GitText -GitArgs @("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
         } catch {
-            $upstream = $null
+            $trackingBranch = $null
         }
-        if (-not $upstream) {
+        if (-not $trackingBranch) {
             Add-Check -Check "Git upstream currency" -Result "SKIP" -Detail "No upstream branch is configured."
         } else {
             $counts = Invoke-GitText -GitArgs @("rev-list", "--left-right", "--count", "HEAD...@{u}")
@@ -259,9 +260,9 @@ try {
                 $ahead = [int]$parts[0]
                 $behind = [int]$parts[1]
                 if ($behind -gt 0) {
-                    Add-Check -Check "Git upstream currency" -Result "FAIL" -Detail "Branch is behind $upstream by $behind commit(s); ahead by $ahead."
+                    Add-Check -Check "Git upstream currency" -Result "FAIL" -Detail "Branch is behind $trackingBranch by $behind commit(s); ahead by $ahead."
                 } else {
-                    Add-Check -Check "Git upstream currency" -Result "PASS" -Detail "ahead=$ahead; behind=$behind vs $upstream"
+                    Add-Check -Check "Git upstream currency" -Result "PASS" -Detail "ahead=$ahead; behind=$behind vs $trackingBranch"
                 }
             }
         }
@@ -270,6 +271,13 @@ try {
     }
 } catch {
     Add-Check -Check "Git upstream currency" -Result "FAIL" -Detail $_.Exception.Message
+}
+
+try {
+    $exitCode = Invoke-PreflightCommand { & .\tools\upstream_reconciliation.ps1 -Upstream $UpstreamRef -Quiet }
+    Add-Check -Check "Upstream reconciliation" -Result ($(if ($exitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "upstream_reconciliation.ps1 exit=$exitCode vs $UpstreamRef"
+} catch {
+    Add-Check -Check "Upstream reconciliation" -Result "FAIL" -Detail $_.Exception.Message
 }
 
 $pythonEvidence = Get-PackagingEvidence -Check "Python 3.10-3.12 confirmed"

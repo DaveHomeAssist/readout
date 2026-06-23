@@ -215,8 +215,9 @@ These checks explain the issue before the first model warmup fails.
 - Interactive desktop/browser smoke results should be recorded in
   `MANUAL_SMOKE_VALIDATION.md`.
 - Upstream graph reconciliation notes live in `UPSTREAM_RECONCILIATION.md`.
-- `.\tools\release_preflight.ps1` checks required release artifacts, local
-  Python/espeak prerequisites, and optional test/live-server gates.
+- `.\tools\release_preflight.ps1` checks required release artifacts, upstream
+  reconciliation, local Python/espeak prerequisites, secret scan, extension
+  static smoke, and optional test/live-server gates.
 - `.\tools\upstream_reconciliation.ps1` prints the local `origin/main` graph
   and file delta without fetching, merging, or editing files.
 - `.\tools\release_preflight.ps1 -RunSourceSmoke` also runs the in-process

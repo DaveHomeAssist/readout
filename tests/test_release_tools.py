@@ -170,6 +170,10 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
     assert "rev-list" in text
     assert "--left-right" in text
     assert "--count" in text
+    assert "Upstream reconciliation" in text
+    assert "upstream_reconciliation.ps1 exit=$exitCode vs $UpstreamRef" in text
+    assert "-Upstream $UpstreamRef -Quiet" in text
+    assert "$trackingBranch" in text
     assert "Secret scan" in text
     assert "Extension static smoke" in text
     assert "Invoke-PreflightCommand" in text
@@ -229,6 +233,9 @@ def test_upstream_reconciliation_helper_is_report_only():
     assert "log\", \"--oneline\"" in text
     assert "Runtime-sensitive upstream paths" in text
     assert "UPSTREAM_RECONCILIATION.md" in text
+    assert "Quiet" in text
+    assert "Result -ne \"PASS\"" in text
+    assert "exit 1" in text
 
     for forbidden in ["fetch", "pull", "merge", "rebase", "reset", "checkout", "restore"]:
         assert f'"{forbidden}"' not in text.lower()

@@ -700,3 +700,15 @@
 - **What changed:** `tools/release_preflight.ps1` now runs `tools/extension_static_smoke.ps1` by default and reports `Extension static smoke`; `-RunLiveChecks` now also runs `tools/control_workflow_smoke.ps1` and reports `Live control workflow smoke`.
 - **Evidence:** A temporary Uvicorn server on `127.0.0.1:7787` passed the preflight live server smoke, CORS matrix, and control workflow smoke rows. Preflight still correctly fails Architect sign-off, packaging validation evidence, and manual smoke evidence.
 - **Notes / risks:** `Live control workflow smoke` remains opt-in because it requires a running local ReadOut server and temporarily mutates local config/history before restoring them.
+
+## Status update - 2026-06-23 18:11 -04:00
+- **Now:** Release preflight treats upstream reconciliation as a first-class release gate instead of only checking that the helper file exists.
+- **Next:** Complete the same remaining owner/manual gates: Architect sign-off, package manual visual/audio rows, and interactive manual smoke evidence.
+- **Tests:** Focused release docs/tool tests passed with `29 passed in 30.71s`; full suite passed with `147 passed, 1 warning in 35.30s`; `git diff --check` passed with CRLF warnings only.
+- **Blockers:** Architect sign-off, packaging validation evidence, and manual smoke evidence remain intentionally failing.
+
+### Release Preflight Upstream Gate - Added
+- **Done when:** The release preflight reports whether the integration branch is clean and reconciled with `origin/main`, using the same dedicated upstream helper named in the release checklist.
+- **What changed:** `tools/upstream_reconciliation.ps1` now supports `-Quiet` and exits nonzero for `REVIEW` rows. `tools/release_preflight.ps1` now calls it with `-UpstreamRef origin/main` and reports `Upstream reconciliation` separately from branch tracking currency.
+- **Evidence:** `.\tools\upstream_reconciliation.ps1` reports graph `PASS` with `ahead=14; behind=0` against `origin/main`; during the edit pass it correctly returned nonzero because the worktree had local changes. `.\tools\release_preflight.ps1` now prints `Upstream reconciliation` and preserves the known failing Architect/manual evidence rows. Focused and full pytest runs passed.
+- **Notes / risks:** This is a release gate/reporting improvement only. It does not change app behavior, sign the Architect packet, or replace the remaining manual smoke worksheets.
