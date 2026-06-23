@@ -664,3 +664,15 @@
 - **What changed:** Updated `ARCHITECT_SIGNOFF.md` current-blocker language to cite hosted package-smoke run `28051156266` and list only the remaining manual visual/audio/smoke gaps.
 - **Evidence:** The packet now points to `PACKAGING_VALIDATION.md` for package artifacts and non-audio smoke evidence, while keeping the manual rows and Architect acceptance as release-blocking.
 - **Notes / risks:** This does not sign the packet or fill manual smoke evidence.
+
+## Status update - 2026-06-23 17:54 -04:00
+- **Now:** A stateful non-audio source `/control` workflow smoke helper exists.
+- **Next:** Run it with ReadOut running to capture backend evidence for status refresh, history toggle/clear, and stop before the remaining human audio/desktop/extension checks.
+- **Tests:** Full suite passed with `146 passed, 1 warning in 42.00s`; focused release docs/tool tests passed with `28 passed in 37.33s`; `git diff --check` passed with CRLF warnings only; PowerShell parser check for `tools/control_workflow_smoke.ps1` passed; live temporary Uvicorn smoke passed. `.\tools\roadmap_audit.ps1` and `.\tools\release_preflight.ps1` still fail only Architect sign-off, packaging validation, and manual smoke evidence.
+- **Blockers:** Manual audible playback, Tk desktop, Chrome extension smoke, package manual rows, and Architect acceptance remain incomplete.
+
+### Source Control Workflow Smoke Helper - Added
+- **Done when:** The source `/control` backend workflow can be exercised without audio and without leaving local config/history mutated.
+- **What changed:** Added `tools/control_workflow_smoke.ps1`, linked it from README, `RELEASE_CHECKLIST.md`, `NEXT_EXECUTOR_PROMPT.md`, and release preflight required-file/syntax checks.
+- **Evidence:** The helper checks `/status`, `/control`, `PATCH /config` history controls, `GET/DELETE /history`, and `POST /stop`, then restores local `~/.readout/config.json` and `history.json` byte-for-byte. A temporary local server on `127.0.0.1:7784` passed all helper rows: loopback target, status refresh backend, control panel backend page, history toggle via config, history status refresh, Clear History backend, Stop backend, and Restore local config/history.
+- **Notes / risks:** This does not prove audible preview/speak/save, visible tray/menu-bar behavior, Tk desktop interaction, or Chrome extension behavior.

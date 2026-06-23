@@ -37,6 +37,7 @@ def test_release_checklist_has_security_test_and_packaging_gates():
     assert "tests/test_server_cors.py" in text
     assert r".\tools\cors_origin_matrix.ps1" in text
     assert r".\tools\server_smoke.ps1" in text
+    assert r".\tools\control_workflow_smoke.ps1" in text
     assert r".\tools\windows_packaging_prereqs.ps1" in text
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
@@ -105,6 +106,7 @@ def test_readme_links_release_readiness_artifacts():
     assert r".\tools\secret_scan.ps1" in text
     assert r".\tools\cors_origin_matrix.ps1" in text
     assert r".\tools\server_smoke.ps1" in text
+    assert r".\tools\control_workflow_smoke.ps1" in text
     assert r".\tools\windows_packaging_prereqs.ps1" in text
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
@@ -201,6 +203,8 @@ def test_manual_smoke_validation_worksheet_covers_interactive_gates():
     text = (ROOT / "MANUAL_SMOKE_VALIDATION.md").read_text(encoding="utf-8")
     for required in [
         "Source Control Panel Smoke",
+        "Automated Non-Audio Support Evidence",
+        r".\tools\control_workflow_smoke.ps1",
         "Tk Desktop Smoke",
         "Chrome Extension Smoke",
         r".\tools\manual_smoke_check.ps1",

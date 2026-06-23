@@ -65,6 +65,28 @@ def test_server_smoke_script_is_non_audio_and_non_mutating_by_default():
     assert "exit 1" in text
 
 
+def test_control_workflow_smoke_is_stateful_but_restores_local_files():
+    text = (ROOT / "tools" / "control_workflow_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "/status",
+        "/control",
+        "/config",
+        "/history",
+        "/stop",
+        "history_enabled",
+        "history_limit",
+        "ReadAllBytes",
+        "WriteAllBytes",
+        "Restore-File",
+        "Restore local config/history",
+        "Refusing stateful smoke against non-loopback host",
+        "Remove-Item",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_cors_matrix_script_covers_required_phase0_cases():
     text = (ROOT / "tools" / "cors_origin_matrix.ps1").read_text(encoding="utf-8")
 
@@ -105,6 +127,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\mac_package_smoke.sh",
         "tools\\cors_origin_matrix.ps1",
         "tools\\server_smoke.ps1",
+        "tools\\control_workflow_smoke.ps1",
         "tools\\windows_packaging_prereqs.ps1",
         "tools\\windows_package_smoke.ps1",
     ]:

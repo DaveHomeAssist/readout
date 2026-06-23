@@ -239,6 +239,10 @@ These checks explain the issue before the first model warmup fails.
 - With ReadOut running, `.\tools\server_smoke.ps1` runs a non-audio API and
   `/control` smoke test. Add `-IncludeAudio` only when intentionally previewing
   a voice.
+- With ReadOut running, `.\tools\control_workflow_smoke.ps1` performs a
+  stateful non-audio `/control` backend workflow smoke: status refresh, config
+  history toggle, history clear, and stop. It backs up and restores local
+  `~/.readout/config.json` and `history.json`.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
   supported Python, `espeak-ng`, and existing package-artifact state without
   installing dependencies or launching PyInstaller.

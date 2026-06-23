@@ -50,10 +50,10 @@ review context.
 
 | ID | Status | Current Evidence | Remaining Proof |
 |---|---|---|---|
-| P2-A1 | Complete, pending Architect review | macOS routes to `/control` by default; docs and `/control` copy agree; control workflows present; live source HTTP smoke verifies `/control`; `tools/server_smoke.ps1` checks `/control` without audio; `ARCHITECT_SIGNOFF.md` packet | macOS tray-to-control-panel smoke; Architect review |
+| P2-A1 | Complete, pending Architect review | macOS routes to `/control` by default; docs and `/control` copy agree; control workflows present; live source HTTP smoke verifies `/control`; `tools/server_smoke.ps1` checks `/control` without audio; `tools/control_workflow_smoke.ps1` verifies status refresh, history controls, and stop backend without audio; `ARCHITECT_SIGNOFF.md` packet | macOS tray-to-control-panel smoke; Architect review |
 | P2-A2 | Complete | Extension popup status/error source tests cover READY, LOADING, OFFLINE, failures, next-action text, preview controls, and registry-sourced `/voices` catalogue loading; `MANUAL_SMOKE_VALIDATION.md` and `tools/manual_smoke_check.ps1` gate target smoke evidence | Chrome popup smoke before release |
 | P2-A3 | Complete | `/preview` API tests; live source HTTP preview smoke; desktop/control/popup source tests; preview does not mutate config, save audio, or add history; `MANUAL_SMOKE_VALIDATION.md` and `tools/manual_smoke_check.ps1` gate audible preview evidence | Manual audio preview smoke before release |
-| P2-A4 | Complete, pending Architect review | Local history is off by default, capped, clearable, and documented; decision logged; `ARCHITECT_SIGNOFF.md` packet | Architect review |
+| P2-A4 | Complete, pending Architect review | Local history is off by default, capped, clearable, and documented; decision logged; `tools/control_workflow_smoke.ps1` verifies history enable/limit, status refresh, clear, and local config/history restore; `ARCHITECT_SIGNOFF.md` packet | Architect review |
 
 ## Phase 3 - Packaging and Distribution
 

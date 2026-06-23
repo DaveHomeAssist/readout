@@ -32,6 +32,7 @@ Use this checklist for every release candidate.
 - [ ] Run source live HTTP smoke: `python -m pytest tests/test_live_http_smoke.py` or `.\tools\release_preflight.ps1 -RunSourceSmoke`.
 - [ ] Record pass/fail output in `MILESTONE_LOG.md`.
 - [ ] With ReadOut running, run non-audio API/control smoke: `.\tools\server_smoke.ps1`.
+- [ ] With ReadOut running, run non-audio control workflow smoke: `.\tools\control_workflow_smoke.ps1`.
 - [ ] Run a manual `/control` smoke test:
   - [ ] Open `http://127.0.0.1:7778/control`.
   - [ ] Check status display.
