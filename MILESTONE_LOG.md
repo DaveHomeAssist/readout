@@ -652,3 +652,15 @@
 - **What changed:** Added `NEXT_EXECUTOR_PROMPT.md`, linked it from README and `RELEASE_CHECKLIST.md`, and made release preflight require it as a tracked release artifact. `tools/release_preflight.ps1` now also accepts recorded hosted/target Python and `espeak-ng` evidence, matching `tools/roadmap_audit.ps1`.
 - **Evidence:** The prompt names the successful package-smoke run `28051156266`, tests run `28051156286`, the exact remaining worksheet rows, and the final commands required before reporting green. `.\tools\release_preflight.ps1` now reports Python 3.10-3.12 PASS and `espeak-ng on PATH` PASS from hosted/target evidence, then still fails only Architect sign-off, packaging validation, and manual smoke evidence.
 - **Notes / risks:** This is a handoff/control artifact only. It does not complete Architect acceptance or manual smoke validation.
+
+## Status update - 2026-06-23 16:00 -04:00
+- **Now:** Architect sign-off packet has been brought current with the hosted package-smoke evidence.
+- **Next:** Architect can review the actual remaining release risks: manual macOS tray/audio evidence, Windows audible lifecycle evidence, source `/control`, Tk desktop, and Chrome extension manual smoke.
+- **Tests:** Focused release docs/tool tests passed with `27 passed in 31.79s`; `git diff --check` passed with CRLF warnings only; `.\tools\architect_signoff_check.ps1` failed only because required Accept boxes are unchecked; `.\tools\roadmap_audit.ps1` still fails only Architect sign-off, packaging validation, and manual smoke validation.
+- **Blockers:** Architect acceptance and manual smoke evidence remain incomplete.
+
+### Architect Packet Stale Blocker Cleanup - Added
+- **Done when:** `ARCHITECT_SIGNOFF.md` no longer asks the Architect to treat Python, `espeak-ng`, or package artifact creation as unresolved when hosted evidence already exists.
+- **What changed:** Updated `ARCHITECT_SIGNOFF.md` current-blocker language to cite hosted package-smoke run `28051156266` and list only the remaining manual visual/audio/smoke gaps.
+- **Evidence:** The packet now points to `PACKAGING_VALIDATION.md` for package artifacts and non-audio smoke evidence, while keeping the manual rows and Architect acceptance as release-blocking.
+- **Notes / risks:** This does not sign the packet or fill manual smoke evidence.

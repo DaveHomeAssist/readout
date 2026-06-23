@@ -1,6 +1,6 @@
 # ReadOut Architect Sign-off Packet
 
-Last updated: 2026-06-23 14:48 -04:00
+Last updated: 2026-06-23 16:00 -04:00
 
 Purpose: give the Architect one compact place to accept or revise the roadmap
 decisions that are implemented but still waiting on owner sign-off.
@@ -27,9 +27,10 @@ decisions that are implemented but still waiting on owner sign-off.
 ## Current Non-Architect Blockers
 - Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; `ROADMAP_STATUS.md` and `UPSTREAM_RECONCILIATION.md` now track the clean-branch state. The original dirty local `main` worktree remains a safety copy and should not be blindly pulled, merged, reset, or overwritten.
 - Fresh source-only live checks passed on 2026-06-23 14:48 -04:00: temporary Uvicorn server, `tools/server_smoke.ps1` non-audio API/control smoke, and `tools/cors_origin_matrix.ps1` CORS matrix. These checks do not replace target package smoke, audible preview, Tk desktop, Chrome extension, or Architect acceptance.
-- P3-A1 still needs macOS PyInstaller build and tray/control-panel lifecycle validation on macOS.
-- P3-A2 still needs a Windows target with Python 3.10-3.12 and `espeak-ng` installed, then `ReadOut.exe` build and server lifecycle validation.
-- Manual smoke tests still remain for Tk desktop, Chrome extension popup, audio preview, packaged macOS lifecycle, and packaged Windows lifecycle.
+- Hosted package-smoke run `28051156266` passed for Windows and macOS at `b2f02cee11ff6340ad5fcec51db4bb29e2856fdc`; `PACKAGING_VALIDATION.md` records the package artifacts and non-audio smoke evidence.
+- P3-A1 still needs manual macOS menu-bar/tray visibility, tray `Open Control Panel`, audible preview/speak/stop lifecycle, and clean-quit evidence, unless those gaps are explicitly accepted as release risks.
+- P3-A2 still needs manual Windows audible preview/speak/stop lifecycle evidence, unless that gap is explicitly accepted as a release risk.
+- Manual smoke tests still remain for source `/control`, Tk desktop, Chrome extension popup, and audible playback workflows.
 
 ## Suggested Sign-off Rule
-Do not accept P0-A4 or P3-A4 until upstream has been reconciled, `tools/release_preflight.ps1`, `tools/server_smoke.ps1`, `tools/cors_origin_matrix.ps1`, and the relevant packaged-app smoke helper have been run on the intended release target, or the target-specific gaps are explicitly accepted as release risks.
+Do not accept P0-A4 or P3-A4 until upstream has been reconciled, `tools/release_preflight.ps1`, `tools/server_smoke.ps1`, `tools/cors_origin_matrix.ps1`, hosted package-smoke evidence, and the remaining manual smoke worksheets have been reviewed, or the target-specific gaps are explicitly accepted as release risks.

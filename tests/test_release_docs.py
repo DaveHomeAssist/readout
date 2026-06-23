@@ -142,7 +142,10 @@ def test_architect_signoff_packet_covers_pending_owner_decisions():
         "tools/architect_signoff_check.ps1",
         "tools/server_smoke.ps1",
         "tools/cors_origin_matrix.ps1",
-        "packaged-app smoke helper",
+        "hosted package-smoke evidence",
+        "28051156266",
+        "P3-A1 still needs manual macOS",
+        "P3-A2 still needs manual Windows",
     ]:
         assert artifact in text
 
