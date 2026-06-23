@@ -38,29 +38,40 @@ jobs:
           winget install --id eSpeak-NG.eSpeak-NG --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
           $candidateRoots = @(
             "$env:ProgramFiles\eSpeak NG",
-            "${env:ProgramFiles(x86)}\eSpeak NG"
+            "${env:ProgramFiles(x86)}\eSpeak NG",
+            "$env:LOCALAPPDATA\Microsoft\WinGet\Packages"
           )
-          $exe = $candidateRoots |
+          $exePath = $candidateRoots |
             Where-Object { Test-Path $_ } |
             ForEach-Object { Get-ChildItem -Path $_ -Filter espeak-ng.exe -Recurse -ErrorAction SilentlyContinue } |
+            ForEach-Object { $_.FullName } |
             Select-Object -First 1
-          if (-not $exe) {
-            $exe = Get-Command espeak-ng -ErrorAction SilentlyContinue
+          if (-not $exePath) {
+            $command = Get-Command espeak-ng.exe -ErrorAction SilentlyContinue
+            if ($command) {
+              $exePath = if ($command.Source) { $command.Source } else { $command.Path }
+            }
           }
-          if (-not $exe) {
+          if (-not $exePath) {
             throw "espeak-ng.exe was not found after winget install."
           }
-          $dir = Split-Path $exe.Path
+          $dir = Split-Path -Path $exePath -Parent
           Add-Content -Path $env:GITHUB_PATH -Value $dir
-          & $exe.Path --version
+          & $exePath --version
 
       - name: Build Windows package
         shell: pwsh
-        run: .\build_windows.ps1 *>&1 | Tee-Object -FilePath build-windows.log
+        run: |
+          $pwsh = (Get-Process -Id $PID).Path
+          & $pwsh -NoProfile -ExecutionPolicy Bypass -File .\build_windows.ps1 *>&1 | Tee-Object -FilePath build-windows.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Windows package smoke
         shell: pwsh
-        run: .\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe *>&1 | Tee-Object -FilePath windows-package-smoke.md
+        run: |
+          $pwsh = (Get-Process -Id $PID).Path
+          & $pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe *>&1 | Tee-Object -FilePath windows-package-smoke.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Windows package and evidence
         uses: actions/upload-artifact@v4
@@ -91,10 +102,14 @@ jobs:
           espeak-ng --version
 
       - name: Build macOS package
-        run: ./build_mac.sh 2>&1 | tee build-macos.log
+        run: |
+          set -eo pipefail
+          chmod +x build_mac.sh
+          ./build_mac.sh 2>&1 | tee build-macos.log
 
       - name: Run macOS package smoke
         run: |
+          set -eo pipefail
           chmod +x tools/mac_package_smoke.sh
           ./tools/mac_package_smoke.sh --app dist/ReadOut.app 2>&1 | tee macos-package-smoke.md
 
