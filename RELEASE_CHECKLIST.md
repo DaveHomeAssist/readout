@@ -19,6 +19,7 @@ Use this checklist for every release candidate.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.
 - [ ] Run Chrome extension static smoke: `.\tools\extension_static_smoke.ps1`.
 - [ ] Run Tk desktop static smoke: `.\tools\tk_desktop_static_smoke.ps1`.
+- [ ] Run Tk desktop runtime non-audio smoke on a desktop-capable target: `.\tools\tk_desktop_runtime_smoke.ps1`.
 - [ ] Confirm no provider API keys or private values are committed or pasted into logs.
 
 ## 2. Security Gate

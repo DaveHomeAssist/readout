@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 19:30 -04:00
+Last updated: 2026-06-23 19:40 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -62,7 +62,10 @@ Finish these open rows:
      Clear History.
    - Fill remaining source `/control` manual rows: status display, audible
      Preview Voice, Speak text, Speak + Save WAV, and Stop during playback.
-   - Fill Tk desktop smoke rows.
+   - Tk desktop non-audio rows already backed by runtime evidence: desktop
+     opens and engine/voice/speed controls persist through backend config.
+   - Fill remaining Tk desktop smoke rows: Preview Voice audio and
+     Speak/Save WAV/Stop audio behavior.
    - Fill Chrome extension smoke rows.
    - Run `.\tools\manual_smoke_check.ps1`.
 

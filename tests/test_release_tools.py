@@ -144,6 +144,33 @@ def test_tk_desktop_static_smoke_covers_desktop_controls_and_endpoint_contracts(
         assert required in text
 
 
+def test_tk_desktop_runtime_smoke_opens_tk_and_restores_local_files():
+    text = (ROOT / "tools" / "tk_desktop_runtime_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "Start-Process",
+        "-WindowStyle Hidden",
+        "uvicorn",
+        "server:app",
+        "Tk desktop UI currently targets localhost:7778",
+        "A server is already responding",
+        "ReadAllBytes",
+        "WriteAllBytes",
+        "Restore-File",
+        "Restore local config/history",
+        "ReadOutApp._poll_status = lambda self: None",
+        "winfo_ismapped",
+        "_select_engine(\"openai\")",
+        "_select_voice(\"nova\")",
+        "_on_speed_change",
+        "Desktop engine persists",
+        "Desktop voice persists",
+        "Desktop speed persists",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_cors_matrix_script_covers_required_phase0_cases():
     text = (ROOT / "tools" / "cors_origin_matrix.ps1").read_text(encoding="utf-8")
 
@@ -187,6 +214,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\control_workflow_smoke.ps1",
         "tools\\extension_static_smoke.ps1",
         "tools\\tk_desktop_static_smoke.ps1",
+        "tools\\tk_desktop_runtime_smoke.ps1",
         "tools\\windows_packaging_prereqs.ps1",
         "tools\\windows_package_smoke.ps1",
     ]:

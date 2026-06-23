@@ -784,3 +784,15 @@
 - **What changed:** `MANUAL_SMOKE_VALIDATION.md` now records PASS evidence for `/control` opening on `127.0.0.1:7778` and the source `/control` history toggle/Clear History backend workflow. `NEXT_EXECUTOR_PROMPT.md` now names the remaining source `/control` manual rows instead of asking the next executor to redo the whole section.
 - **Evidence:** Temporary source server on `127.0.0.1:7778` reported `SERVER_READY status=ready; engine=kokoro; dependency_issues=3`. `.\tools\server_smoke.ps1 -BaseUrl http://127.0.0.1:7778` passed `/status`, `/voices`, `/history`, and `/control`. `.\tools\control_workflow_smoke.ps1 -BaseUrl http://127.0.0.1:7778` passed loopback target, status refresh backend, control panel backend page, history toggle via config, history status refresh, Clear History backend, Stop backend, and byte-preserving local config/history restore.
 - **Notes / risks:** This does not prove browser-rendered status display updates, audible preview/speak/save/stop behavior, Tk desktop launch/audio, Chrome extension runtime behavior, or package tray/menu-bar/audio rows.
+
+## Status update - 2026-06-23 19:40 -04:00
+- **Now:** Tk desktop launch and engine/voice/speed config persistence have current runtime evidence on this Windows workstation.
+- **Next:** Finish remaining audible Tk rows, source `/control` status/audio/save/stop rows, Chrome extension runtime rows, and package manual visual/audio rows.
+- **Tests:** `.\tools\tk_desktop_runtime_smoke.ps1` passed all rows and restored local config/history; focused release docs/tool tests passed with `31 passed in 40.00s`; full suite passed with `149 passed, 1 warning in 36.00s`; `.\tools\manual_smoke_check.ps1` now reports PASS for source `/control` open/history and Tk desktop open/config rows while still failing the remaining unproven manual rows; `git diff --check` passed with CRLF warnings only.
+- **Blockers:** Package manual visual/audio evidence and remaining manual audio/runtime rows remain incomplete.
+
+### Tk Desktop Runtime Smoke Helper - Added
+- **Done when:** The Tk desktop can be opened on a desktop-capable Windows target and its non-audio backend config workflow can be verified without leaving local config/history mutated.
+- **What changed:** Added `tools/tk_desktop_runtime_smoke.ps1`, wired it into release preflight required-file/syntax checks, README, release checklist, roadmap status, next executor prompt, manual smoke evidence, and release tests. `MANUAL_SMOKE_VALIDATION.md` now records PASS evidence for Tk desktop opening and desktop engine/voice/speed persistence.
+- **Evidence:** `.\tools\tk_desktop_runtime_smoke.ps1` passed Port available, Launch source server, Server ready, Tk window opens (`560x680` on `1920x1080` screen), Tk controls present, Desktop engine persists (`openai`/`alloy`), Desktop voice persists (`nova`), Desktop speed persists (`1.7`), Stop source server, and Restore local config/history.
+- **Notes / risks:** This is a non-audio runtime smoke. It does not prove audible Preview Voice, Speak, Save WAV, Stop during playback, Chrome extension runtime behavior, or package tray/menu-bar/audio rows.

@@ -250,6 +250,9 @@ These checks explain the issue before the first model warmup fails.
 - `.\tools\tk_desktop_static_smoke.ps1` checks the Tk desktop source contract,
   including supported engine tabs, Preview Voice, Save WAV, stop/speak endpoint
   wiring, and config persistence without launching a GUI.
+- `.\tools\tk_desktop_runtime_smoke.ps1` opens the real Tk desktop UI against a
+  temporary source server, verifies non-audio engine/voice/speed persistence,
+  then restores local config/history. It does not prove audible playback.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
   supported Python, `espeak-ng`, and existing package-artifact state without
   installing dependencies or launching PyInstaller.

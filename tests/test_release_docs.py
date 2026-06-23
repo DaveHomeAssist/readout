@@ -214,6 +214,7 @@ def test_manual_smoke_validation_worksheet_covers_interactive_gates():
         "Automated Non-Audio Support Evidence",
         r".\tools\control_workflow_smoke.ps1",
         r".\tools\tk_desktop_static_smoke.ps1",
+        r".\tools\tk_desktop_runtime_smoke.ps1",
         "Tk Desktop Smoke",
         "Chrome Extension Smoke",
         r".\tools\manual_smoke_check.ps1",
