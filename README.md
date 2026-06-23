@@ -216,8 +216,8 @@ These checks explain the issue before the first model warmup fails.
   `MANUAL_SMOKE_VALIDATION.md`.
 - Upstream graph reconciliation notes live in `UPSTREAM_RECONCILIATION.md`.
 - `.\tools\release_preflight.ps1` checks required release artifacts, upstream
-  reconciliation, local Python/espeak prerequisites, secret scan, extension
-  static smoke, Tk desktop static smoke, and optional test/live-server gates.
+  reconciliation, Python/espeak target evidence, secret scan, extension static
+  smoke, Tk desktop static smoke, and optional test/live-server gates.
 - `.\tools\upstream_reconciliation.ps1` prints the local `origin/main` graph
   and file delta without fetching, merging, or editing files.
 - `.\tools\release_preflight.ps1 -RunSourceSmoke` also runs the in-process
@@ -256,6 +256,9 @@ These checks explain the issue before the first model warmup fails.
 - The manual GitHub Actions workflow `.github/workflows/package-smoke.yml`
   builds Windows and macOS packages on hosted runners, runs the non-audio
   package smoke helpers, and uploads package/evidence artifacts.
+- For release status on this branch, recorded hosted package-smoke evidence
+  satisfies Python 3.10-3.12 and `espeak-ng` prerequisite rows unless
+  package/runtime source changes require fresh package artifacts.
 - After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app`
   launches the packaged app, verifies the local server/control surface, and
   quits the app.

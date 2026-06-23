@@ -11,9 +11,9 @@ Use this checklist for every release candidate.
 - [ ] Run packaging validation check after target smoke evidence is filled: `.\tools\packaging_validation_check.ps1`.
 - [ ] Run manual smoke validation check after interactive evidence is filled: `.\tools\manual_smoke_check.ps1`.
 - [ ] Run local release preflight: `.\tools\release_preflight.ps1` (includes upstream reconciliation, secret scan, extension static smoke, and Tk desktop static smoke).
-- [ ] If target hardware is unavailable locally, run the manual GitHub Actions package-smoke workflow and attach its uploaded evidence artifacts.
-- [ ] Use Python 3.10-3.12.
-- [ ] Confirm `espeak-ng --version` works on the target machine.
+- [ ] If target hardware is unavailable locally, use the manual GitHub Actions package-smoke workflow and attach its uploaded evidence artifacts.
+- [ ] Confirm Python 3.10-3.12 on the target machine or cite recorded hosted package-smoke evidence.
+- [ ] Confirm `espeak-ng --version` works on the target machine or cite recorded hosted package-smoke evidence.
 - [ ] Confirm `python -m pip install -r requirements.txt` completes in the release environment.
 - [ ] Run secret scan: `.\tools\secret_scan.ps1`.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.

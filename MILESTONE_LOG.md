@@ -760,3 +760,15 @@
 - **What changed:** `ARCHITECT_SIGNOFF.md`, `DECISION_LOG.md`, `ROADMAP_STATUS.md`, `PACKAGING_VALIDATION.md`, and `NEXT_EXECUTOR_PROMPT.md` now record the accepted Architect decisions from the Notion Architect sign-off page. `tools/roadmap_audit.ps1` now prints a pass-appropriate next action for cleared gates.
 - **Evidence:** `.\tools\architect_signoff_check.ps1` reports PASS for P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4. Packaging and manual smoke checkers still fail the remaining target/manual rows, so release status remains yellow.
 - **Notes / risks:** This clears the Architect decision gate only. It does not replace target machine visual checks or audible playback/manual smoke evidence.
+
+## Status update - 2026-06-23 19:23 -04:00
+- **Now:** Current-facing release docs explicitly keep Python 3.10-3.12 and `espeak-ng` out of the open-blocker list unless local workstation packaging is explicitly requested or package/runtime source changes invalidate hosted evidence.
+- **Next:** Finish package manual visual/audio evidence and interactive manual smoke rows, or record accepted gaps.
+- **Tests:** Focused release docs/tool tests passed with `30 passed in 30.18s`; `tools/roadmap_audit.ps1` still fails only packaging validation and manual smoke validation; `tools/release_preflight.ps1` still fails upstream reconciliation while the worktree is dirty plus the known package/manual evidence gates.
+- **Blockers:** Package manual visual/audio evidence and manual smoke evidence remain incomplete.
+
+### Hosted Prerequisite Scope - Clarified
+- **Done when:** The next executor does not repeat local installer work for prerequisite rows already satisfied by hosted package-smoke evidence.
+- **What changed:** `README.md`, `RELEASE_CHECKLIST.md`, and `NEXT_EXECUTOR_PROMPT.md` now distinguish target/hosted Python and `espeak-ng` evidence from local workstation setup.
+- **Evidence:** Package-smoke run `28062313500` and tests run `28062313482` remain the source of truth for Python 3.10-3.12 and `espeak-ng` package prerequisite rows.
+- **Notes / risks:** This is documentation scope control only; it does not clear package manual visual/audio or manual smoke gates.

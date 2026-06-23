@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 19:12 -04:00
+Last updated: 2026-06-23 19:23 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -89,5 +89,7 @@ Status reporting rules:
 Do not install Python or `espeak-ng` on Dave's workstation unless the current
 task is explicitly to build packages locally on that workstation. Use the
 recorded hosted package-smoke evidence as the package prerequisite source of
-truth.
+truth. Do not list Python 3.10-3.12 or `espeak-ng` as open blockers for this
+branch unless package/runtime source changes invalidate the recorded hosted
+evidence or the user explicitly asks for local workstation packaging.
 ```
