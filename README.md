@@ -1,7 +1,7 @@
 # ReadOut — Desktop TTS
 
-Private by default text-to-speech desktop app.
-Kokoro 82M model runs entirely on your machine — no API costs, no data leaves when Kokoro is selected.
+Local-first text-to-speech desktop app.
+Kokoro 82M model runs entirely on your machine — no API costs, no data leaves.
 FastAPI local server on `localhost:7778` accepts calls from the browser extension.
 
 ---
@@ -16,9 +16,11 @@ python3 --version
 ```
 
 ### Windows (Duncan)
-1. Download `espeak-ng-*.msi` from https://github.com/espeak-ng/espeak-ng/releases
-2. Run installer — make sure "Add to PATH" is checked
-3. Verify: `espeak-ng --version` in PowerShell
+1. Install Python 3.10, 3.11, or 3.12. Kokoro is not supported on Python 3.13.
+2. Verify a supported interpreter is registered: `py -3.12 --version` or `py -3.11 --version`
+3. Download `espeak-ng-*.msi` from https://github.com/espeak-ng/espeak-ng/releases
+4. Run installer — make sure "Add to PATH" is checked
+5. Verify: `espeak-ng --version` in PowerShell
 
 ---
 
@@ -39,17 +41,21 @@ pip install -r requirements.txt
 # 4. macOS M-series only — enable Metal GPU acceleration
 export PYTORCH_ENABLE_MPS_FALLBACK=1   # add to ~/.zshrc permanently
 
-# 5. Run the tray app + local control panel
-python main.py
+# 5. Run
+python main.py --headless --no-browser
 ```
 
-For API-only development without the tray or auto-opened control panel:
+On macOS, the browser control panel is the primary UI. Run:
 
 ```bash
 python main.py --headless --no-browser
 ```
 
-Then open `http://127.0.0.1:7778/control`.
+That starts the local API without using Tk. Then open:
+`http://127.0.0.1:7778/control`
+
+The Tk desktop window remains available for troubleshooting with
+`READOUT_FORCE_TK=1`, but it is not the primary macOS workflow.
 
 First launch downloads the Kokoro model weights (~300 MB) from Hugging Face.  
 A tray notification shows progress. Subsequent launches are instant.
@@ -65,6 +71,9 @@ chmod +x build_mac.sh
 # Output: dist/ReadOut.app
 open dist/ReadOut.app
 ```
+
+The build script fails before installing dependencies unless Python 3.10-3.12
+and `espeak-ng` are available.
 
 The packaged macOS app runs as a menu-bar app and does not use the Tk desktop
 window. Open the control panel from the tray icon via `Open Control Panel`.
@@ -82,6 +91,9 @@ cp -r dist/ReadOut.app /Applications/
 # Output: dist\ReadOut\ReadOut.exe
 ```
 
+The build script prefers `py -3.12`, then `py -3.11`, then `py -3.10`, and
+rejects unsupported or broken `python` shims before creating the virtualenv.
+
 To add to Windows startup:
 ```powershell
 $exe = "$env:APPDATA\ReadOut\ReadOut.exe"
@@ -95,12 +107,14 @@ Set-ItemProperty -Path $reg -Name "ReadOut" -Value $exe
 
 ```
 readout/
-├── main.py          Entry point — tray + server + /control orchestration
-├── main_app.py      Packaged macOS entry point
+├── main.py          Entry point — tray + server + UI
+├── ui.py            Tkinter window (matches screenshot)
 ├── server.py        FastAPI REST API  (localhost:7778)
 ├── tts_engine.py    Kokoro wrapper + playback + save
+├── engines/         Engine registry + OpenAI/ElevenLabs adapters
 ├── config.py        ~/.readout/config.json manager
-├── extension/       Chrome MV3 extension + design reference
+├── history_store.py local recent-read history (off by default)
+├── dependency_check.py first-run prerequisite diagnostics
 ├── assets/
 │   ├── icon.png     64×64 tray icon
 │   ├── icon.icns    macOS app icon (auto-generated)
@@ -118,10 +132,13 @@ readout/
 | Method | Path | Body | Description |
 |--------|------|------|-------------|
 | POST | /speak | `{text, voice?, speed?, save?}` | Speak text |
+| POST | /preview | `{engine?, voice?, speed?}` | Play short voice sample |
 | POST | /stop | — | Stop playback |
 | GET | /status | — | Health + current config |
 | GET | /voices | — | Voice and engine catalogue |
-| PATCH | /config | `{voice?, speed?, engine?, ...}` | Update settings; rejects unsupported engines |
+| GET | /history | — | Local recent-read history if enabled |
+| DELETE | /history | — | Clear local recent-read history |
+| PATCH | /config | `{voice?, speed?, engine?, ...}` | Update settings |
 
 ---
 
@@ -137,11 +154,18 @@ readout/
   "port":               7778,
   "engine":             "kokoro",
   "openai_api_key":     "",
-  "elevenlabs_api_key": ""
+  "elevenlabs_api_key": "",
+  "allowed_origins":    [],
+  "history_enabled":    false,
+  "history_limit":      20
 }
 ```
 
 Edited live — no restart required.
+
+Recent-read history is off by default. When enabled from `/control`, it stores
+recent read text locally in `~/.readout/history.json` and can be cleared from
+the control panel or `DELETE /history`.
 
 ---
 
@@ -167,7 +191,76 @@ ReadOut uses `7778` by default. Both can run simultaneously.
 
 ---
 
+## First-run dependency checks
+
+At startup and in `GET /status`, ReadOut reports missing prerequisites with a
+fix message:
+
+- Python must be 3.10-3.12 for Kokoro compatibility.
+- `kokoro` must be installed from `requirements.txt`.
+- `espeak-ng` must be installed and available on `PATH`.
+
+These checks explain the issue before the first model warmup fails.
+
+---
+
+## Release gates
+
+- Security assumptions live in `THREAT_MODEL.md`.
+- Current app behavior is described in `FEATURE-SPEC.md`.
+- Every release candidate should use `RELEASE_CHECKLIST.md`.
+- Current roadmap readiness is summarized in `ROADMAP_STATUS.md`.
+- Open owner decisions are gathered in `ARCHITECT_SIGNOFF.md`.
+- Target packaging results should be recorded in `PACKAGING_VALIDATION.md`.
+- Interactive desktop/browser smoke results should be recorded in
+  `MANUAL_SMOKE_VALIDATION.md`.
+- Upstream graph reconciliation notes live in `UPSTREAM_RECONCILIATION.md`.
+- `.\tools\release_preflight.ps1` checks required release artifacts, local
+  Python/espeak prerequisites, and optional test/live-server gates.
+- `.\tools\upstream_reconciliation.ps1` prints the local `origin/main` graph
+  and file delta without fetching, merging, or editing files.
+- `.\tools\release_preflight.ps1 -RunSourceSmoke` also runs the in-process
+  source HTTP smoke test without requiring a manually started app.
+- `.\tools\architect_signoff_check.ps1` verifies required Architect rows in
+  `ARCHITECT_SIGNOFF.md` are accepted before release.
+- `.\tools\packaging_validation_check.ps1` verifies target macOS/Windows
+  packaging evidence in `PACKAGING_VALIDATION.md`.
+- `.\tools\manual_smoke_check.ps1` verifies interactive Tk, `/control`, audio,
+  and Chrome extension smoke evidence in `MANUAL_SMOKE_VALIDATION.md`.
+- `.\tools\roadmap_audit.ps1` prints the current roadmap blocker summary without
+  mutating the worktree.
+- `.\tools\secret_scan.ps1` checks for common provider key literals before
+  release.
+- With ReadOut running, `.\tools\cors_origin_matrix.ps1` prints the live
+  CORS/Origin proof matrix for the security gate.
+- With ReadOut running, `.\tools\server_smoke.ps1` runs a non-audio API and
+  `/control` smoke test. Add `-IncludeAudio` only when intentionally previewing
+  a voice.
+- Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
+  supported Python, `espeak-ng`, and existing package-artifact state without
+  installing dependencies or launching PyInstaller.
+- After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app`
+  launches the packaged app, verifies the local server/control surface, and
+  quits the app.
+- After a Windows build, `.\tools\windows_package_smoke.ps1 -ExePath
+  dist\ReadOut\ReadOut.exe` launches the packaged exe, verifies the server, runs
+  non-audio smoke checks, and stops the launched process.
+
+---
+
 ## Browser extension
 
-See `extension/` directory (separate). The extension right-click menu posts  
-selected page text to `http://localhost:7778/speak` — ReadOut plays it instantly.
+See `extension/` directory (separate). The extension right-click menu posts
+selected page text to `http://localhost:7778/speak`.
+
+ReadOut only accepts browser requests from explicit local origins. After loading
+the unpacked extension, copy its ID from `chrome://extensions` and add it to
+`~/.readout/config.json`:
+
+```json
+{
+  "allowed_origins": ["chrome-extension://YOUR_EXTENSION_ID"]
+}
+```
+
+Local scripts and curl commands that send no `Origin` header still work.

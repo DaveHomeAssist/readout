@@ -106,6 +106,18 @@ def test_speak_saves_when_requested(isolated_config, fake_audio, monkeypatch):
     assert os.path.exists(result["saved_to"])
 
 
+def test_speak_can_ignore_always_save_for_preview(isolated_config, fake_audio, monkeypatch):
+    import config
+
+    config.set_config({"always_save": True})
+    _patch_pipeline(monkeypatch, [[0.25]])
+
+    result = tts_engine.speak("preview", save=False, allow_always_save=False)
+
+    assert result["status"] == "playing"
+    assert "saved_to" not in result
+
+
 def test_speak_falls_back_to_config_defaults(isolated_config, fake_audio, monkeypatch):
     import config
     config.set_config({"voice": "bf_emma", "speed": 0.75})

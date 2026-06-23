@@ -6,9 +6,82 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "── ReadOut Windows Build ──────────────────────────────────" -ForegroundColor Cyan
 
-# 1. Check Python version
-$pyver = python --version 2>&1
-Write-Host "Python: $pyver"
+# 1. Resolve a supported Python interpreter without trusting the WindowsApps shim
+function Test-CommandAvailable {
+    param([string]$Exe)
+
+    if ($Exe -match "[\\/]") {
+        return Test-Path $Exe
+    }
+
+    return [bool](Get-Command $Exe -ErrorAction SilentlyContinue)
+}
+
+function Test-SupportedPython {
+    param(
+        [string]$Exe,
+        [string[]]$BaseArgs = @()
+    )
+
+    $check = "import sys; raise SystemExit(0 if (3, 10) <= sys.version_info[:2] < (3, 13) else 1)"
+    try {
+        $argv = @($BaseArgs + @("-c", $check))
+        & $Exe @argv *> $null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    }
+}
+
+function Get-PythonVersionText {
+    param(
+        [string]$Exe,
+        [string[]]$BaseArgs = @()
+    )
+
+    try {
+        $argv = @($BaseArgs + @("--version"))
+        return (& $Exe @argv 2>&1 | Select-Object -First 1)
+    } catch {
+        return "version unavailable"
+    }
+}
+
+$pythonCandidates = @(
+    @{ Label = "existing .venv"; Exe = ".\.venv\Scripts\python.exe"; Args = @() },
+    @{ Label = "Python Launcher 3.12"; Exe = "py"; Args = @("-3.12") },
+    @{ Label = "Python Launcher 3.11"; Exe = "py"; Args = @("-3.11") },
+    @{ Label = "Python Launcher 3.10"; Exe = "py"; Args = @("-3.10") },
+    @{ Label = "python on PATH"; Exe = "python"; Args = @() }
+)
+
+$PythonExe = $null
+$PythonArgs = @()
+$PythonLabel = $null
+
+foreach ($candidate in $pythonCandidates) {
+    if (-not (Test-CommandAvailable $candidate.Exe)) {
+        continue
+    }
+
+    if (Test-SupportedPython -Exe $candidate.Exe -BaseArgs $candidate.Args) {
+        $PythonExe = $candidate.Exe
+        $PythonArgs = $candidate.Args
+        $PythonLabel = $candidate.Label
+        break
+    }
+}
+
+if (-not $PythonExe) {
+    Write-Host ""
+    Write-Host "ERROR: Python 3.10-3.12 is required for Kokoro." -ForegroundColor Red
+    Write-Host "Install Python 3.12, 3.11, or 3.10, then retry."
+    Write-Host "Recommended check: py -3.12 --version"
+    exit 1
+}
+
+$pyver = Get-PythonVersionText -Exe $PythonExe -BaseArgs $PythonArgs
+Write-Host "Python: $pyver ($PythonLabel)"
 
 # 2. Check espeak-ng is on PATH
 if (-not (Get-Command espeak-ng -ErrorAction SilentlyContinue)) {
@@ -23,19 +96,28 @@ Write-Host "espeak-ng: OK"
 # 3. Create / activate venv
 if (-not (Test-Path ".venv")) {
     Write-Host "Creating venv..."
-    python -m venv .venv
+    $venvArgs = @($PythonArgs + @("-m", "venv", ".venv"))
+    & $PythonExe @venvArgs
 }
 & .\.venv\Scripts\Activate.ps1
+$VenvPython = ".\.venv\Scripts\python.exe"
+
+if (-not (Test-SupportedPython -Exe $VenvPython)) {
+    Write-Host ""
+    Write-Host "ERROR: Existing .venv is not Python 3.10-3.12." -ForegroundColor Red
+    Write-Host "Remove .venv after saving any local work, recreate it with a supported Python, and retry."
+    exit 1
+}
 
 # 4. Install dependencies
 Write-Host "Installing dependencies..."
-pip install --upgrade pip -q
-pip install -r requirements.txt -q
+& $VenvPython -m pip install --upgrade pip -q
+& $VenvPython -m pip install -r requirements.txt -q
 
 # 5. Generate placeholder icon if missing
 if (-not (Test-Path "assets\icon.ico")) {
     Write-Host "Generating placeholder icon..."
-    python -c @"
+    & $VenvPython -c @"
 from PIL import Image, ImageDraw
 import os
 os.makedirs('assets', exist_ok=True)
@@ -61,7 +143,7 @@ if (Test-Path "dist")  { Remove-Item -Recurse -Force "dist"  }
 
 # 7. PyInstaller
 Write-Host "Running PyInstaller..."
-pyinstaller ReadOut.spec
+& $VenvPython -m PyInstaller ReadOut.spec
 
 # 8. Verify
 if (Test-Path "dist\ReadOut\ReadOut.exe") {

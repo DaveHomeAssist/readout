@@ -2,48 +2,42 @@
 
 ## Project Overview
 
-Private by default text-to-speech desktop app. Kokoro 82M model runs entirely on-device with zero API costs. FastAPI server on `localhost:7778` accepts calls from a companion Chrome extension. Supports Kokoro (local), OpenAI TTS, and ElevenLabs as engine options.
+Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device with zero API costs. FastAPI server on `localhost:7778` accepts calls from a companion Chrome extension. Supports Kokoro (local), OpenAI TTS, and ElevenLabs as engine options.
 
 ## Stack
 
 - Python 3.10-3.12 (Kokoro requires < 3.13)
 - FastAPI + uvicorn (local REST server on port 7778)
 - Kokoro TTS engine (82M param model, ~300 MB, Hugging Face download)
-- Pluggable engines (`engines/` package + registry): Kokoro (local) / OpenAI TTS / ElevenLabs behind one `TTSEngine` interface
 - PyTorch with MPS Metal acceleration on Apple Silicon
 - pystray (system tray icon)
-- Web control panel at `/control` (the desktop UI, served by FastAPI; opened in the browser)
+- Tkinter (desktop UI window on non-macOS; `/control` is primary on macOS)
 - Chrome extension (MV3, right-click to speak selected text)
 - espeak-ng (phonemizer backend, required system dependency)
 
 ## Key Decisions
 
-- Kokoro privacy default: no data leaves the machine when using the Kokoro engine.
+- Local-first: no data leaves the machine when using Kokoro engine.
 - Port 7778 (DaveLLM uses 7777, both can run simultaneously).
 - Config stored at `~/.readout/config.json`, hot-reloadable without restart.
 - Kokoro model downloads on first run (~300 MB from Hugging Face).
-- Desktop UI is the web control panel at `/control`. The legacy Tkinter window was removed (it crashed on macOS 26+ via a Tk/NSApplication `macOSVersion` selector conflict, issue 001); the control panel supersedes it on every platform.
-- Thread layout: main thread = pystray tray, daemon threads = uvicorn server + Kokoro warmup.
-- Engines are pluggable behind a single `TTSEngine` interface (`engines/base.py`) with `engines/registry.py` as the one extension point (each engine owns its synthesis, voice catalogue, and capability metadata: is_local / requires_key / supports_blend). `GET /voices` returns the registry `engines` catalogue, which the control panel and extension consume instead of hardcoding voice lists. Adding a backend = implement `TTSEngine` + register.
+- macOS: `/control` browser control panel is the primary UI. Tkinter can be forced with `READOUT_FORCE_TK=1` for troubleshooting, but packaged macOS flow stays tray + control panel.
+- Recent-read history is local-only, off by default, and clearable from `/control` or `DELETE /history`.
+- Thread layout: main thread = pystray tray, daemon threads = uvicorn server + Kokoro warmup + Tkinter UI on non-macOS when enabled.
 - Tool execution and file paths use safe patterns (no shell=True).
 
 ## Documentation Maintenance
 
 - **Issues**: Track in CLAUDE.md issue tracker table below
-- **Session log**: Append to `/Users/daverobertson/Desktop/Code/90-governance/docs/today.csv` after each meaningful change
+- **Session log**: Append to `/Users/daverobertson/Desktop/Code/95-docs-personal/today.csv` after each meaningful change
 
 ## Issue Tracker
 
 | ID | Severity | Status | Title | Notes |
 |----|----------|--------|-------|-------|
-| 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+; Tk fully removed 2026-06-21 (ui.py deleted, Tk machinery stripped from main.py) — the web control panel is the canonical desktop UI on all platforms |
-| 002 | P1 | resolved | CORS open to all origins | `allow_origins=["*"]` let any visited web page drive the local API. Locked to `chrome-extension://` via regex; added TrustedHostMiddleware (loopback-only) for DNS-rebinding; disabled /docs+/openapi.json (2026-06-21) |
-| 003 | P1 | resolved | API keys echoed by PATCH /config | Response returned full config incl. plaintext keys. Now redacted via `_public_config()` (`***`); config.json written 0600 (2026-06-21) |
-| 004 | P2 | resolved | Unbounded /speak input | No length limit; large text = CPU/RAM DoS. Capped at MAX_TEXT_CHARS=20000 before synthesis (2026-06-21) |
-| 005 | P2 | resolved | Startup hang on cold launch | Warmup thread's kokoro/transformers import raced uvicorn's startup imports on the Python import lock, hanging the bind. Gated heavy import behind `_wait_for_server`; pinned asyncio loop to avoid slow uvloop native load (2026-06-21) |
-| 006 | P3 | resolved | Extension over-permissioned | Dropped unused `storage` permission; manifest 1.1 → 1.2 (2026-06-21) |
-| 007 | P1 | resolved | Control-panel commit reverted CORS + key redaction | Commit 93f3944 branched off a pre-security server.py and dropped the 0055aa7 hardening (wildcard CORS + unredacted PATCH /config). Restored, with regression tests in tests/test_server_cors.py and tests/test_server_api.py |
-| 008 | P3 | open | /speak and /config unauthenticated; /stop reachable cross-origin | CORS blocks cross-origin *reads* and preflighted requests, but it is not CSRF protection: `POST /stop` is a CORS-simple request, so any page can fire it as a side effect (impact: halts local playback only). `/speak` and `PATCH /config` require `application/json`, which forces a preflight that the origin policy blocks. Real fix is a shared-secret header + coordinated extension update (noted in 0055aa7). |
+| 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+ |
+| 002 | P1 | resolved | Control-panel commit reverted CORS + key redaction | Commit 93f3944 branched off a pre-security server.py and dropped the 0055aa7 hardening (wildcard CORS + unredacted PATCH /config). Restored, with regression tests in tests/test_server_cors.py and tests/test_server_api.py |
+| 003 | P3 | mitigated | /speak and /config unauthenticated; /stop reachable cross-origin | Server now rejects untrusted browser `Origin` headers before endpoint side effects, so remote web pages cannot drive `/stop`, `/speak`, `/status`, `/voices`, or `/config`. Local no-Origin callers remain allowed for desktop UI, curl, and scripts. A shared-secret header is still the stronger future control if the extension protocol is revised. |
 
 ## Testing
 

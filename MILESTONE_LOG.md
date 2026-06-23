@@ -1,0 +1,578 @@
+# ReadOut Milestone Log
+
+## Status update - 2026-06-21 06:33 -04:00
+- **Now:** Phase 0 Codex implementation complete for CORS/Origin hardening, config key redaction, and regression coverage.
+- **Next:** Architect sign-off for P0-A4 local-only threat model.
+- **Tests:** `python -m pytest` passed; live curl origin matrix passed against a temporary uvicorn server.
+- **Blockers:** No Python 3.10-3.12 interpreter was available on this Windows host; verification ran on Python 3.13 with lightweight dev dependencies.
+- **Decisions needed (Architect):** Confirm threat model assumptions and whether a shared-secret extension header is required in a later phase.
+
+### P0-A1 - Completed
+- **Done when:** CORS rejects unknown origins by default, and only explicit local allowlist origins are accepted.
+- **What changed:** Replaced regex CORS middleware with a server-side Origin guard and explicit allowlist. Browser requests from untrusted origins now return `403` before endpoint code runs. Extension origins must be exact entries in `allowed_origins` or `READOUT_ALLOWED_ORIGINS`.
+- **Tests run:**
+  - `python -m pytest`
+  - Temporary uvicorn server plus `curl.exe` origin matrix
+- **Evidence:**
+
+| Case | HTTP | Access-Control-Allow-Origin |
+|---|---:|---|
+| no-origin status | 200 | `<none>` |
+| allowed local status | 200 | `http://localhost:7778` |
+| allowed extension preflight | 204 | `chrome-extension://abcdefghijklmnopabcdefghijklmnop` |
+| blocked evil status | 403 | `<none>` |
+| blocked evil stop | 403 | `<none>` |
+
+- **Notes / risks:** Local no-Origin callers remain allowed for desktop UI, curl, and scripts. Browser extension users must add their exact Chrome extension origin to config or env.
+- **Follow-ups:** Architect should decide whether to add a shared-secret request header for stronger local API control.
+
+### P0-A2 - Completed
+- **Done when:** `/config` never returns provider keys in plaintext, even if set.
+- **What changed:** Existing API-key redaction was preserved and extended around the new `allowed_origins` config path. Wildcard origins are discarded during normalization.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Regression tests verify OpenAI and ElevenLabs keys are redacted from `/config` responses, plaintext secrets are absent from response text, and persisted keys remain available on disk for engine use.
+- **Notes / risks:** `allowed_origins` is not secret and is intentionally returned as config.
+- **Follow-ups:** None for Phase 0.
+
+### P0-A3 - Completed
+- **Done when:** Tests cover success and failure paths for `/config`, `/speak`, `/stop`, `/status`, and `/voices`.
+- **What changed:** Added CORS/Origin regression cases across all five endpoints, status load-error coverage, and config allowlist normalization coverage.
+- **Tests run:** `python -m pytest`
+- **Evidence:** `62 passed, 1 warning in 1.74s`
+- **Notes / risks:** Warning is from FastAPI/Starlette TestClient deprecation under the installed dependency set.
+- **Follow-ups:** Re-run on Python 3.10-3.12 before packaging because Kokoro runtime excludes Python 3.13.
+
+### P0-A4 - Pending Architect
+- **Done when:** One-page threat model documents actors, assets, trust boundaries, and explicit local-only assumptions.
+- **Notes / risks:** Codex implementation assumes local no-Origin callers are trusted enough for Phase 0 and blocks remote browser drive-by origins. Architect sign-off is still required.
+
+## Status update - 2026-06-21 06:47 -04:00
+- **Now:** Phase 1 UI truthfulness cleanup implemented.
+- **Next:** Phase 2 control-surface polish, starting with extension popup status/error text.
+- **Tests:** `python -m pytest` passed; `git diff --check` passed.
+- **Blockers:** Formal Architect sign-off is still pending for P0-A4 and Phase 1 decisions, but the implementation decisions are logged in `DECISION_LOG.md`.
+- **Decisions needed (Architect):** Confirm or revise P1-A2 Browser tab removal, P1-A4 Auto-read removal, and P1-A5 queue download button removal.
+
+### P1-A1 - Completed
+- **Done when:** UI label matches actual output, no other copy references MP3 unless supported.
+- **What changed:** Desktop save button and built-in guide now say Save WAV. Usage docs were updated to match.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Regression test verifies Save WAV copy and blocks Save MP3 user-facing copy from returning.
+- **Notes / risks:** The only remaining MP3 reference is a technical server comment describing ElevenLabs' streamed input format.
+- **Follow-ups:** None.
+
+### P1-A2 - Completed, Pending Architect Review
+- **Done when:** Decision: delete vs implement. If kept, it is functional and testable.
+- **What changed:** Removed the nonfunctional Browser engine tab. Backend config now rejects unsupported `engine` values such as `browser`.
+- **Tests run:** `python -m pytest`
+- **Evidence:** UI regression test verifies supported engines are only `kokoro`, `openai`, and `elevenlabs`; API test verifies `PATCH /config` rejects `engine: browser`.
+- **Notes / risks:** Decision rationale is recorded in `DECISION_LOG.md`.
+- **Follow-ups:** Architect can revisit when a browser/system TTS backend has a concrete implementation plan.
+
+### P1-A3 - Completed
+- **Done when:** Desktop toggles mutate backend config and persist across restart.
+- **What changed:** Desktop engine tabs now PATCH `/config`; voice and speed controls also persist to config; status polling applies persisted engine/voice/speed to the desktop UI on startup.
+- **Tests run:** `python -m pytest`
+- **Evidence:** UI helper tests verify PATCH request formation and config ID-to-label voice mapping.
+- **Notes / risks:** Desktop UI smoke was not launched because this environment is not set up for interactive Tk window verification.
+- **Follow-ups:** Run a manual desktop smoke test on the target workstation before release packaging.
+
+### P1-A4 - Completed, Pending Architect Review
+- **Done when:** Decision logged. If implemented, includes safe defaults and clear UI state.
+- **What changed:** Removed the nonfunctional Auto-read button.
+- **Tests run:** `python -m pytest`
+- **Evidence:** UI regression test verifies no visible Auto-read control remains in `ui.py`.
+- **Notes / risks:** Decision rationale is recorded in `DECISION_LOG.md`.
+- **Follow-ups:** Reintroduce only after trigger behavior and safe defaults are specified.
+
+### P1-A5 - Completed, Pending Architect Review
+- **Done when:** Decision logged. If implemented, downloads are correct format and named deterministically.
+- **What changed:** Removed queue-row download buttons with no command handler.
+- **Tests run:** `python -m pytest`
+- **Evidence:** UI regression test verifies the inert queue download button block is gone.
+- **Notes / risks:** Decision rationale is recorded in `DECISION_LOG.md`.
+- **Follow-ups:** Reintroduce after queue items track saved WAV paths or deterministic regeneration inputs.
+
+## Status update - 2026-06-21 06:49 -04:00
+- **Now:** P2-A2 extension popup status/error text implemented.
+- **Next:** P2-A3 voice preview snippets.
+- **Tests:** `python -m pytest` passed; `git diff --check` passed.
+- **Blockers:** No browser-extension runtime smoke test was run in Chrome.
+- **Decisions needed (Architect):** P2-A4 history retention and privacy model remains pending.
+
+### P2-A2 - Completed
+- **Done when:** Extension displays server up/down, last error, and next action clearly.
+- **What changed:** Added a popup status-detail region and explicit messages for connected, loading, model-error, offline, no-selection, speak failure, stop failure, and config-save failure paths.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Popup regression tests verify the detail region and required next-action/error strings. Full suite output: `70 passed, 1 warning in 1.28s`.
+- **Notes / risks:** Source-level regression coverage only; Chrome popup was not manually opened in this environment.
+- **Follow-ups:** Manual extension smoke test in Chrome before release.
+
+## Status update - 2026-06-21 06:53 -04:00
+- **Now:** P2-A3 voice preview snippets implemented.
+- **Next:** P3-A3 first-run dependency checks or P3 packaging validation, depending on target platform priority.
+- **Tests:** `python -m pytest` passed; `git diff --check` passed.
+- **Blockers:** P2-A1 and P2-A4 remain Architect-owned decisions.
+- **Decisions needed (Architect):** Confirm `/control` as official macOS primary UI and define history retention/privacy policy.
+
+### P2-A3 - Completed
+- **Done when:** Users can play short previews per voice without configuring a full read.
+- **What changed:** Added `POST /preview` with a fixed short sample phrase, request-local engine/voice/speed selection, and save suppression even when `always_save` is enabled. Added Preview controls to `/control`, desktop UI, and extension popup.
+- **Tests run:** `python -m pytest`
+- **Evidence:** API tests verify preview text, no config mutation, engine override behavior, unsupported-engine rejection, and no save despite `always_save`. UI/popup tests verify Preview controls and `/preview` request wiring. Full suite output: `77 passed, 1 warning in 1.57s`.
+- **Notes / risks:** Source-level UI coverage only; audio playback was not manually verified in Tk, Chrome, or the browser control panel in this environment.
+- **Follow-ups:** Manual voice-preview smoke test on the target machine before release.
+
+## Status update - 2026-06-21 06:57 -04:00
+- **Now:** P3-A3 first-run dependency checks implemented.
+- **Next:** P3-A2 Windows build validation is the next Codex-owned item feasible on this machine, but it requires a supported Python 3.10-3.12 runtime and full runtime dependencies.
+- **Tests:** `python -m pytest` passed; `git diff --check` passed.
+- **Blockers:** Current `python` is 3.13, which the new checker correctly reports as unsupported for Kokoro.
+- **Decisions needed (Architect):** P3-A4 release checklist remains Architect-owned.
+
+### P3-A3 - Completed
+- **Done when:** Python/Kokoro/espeak-ng missing state is detected and explained.
+- **What changed:** Added lightweight dependency checks for Python 3.10-3.12, the `kokoro` package, and `espeak-ng` on PATH. Startup prints actionable dependency reports, `/status` exposes `dependency_issues`, popup/control panel display dependency messages, and Windows build preflight rejects unsupported Python.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Dependency tests cover pass/fail states and formatted reports; status tests verify machine-readable dependency issues; startup test verifies dependency reporting before tray imports. Full suite output: `82 passed, 1 warning in 1.77s`.
+- **Notes / risks:** Runtime dependency checks were unit-tested with injected finders; no full packaged first-run smoke was performed.
+- **Follow-ups:** Re-run startup on a clean Python 3.10-3.12 environment with and without `espeak-ng` installed.
+
+## Status update - 2026-06-21 07:02 -04:00
+- **Now:** P2-A1 and P2-A4 implemented with decision-log entries.
+- **Next:** Packaging validation remains, but macOS requires a macOS target and Windows requires Python 3.10-3.12 plus runtime dependencies.
+- **Tests:** `python -m pytest` passed; `git diff --check` passed.
+- **Blockers:** This host only reports Python 3.13 and no `espeak-ng` on PATH, so a production Windows build cannot be validated here yet.
+- **Decisions needed (Architect):** P0-A4 threat model sign-off and P3-A4 release checklist remain.
+
+### P2-A1 - Completed, Pending Architect Review
+- **Done when:** Docs and UI agree. Primary workflows are reachable from `/control`.
+- **What changed:** macOS now routes to the browser control panel by default unless `READOUT_FORCE_TK=1` is set. `/control` copy describes itself as the primary macOS control surface, and docs match that flow.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Runtime tests verify macOS uses `/control` by default, force-Tk override still works, and non-macOS uses Tk by default. Control-panel tests verify primary macOS copy and core controls are present.
+- **Notes / risks:** Runtime browser launch was not manually smoke-tested on macOS in this environment.
+- **Follow-ups:** Manual tray-to-control-panel smoke test on macOS before release.
+
+### P2-A4 - Completed, Pending Architect Review
+- **Done when:** Decision on retention and storage. UI shows clear on/off and delete history.
+- **What changed:** Added local-only recent-read history that is off by default, capped by `history_limit`, stored in `~/.readout/history.json`, and clearable from `/control` or `DELETE /history`.
+- **Tests run:** `python -m pytest`
+- **Evidence:** History tests verify disabled default, enabled storage, limit capping, clear behavior, API responses, and control-panel privacy controls. Full suite output: `93 passed, 1 warning in 2.11s`.
+- **Notes / risks:** History stores read text locally in plaintext when enabled. This is intentional and documented; default is off.
+- **Follow-ups:** Architect should confirm this retention/privacy model before release.
+
+## Status update - 2026-06-21 07:05 -04:00
+- **Now:** P0-A4 threat model draft and P3-A4 release checklist are documented.
+- **Next:** Packaging validation remains split by platform: macOS requires a macOS target, and Windows requires Python 3.10-3.12 plus runtime dependencies.
+- **Tests:** `python -m pytest` passed; `git diff --check` passed.
+- **Blockers:** Current Windows host has Python 3.13 and no `espeak-ng` on PATH, so production packaging cannot be validated here yet.
+- **Decisions needed (Architect):** Threat model sign-off, release checklist acceptance, and the decision-log items marked pending review.
+
+### P0-A4 - Drafted, Pending Architect Sign-off
+- **Done when:** One-page threat model complete and signed off.
+- **What changed:** Added `THREAT_MODEL.md` covering assets, trust boundaries, controls, residual risks, and sign-off status.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Full suite output after adding documentation checks: `95 passed, 1 warning in 1.93s`.
+- **Notes / risks:** The document is drafted, but formal Architect sign-off is still pending.
+- **Follow-ups:** Architect should review and sign off before release.
+
+### P3-A4 - Drafted, Pending Architect Acceptance
+- **Done when:** Release checklist agreed.
+- **What changed:** Added `RELEASE_CHECKLIST.md` with security, test, macOS build, Windows build, release notes, rollback, and sign-off gates.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Release-doc regression tests verify the checklist includes the required release-gate sections.
+- **Notes / risks:** Checklist acceptance is still pending.
+- **Follow-ups:** Architect should confirm release criteria before packaging.
+
+## Status update - 2026-06-21 07:09 -04:00
+- **Now:** P3 packaging scripts fail earlier and more clearly when prerequisites are missing.
+- **Next:** Full P3-A1/P3-A2 packaging validation still requires target environments with supported runtimes.
+- **Tests:** `python -m pytest` passed with `97 passed, 1 warning in 2.24s`.
+- **Blockers:** This Windows host has only Python 3.13 registered through the Python launcher, the `python` shim is broken in the sandbox, `espeak-ng` is missing, and no bash/macOS environment is available for `build_mac.sh` syntax or app validation.
+- **Decisions needed (Architect):** Release checklist acceptance and remaining pending decision-log sign-offs.
+
+### P3-A1 - Preflight Hardened, Validation Pending macOS
+- **Done when:** Build produces runnable app, tray + control panel lifecycle verified.
+- **What changed:** `build_mac.sh` now validates Python 3.10-3.12 even for an existing `.venv`, checks `espeak-ng` before dependency install, and runs PyInstaller through `.venv/bin/python -m PyInstaller`.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Build-script regression tests verify the macOS script has supported-Python selection, `.venv` revalidation, `espeak-ng` preflight, and module-based PyInstaller invocation.
+- **Notes / risks:** Full app build and tray/control-panel lifecycle validation still require a macOS target.
+- **Follow-ups:** Run `./build_mac.sh`, launch `dist/ReadOut.app`, and record tray/control-panel lifecycle results on macOS.
+
+### P3-A2 - Preflight Hardened, Validation Pending Windows Runtime
+- **Done when:** Build produces runnable app, server lifecycle verified on Windows.
+- **What changed:** `build_windows.ps1` now avoids trusting the WindowsApps `python` shim, prefers `py -3.12`, `py -3.11`, `py -3.10`, validates existing `.venv`, checks `espeak-ng` before dependency install, and runs PyInstaller through the venv Python module.
+- **Tests run:** `python -m pytest`; `.\build_windows.ps1`
+- **Evidence:** Local build preflight stopped before install/build with `ERROR: Python 3.10-3.12 is required for Kokoro.` Focused tests passed, and full suite output was `97 passed, 1 warning in 2.24s`.
+- **Notes / risks:** No `ReadOut.exe` was built because this host lacks a supported Python 3.10-3.12 runtime and `espeak-ng`.
+- **Follow-ups:** Install Python 3.10-3.12 and `espeak-ng`, then run `.\build_windows.ps1` and record server lifecycle smoke results.
+
+## Status update - 2026-06-21 07:12 -04:00
+- **Now:** Repeatable Phase 0 live CORS matrix helper and stronger P1-A3 persistence tests are in place.
+- **Next:** Remaining completion items are still target-environment packaging validation and Architect sign-offs.
+- **Tests:** `python -m pytest` passed with `100 passed, 1 warning in 1.74s`.
+- **Blockers:** Live CORS matrix was not run because the server was not started in this sandbox pass; macOS and Windows packaging validation still require target prerequisites.
+- **Decisions needed (Architect):** Threat model sign-off, release checklist acceptance, and pending decision-log reviews.
+
+### P0-A1 - Evidence Strengthened
+- **Done when:** CORS rejects unknown origins by default, and only explicit local allowlist origins are accepted.
+- **What changed:** Added `tools/cors_origin_matrix.ps1` so the live curl proof matrix can be rerun against a running ReadOut instance instead of relying on a one-off transcript.
+- **Tests run:** `python -m pytest`; PowerShell parser check for `tools/cors_origin_matrix.ps1`.
+- **Evidence:** Script covers no-origin status, allowed local status, allowed local config preflight, blocked evil status, blocked evil stop, and optional allowlisted extension preflight. Static helper test and parser check passed.
+- **Notes / risks:** Run the script only after starting ReadOut; it exits nonzero if any matrix row fails.
+- **Follow-ups:** Run `.\tools\cors_origin_matrix.ps1` during the release security gate and paste the table into this log.
+
+### P1-A3 - Evidence Strengthened
+- **Done when:** Desktop toggles mutate backend config and persist across restart.
+- **What changed:** Added method-level desktop UI tests that prove engine, voice, and speed controls PATCH persistable config payloads, and status polling applies persisted engine/voice/speed without writing back.
+- **Tests run:** `python -m pytest`
+- **Evidence:** Focused UI/CORS helper tests passed with `9 passed in 0.12s`; full suite passed with `100 passed, 1 warning in 1.74s`.
+- **Notes / risks:** Interactive Tk smoke is still a release-checklist item, but the persistence contract is now covered without launching a desktop window.
+- **Follow-ups:** Run desktop UI smoke on a target workstation before packaging release.
+
+## Status update - 2026-06-21 07:13 -04:00
+- **Now:** Roadmap readiness is summarized in a dedicated status artifact.
+- **Next:** Use `ROADMAP_STATUS.md` as the short audit view while `MILESTONE_LOG.md` remains the evidence log.
+- **Tests:** `python -m pytest` passed with `102 passed, 1 warning in 1.71s`.
+- **Blockers:** No `.venv` exists in this repo, and target packaging validation still requires supported runtimes plus macOS/Windows smoke environments.
+- **Decisions needed (Architect):** Threat model sign-off, release checklist acceptance, and pending decision-log reviews.
+
+### Roadmap Audit Artifact - Added
+- **Done when:** Every roadmap item has a visible status, evidence pointer, and remaining proof item.
+- **What changed:** Added `ROADMAP_STATUS.md` with a phase-by-phase table for P0-A1 through P3-A4 and current blocking conditions.
+- **Tests run:** `python -m pytest tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** Release-doc tests verify all roadmap item rows are present and README links the release-readiness artifacts. Focused docs output: `4 passed in 0.12s`; full suite output: `102 passed, 1 warning in 1.71s`.
+- **Notes / risks:** The artifact intentionally marks Architect sign-offs and target packaging validation as not complete.
+- **Follow-ups:** Update `ROADMAP_STATUS.md` after Architect decisions and after macOS/Windows packaging smoke tests.
+
+## Status update - 2026-06-21 07:20 -04:00
+- **Now:** Non-audio API/control smoke testing is repeatable from PowerShell.
+- **Next:** Run `tools/server_smoke.ps1` against a live source or packaged server, then use manual checks only for audio, browser-extension, and tray lifecycle behavior.
+- **Tests:** `python -m pytest` passed with `103 passed, 1 warning in 2.34s`.
+- **Blockers:** The helper was parsed and tested, but not run against a live server in this pass because no `.venv` or release runtime is present.
+- **Decisions needed (Architect):** Threat model sign-off, release checklist acceptance, and pending decision-log reviews.
+
+### Release Smoke Helper - Added
+- **Done when:** Non-audio API/control checks can be repeated without mutating config or playing audio.
+- **What changed:** Added `tools/server_smoke.ps1` for `/status`, `/voices`, `/history`, and `/control` checks. `/preview` is guarded behind `-IncludeAudio`.
+- **Tests run:** PowerShell parser check; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** Both PowerShell release helpers parse cleanly. Focused release-tool/doc tests passed with `6 passed in 0.08s`; full suite passed with `103 passed, 1 warning in 2.34s`.
+- **Notes / risks:** This does not replace manual audio preview, Chrome extension popup, or packaged tray lifecycle smoke tests.
+- **Follow-ups:** After starting ReadOut, run `.\tools\server_smoke.ps1`; use `.\tools\server_smoke.ps1 -IncludeAudio` only when intentionally testing voice preview playback.
+
+## Status update - 2026-06-21 07:23 -04:00
+- **Now:** Release readiness can be checked with a single local preflight command.
+- **Next:** On a target release machine, run `.\tools\release_preflight.ps1 -RunPytest -RunLiveChecks` after starting ReadOut.
+- **Tests:** `python -m pytest` passed with `104 passed, 1 warning in 1.95s`.
+- **Blockers:** Local preflight correctly fails this host for missing Python 3.10-3.12 and missing `espeak-ng`.
+- **Decisions needed (Architect):** Threat model sign-off, release checklist acceptance, and pending decision-log reviews.
+
+### Release Preflight Helper - Added
+- **Done when:** Required artifacts, PowerShell syntax, Python runtime, `espeak-ng`, optional pytest, and optional live server checks can be summarized from one command.
+- **What changed:** Added `tools/release_preflight.ps1` and linked it from README and `RELEASE_CHECKLIST.md`.
+- **Tests run:** PowerShell parser check; `.\tools\release_preflight.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** Preflight passed required artifact and script syntax checks, then failed the local host with explicit Python 3.10-3.12 and `espeak-ng` messages. Focused release tests passed with `7 passed in 0.12s`; full suite passed with `104 passed, 1 warning in 1.95s`.
+- **Notes / risks:** The preflight is a gate, not a build. It intentionally exits nonzero when packaging prerequisites are missing.
+- **Follow-ups:** Re-run preflight after installing Python 3.10-3.12 and `espeak-ng`; add `-RunPytest -RunLiveChecks` on the release target.
+
+## Status update - 2026-06-21 07:26 -04:00
+- **Now:** Pending Architect decisions are consolidated into one sign-off packet.
+- **Next:** Architect can review `ARCHITECT_SIGNOFF.md`, mark accept/revise, then copy final decisions into `DECISION_LOG.md`.
+- **Tests:** `python -m pytest` passed with `105 passed, 1 warning in 2.13s`.
+- **Blockers:** Sign-off itself remains external; local preflight still fails this host for missing Python 3.10-3.12 and missing `espeak-ng`.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Architect Sign-off Packet - Added
+- **Done when:** Every Architect-owned pending decision has a visible accept/revise row and evidence pointers.
+- **What changed:** Added `ARCHITECT_SIGNOFF.md`, linked it from README and the release checklist, included it in `ROADMAP_STATUS.md`, and made `tools/release_preflight.ps1` require it as a release artifact.
+- **Tests run:** PowerShell parser check; `.\tools\release_preflight.ps1`; `python -m pytest tests/test_release_docs.py tests/test_release_tools.py`; `python -m pytest`
+- **Evidence:** Preflight now verifies `ARCHITECT_SIGNOFF.md` is present before reporting the known runtime prerequisite failures. Focused release docs/tool tests passed with `8 passed in 0.28s`; full suite passed with `105 passed, 1 warning in 2.13s`.
+- **Notes / risks:** The packet does not approve anything by itself. It only makes the external review explicit and repeatable.
+- **Follow-ups:** Architect should mark each row Accept or Revise, then update `DECISION_LOG.md` and `ROADMAP_STATUS.md`.
+
+## Status update - 2026-06-21 07:30 -04:00
+- **Now:** Windows packaged lifecycle validation has a repeatable helper.
+- **Next:** After `.\build_windows.ps1` succeeds on a supported runtime, run `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe`.
+- **Tests:** `python -m pytest` passed with `106 passed, 1 warning in 2.25s`.
+- **Blockers:** No packaged exe exists on this host because Python 3.10-3.12 and `espeak-ng` are missing.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### P3-A2 - Windows Package Smoke Helper Added
+- **Done when:** Build produces runnable app, server lifecycle verified on Windows.
+- **What changed:** Added `tools/windows_package_smoke.ps1` to launch `dist\ReadOut\ReadOut.exe`, wait for `/status`, run the non-audio server smoke and CORS matrix helpers, then stop the launched process.
+- **Tests run:** PowerShell parser check; `.\tools\windows_package_smoke.ps1`; `.\tools\release_preflight.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** The helper parses cleanly and fails clearly when `dist\ReadOut\ReadOut.exe` is missing. Preflight now requires the helper artifact. Focused release tests passed with `9 passed in 0.13s`; full suite passed with `106 passed, 1 warning in 2.25s`.
+- **Notes / risks:** This still does not validate P3-A2 on this host because no supported Python/runtime build exists yet.
+- **Follow-ups:** Install Python 3.10-3.12 and `espeak-ng`, build with `.\build_windows.ps1`, then run the package smoke helper and paste the result here.
+
+## Status update - 2026-06-21 07:34 -04:00
+- **Now:** macOS packaged lifecycle validation has a repeatable helper.
+- **Next:** After `./build_mac.sh` succeeds on macOS, run `./tools/mac_package_smoke.sh --app dist/ReadOut.app`, then manually verify the menu-bar tray icon.
+- **Tests:** `python -m pytest` passed with `107 passed, 1 warning in 2.22s`.
+- **Blockers:** This Windows host has no bash/macOS target, so the shell helper is statically covered but not target-executed here.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### P3-A1 - macOS Package Smoke Helper Added
+- **Done when:** Build produces runnable app, tray + control panel lifecycle verified.
+- **What changed:** Added `tools/mac_package_smoke.sh` to launch `dist/ReadOut.app`, wait for `/status`, verify `/voices`, `/history`, `/control`, optionally run `/preview`, check blocked-origin behavior, and quit ReadOut.
+- **Tests run:** PowerShell preflight artifact check; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** Preflight now requires `tools/mac_package_smoke.sh`; focused release tests passed with `10 passed in 0.07s`; full suite passed with `107 passed, 1 warning in 2.22s`.
+- **Notes / risks:** Bash/macOS execution was not run on this Windows host. Manual tray icon verification still remains because the helper validates server/control lifecycle, not menu-bar rendering.
+- **Follow-ups:** On macOS, run `chmod +x tools/mac_package_smoke.sh` if needed, then `./tools/mac_package_smoke.sh --app dist/ReadOut.app` and record output here.
+
+## Status update - 2026-06-21 07:38 -04:00
+- **Now:** Target packaging evidence has a dedicated worksheet.
+- **Next:** Fill `PACKAGING_VALIDATION.md` on macOS and Windows targets, then paste completed tables into this log.
+- **Tests:** `python -m pytest` passed with `108 passed, 1 warning in 3.82s`.
+- **Blockers:** The worksheet is ready, but actual P3-A1/P3-A2 validation still needs target builds.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Packaging Validation Worksheet - Added
+- **Done when:** Target build/smoke evidence for P3-A1 and P3-A2 can be captured consistently.
+- **What changed:** Added `PACKAGING_VALIDATION.md` with macOS and Windows command blocks, result tables, release evidence summary, and accepted-gap table. Linked it from README, `RELEASE_CHECKLIST.md`, `ROADMAP_STATUS.md`, and `tools/release_preflight.ps1`.
+- **Tests run:** PowerShell parser check; `.\tools\release_preflight.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** Preflight now requires `PACKAGING_VALIDATION.md`. Focused release tests passed with `11 passed in 0.19s`; full suite passed with `108 passed, 1 warning in 3.82s`.
+- **Notes / risks:** This does not itself validate packaged apps. It standardizes the target evidence that still needs to be produced.
+- **Follow-ups:** Complete the worksheet on macOS/Windows packaging targets and update `ROADMAP_STATUS.md` after successful runs.
+
+## Status update - 2026-06-21 07:43 -04:00
+- **Now:** Release secret scanning is repeatable and part of preflight.
+- **Next:** Keep using `.\tools\secret_scan.ps1` before release and let `.\tools\release_preflight.ps1` run it automatically.
+- **Tests:** `python -m pytest` passed with `109 passed, 1 warning in 3.48s`.
+- **Blockers:** Packaging/sign-off blockers remain unchanged.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Release Secret Scan - Added
+- **Done when:** Release gate can verify common provider key literals and committed non-empty provider keys are not present.
+- **What changed:** Added `tools/secret_scan.ps1`, linked it from README and `RELEASE_CHECKLIST.md`, and made `tools/release_preflight.ps1` run it in quiet mode.
+- **Tests run:** PowerShell parser check; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`
+- **Evidence:** Secret scan passed with `No provider key literals found`. Preflight reports `Secret scan | PASS | secret_scan.ps1 exit=0`. Focused release tests passed with `12 passed in 1.17s`; full suite passed with `109 passed, 1 warning in 3.48s`.
+- **Notes / risks:** The scan is a release safety net, not a substitute for code review or checking local untracked config outside the repo.
+- **Follow-ups:** Keep provider keys in `~/.readout/config.json` or environment-specific storage, never in committed files.
+
+## Status update - 2026-06-21 07:47 -04:00
+- **Now:** Current-state audit confirms the remaining roadmap gaps are external sign-off and target-machine validation, not known local code/test gaps.
+- **Next:** Architect should complete `ARCHITECT_SIGNOFF.md`; packaging owner should run `PACKAGING_VALIDATION.md` on macOS and Windows targets.
+- **Tests:** `python -m pytest` passed with `109 passed, 1 warning in 2.85s`.
+- **Blockers:** `.\tools\release_preflight.ps1` still correctly fails this host for missing Python 3.10-3.12 and missing `espeak-ng`; `.\tools\windows_package_smoke.ps1` correctly fails because `dist\ReadOut\ReadOut.exe` does not exist.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Current Roadmap Completion Audit - Refreshed
+- **Done when:** The active roadmap has current evidence for all local implementation/test items and explicit blockers for owner/target-machine items.
+- **What changed:** Refreshed `ROADMAP_STATUS.md` timestamp and recorded the latest audit evidence here.
+- **Tests run:** `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`; `.\tools\windows_package_smoke.ps1`
+- **Evidence:** Full suite passed with `109 passed, 1 warning in 2.85s`. Secret scan passed with `No provider key literals found`. Preflight passed required file checks, PowerShell syntax checks, and secret scan, then failed the expected local prerequisites: Python 3.10-3.12 and `espeak-ng`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings. Windows package smoke reported `Executable not found: dist\ReadOut\ReadOut.exe`.
+- **Notes / risks:** Live source-server smoke, Chrome extension runtime smoke, audio preview, macOS packaged lifecycle, Windows packaged lifecycle, and tray/menu-bar visual verification remain unproven in this environment.
+- **Follow-ups:** Run `.\tools\release_preflight.ps1 -RunPytest -RunLiveChecks` on a supported Windows runtime after starting ReadOut; run `./build_mac.sh` and `./tools/mac_package_smoke.sh --app dist/ReadOut.app` on macOS; fill `PACKAGING_VALIDATION.md` with actual target results.
+
+## Status update - 2026-06-23 06:08 -04:00
+- **Now:** Roadmap status reflects that local `main` is behind `origin/main` by 10 relevant ReadOut commits.
+- **Next:** Reconcile upstream architecture changes with this roadmap branch before claiming release readiness.
+- **Tests:** `python -m pytest` passed with `109 passed, 1 warning in 6.19s`.
+- **Blockers:** Upstream reconciliation is now a tracked blocker in addition to Architect sign-off and target packaging validation. This host still has only Python 3.13 via the launcher, no `.venv`, no `espeak-ng`, and no packaged `dist\ReadOut\ReadOut.exe`.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Upstream Divergence Audit - Added
+- **Done when:** Release-readiness docs prevent stale-branch release claims and identify upstream changes that must be reconciled safely.
+- **What changed:** Added an upstream integration risk to `ROADMAP_STATUS.md`, added the same blocker to `ARCHITECT_SIGNOFF.md`, and added a release-checklist precondition to confirm the branch is up to date with `origin/main` or the remote delta has been reviewed and accepted.
+- **Tests run:** `git log --oneline --decorate --left-right HEAD...origin/main`; `git show origin/main:tests/test_server_cors.py`; `py -0p`; `Get-Command espeak-ng`; `python -m pytest`; `.\tools\release_preflight.ps1`; `.\tools\secret_scan.ps1`; `git diff --check`
+- **Evidence:** `origin/main` is 10 commits ahead, including engine registry, unified voice catalogue, web-control-panel redesign, Tk retirement, startup-race hardening, and feature-spec commits. Remote CORS tests allow arbitrary `chrome-extension://...` origins, while this roadmap branch requires explicit trusted origins. Full suite passed with `109 passed, 1 warning in 6.19s`. Secret scan passed. Preflight passed required artifact, syntax, and secret checks, then failed the expected local prerequisites: Python 3.10-3.12 and `espeak-ng`.
+- **Notes / risks:** Do not run a blind `git pull` into this dirty worktree. Reconcile upstream in a reviewable branch/worktree so exact-origin CORS, preview, history, dependency checks, release preflight, sign-off packet, and packaging validation are preserved.
+- **Follow-ups:** Build an integration branch from `origin/main`, port the roadmap artifacts/features onto it, rerun the full suite and release preflight, then update this log with the resolved diff.
+
+## Status update - 2026-06-23 06:16 -04:00
+- **Now:** Safe upstream engine/security pieces are ported into the roadmap worktree without replacing the exact-origin CORS guard or dropping preview/history/release-gate work.
+- **Next:** Review the remaining upstream UI/spec/packaging deltas, especially web-control-panel redesign, Tk retirement, `FEATURE-SPEC.md`, and spec/build differences.
+- **Tests:** `python -m pytest` passed with `120 passed, 1 warning in 2.04s`.
+- **Blockers:** The branch is still behind `origin/main` at the Git graph level; this host still lacks Python 3.10-3.12, `.venv`, `espeak-ng`, and packaged app outputs.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Upstream Engine/Security Reconciliation - Partial
+- **Done when:** Useful upstream changes are integrated without weakening roadmap security/privacy/release requirements.
+- **What changed:** Added `engines/` registry package; routed OpenAI and ElevenLabs synthesis through registry adapters; exposed per-engine capability/voice metadata from `/voices`; made `/control` and extension popup consume the registry catalogue with static fallbacks; added startup wait before model warmup; disabled FastAPI docs/OpenAPI; added loopback Host guard; removed unused extension `storage` permission; bumped extension manifest to 1.3; hardened config file and directory permissions.
+- **Tests run:** `python -m pytest tests/test_engines.py tests/test_server_api.py tests/test_server_cors.py tests/test_extension_popup.py tests/test_main_runtime.py tests/test_engine_fallbacks.py`; `python -m pytest tests/test_release_docs.py tests/test_release_tools.py tests/test_build_scripts.py tests/test_ui_copy.py tests/test_config.py tests/test_dependency_check.py tests/test_history_store.py tests/test_tts_engine.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** Focused runtime/security suite passed with `73 passed, 1 warning in 1.89s`. Remaining focused checks passed with `47 passed in 0.59s`. Full suite passed with `120 passed, 1 warning in 2.04s`. Secret scan passed. Preflight passed required artifact, syntax, and secret checks, then failed only the expected local prerequisites: Python 3.10-3.12 and `espeak-ng`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This is a selective port, not a merge. `origin/main` still has remaining relevant commits and Git still reports this branch as behind 10.
+- **Follow-ups:** Continue reconciling upstream in small reviewable cuts, then run release preflight with `-RunPytest -RunLiveChecks` on a supported target runtime.
+
+### Release Preflight - Upstream Currency Gate Added
+- **Done when:** Release preflight catches a stale branch before package validation or release sign-off.
+- **What changed:** `tools/release_preflight.ps1` now compares `HEAD...@{u}` and fails when the current branch is behind upstream. `tests/test_release_tools.py` locks in this check.
+- **Tests run:** `python -m pytest tests/test_release_docs.py tests/test_release_tools.py`; `.\tools\release_preflight.ps1`
+- **Evidence:** Focused release docs/tools tests passed with `12 passed in 0.13s`. Preflight now reports `Git upstream currency | FAIL | Branch is behind origin/main by 10 commit(s); ahead by 0.` before the known Python 3.10-3.12 and `espeak-ng` prerequisite failures.
+- **Notes / risks:** The check is local-only and does not fetch. Run `git fetch` separately before final release preflight if remote freshness matters.
+
+### Feature Spec / Packaging Hidden Imports - Added
+- **Done when:** Current behavior and release blockers are documented, and packaged builds explicitly include the pluggable engine modules.
+- **What changed:** Added `FEATURE-SPEC.md`, linked it from README release gates, and added `engines.*` hidden imports to `ReadOut.spec`.
+- **Tests run:** `python -m pytest tests/test_release_docs.py tests/test_build_scripts.py tests/test_release_tools.py`
+- **Evidence:** Focused release docs/build/tool checks passed with `16 passed in 0.12s`.
+- **Notes / risks:** This is an as-built spec for the roadmap branch, not Architect sign-off.
+
+## Status update - 2026-06-23 06:19 -04:00
+- **Now:** Final local verification after selective upstream reconciliation is green for tests and secret scan.
+- **Next:** Remaining work is upstream graph reconciliation, Architect sign-off, and target-machine packaging validation.
+- **Tests:** `python -m pytest` passed with `122 passed, 1 warning in 2.68s`.
+- **Blockers:** `tools/release_preflight.ps1` now intentionally fails this host for Git upstream currency, Python 3.10-3.12, and `espeak-ng`.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+## Status update - 2026-06-23 06:24 -04:00
+- **Now:** Tk desktop UI also consumes the unified `/voices` catalogue, so all active control surfaces share the registry-backed voice source.
+- **Next:** Continue upstream reconciliation for remaining UI/spec/packaging deltas.
+- **Tests:** `python -m pytest` passed with `124 passed, 1 warning in 2.46s`.
+- **Blockers:** Release preflight still intentionally fails until upstream graph currency, Python 3.10-3.12, and `espeak-ng` are resolved.
+
+### Desktop Voice Catalogue Alignment - Added
+- **Done when:** Desktop controls no longer depend only on hardcoded voice lists when the server catalogue is available.
+- **What changed:** `ui.py` now loads `/voices` once during status polling, converts engine voice metadata into display labels that preserve raw IDs for config patches, and keeps static fallback lists for offline/startup cases. `FEATURE-SPEC.md` records the shared catalogue behavior. `tools/release_preflight.ps1` now requires `FEATURE-SPEC.md`.
+- **Tests run:** `python -m pytest tests/test_ui_copy.py tests/test_server_api.py tests/test_engines.py tests/test_extension_popup.py`
+- **Evidence:** Focused suite passed with `44 passed, 1 warning in 1.31s`. Release docs/tool/UI checks passed with `23 passed in 0.21s`. Full suite passed with `124 passed, 1 warning in 2.46s`. Secret scan passed. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+
+## Status update - 2026-06-23 06:31 -04:00
+- **Now:** Source live HTTP smoke is covered by pytest, avoiding the broken Windows Python shim while still exercising real uvicorn loopback behavior.
+- **Next:** Use this smoke test as the source-server gate; packaged lifecycle smoke still requires built app outputs.
+- **Blockers:** Release preflight still intentionally fails until upstream graph currency, Python 3.10-3.12, and `espeak-ng` are resolved.
+
+### Source Live HTTP Smoke - Added
+- **Done when:** Core source-server HTTP routes and origin rejection are smoke-tested against a live loopback uvicorn server.
+- **What changed:** Added `tests/test_live_http_smoke.py` to start uvicorn in-process on a temporary port, verify `/status`, `/voices`, `/history`, `/control`, dependency issue shape, and disallowed-origin rejection before `/speak` side effects. Added the smoke test to `RELEASE_CHECKLIST.md`.
+- **Tests run:** `python -m pytest tests/test_live_http_smoke.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** Focused live-smoke/docs checks passed with `10 passed in 2.84s`. Full suite passed with `127 passed, 1 warning in 3.98s`. Secret scan passed. Preflight passed required artifact, PowerShell syntax, and secret checks, then intentionally failed Git upstream currency, Python 3.10-3.12, and `espeak-ng`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This is source-server validation, not packaged app lifecycle validation.
+
+### Source Live HTTP Smoke - Expanded
+- **Done when:** Live source-server checks cover the roadmap's highest-risk HTTP contracts, not only basic availability.
+- **What changed:** Expanded `tests/test_live_http_smoke.py` with a live CORS origin matrix, live `/config` API-key redaction and history-control checks, and live `/preview` request-local behavior that proves preview does not save, mutate config, or add recent-read history.
+- **Tests run:** `python -m pytest tests/test_live_http_smoke.py`; `python -m pytest tests/test_live_http_smoke.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** Expanded live smoke passed with `6 passed in 3.25s`. Focused live-smoke/docs checks passed with `13 passed in 3.33s`. Full suite passed with `131 passed, 1 warning in 5.09s`. Secret scan passed. Preflight passed required artifact, PowerShell syntax, and secret checks, then intentionally failed Git upstream currency, Python 3.10-3.12, and `espeak-ng`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** Still source-server only; packaged app lifecycle remains target-machine work.
+
+## Status update - 2026-06-23 06:36 -04:00
+- **Now:** macOS packaged entrypoint behavior has source-level regression coverage.
+- **Next:** Actual P3-A1 still requires a macOS PyInstaller build and packaged app smoke.
+- **Blockers:** macOS packaged lifecycle cannot be proven on this Windows host.
+
+### macOS Packaged Entrypoint Coverage - Added
+- **Done when:** The packaged macOS entrypoint is covered for tray/control-panel routing before target packaging.
+- **What changed:** Added tests proving `main_app.main()` sets `READOUT_DISABLE_UI=1`, sets `READOUT_AUTO_OPEN_CONTROL=0`, and calls the normal app entrypoint with an empty argv. Added PyInstaller spec assertions that macOS packages use `main_app.py` and exclude Tk on Darwin.
+- **Tests run:** `python -m pytest tests/test_main_runtime.py tests/test_build_scripts.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** Focused runtime/build tests passed with `8 passed in 0.13s`. Full suite passed with `128 passed, 1 warning in 3.70s`. Secret scan passed. Preflight passed required artifact, PowerShell syntax, and secret checks, then intentionally failed Git upstream currency, Python 3.10-3.12, and `espeak-ng`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This does not replace macOS target validation; it protects the source contract that the target build uses.
+
+## Status update - 2026-06-23 06:31 -04:00
+- **Now:** Release preflight can run the source live HTTP smoke gate directly.
+- **Next:** Use `.\tools\release_preflight.ps1 -RunSourceSmoke` on a supported release runtime before packaged app validation.
+- **Blockers:** This host still lacks the supported Python/espeak target prerequisites needed for release preflight to run optional Python-backed gates inside the script.
+
+### Source Smoke Preflight Gate - Added
+- **Done when:** The release preflight can explicitly run the in-process source-server smoke test without requiring a manually launched ReadOut server.
+- **What changed:** Added `-RunSourceSmoke` to `tools/release_preflight.ps1`, wired it to `python -m pytest tests/test_live_http_smoke.py`, and linked the command from `README.md`, `RELEASE_CHECKLIST.md`, and `ROADMAP_STATUS.md`.
+- **Tests run:** PowerShell parser check for `tools/release_preflight.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest tests/test_live_http_smoke.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1 -RunSourceSmoke`; `git diff --check`
+- **Evidence:** Focused release docs/tools checks passed with `13 passed in 0.14s`. Source live HTTP smoke passed with `6 passed in 3.35s`. Full suite passed with `131 passed, 1 warning in 4.95s`. Secret scan passed. Preflight reported the new `Source live HTTP smoke` row and correctly failed it on this host because no supported Python 3.10-3.12 runtime was found. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This is still source-server validation. It does not replace package smoke helpers for macOS or Windows.
+
+## Status update - 2026-06-23 06:32 -04:00
+- **Now:** Upstream divergence has a repeatable local report and a written disposition artifact.
+- **Next:** Use `.\tools\upstream_reconciliation.ps1` before any integration branch or remote-delta acceptance decision.
+- **Blockers:** The Git graph is still behind `origin/main`; this pass documents and gates the delta but does not merge it.
+
+### Upstream Reconciliation Report - Added
+- **Done when:** Remaining upstream-only work is visible without running a pull or mutating the dirty roadmap worktree.
+- **What changed:** Added `UPSTREAM_RECONCILIATION.md` and `tools/upstream_reconciliation.ps1`. Release preflight now requires both artifacts and parses the helper.
+- **Tests run:** PowerShell parser checks for `tools/upstream_reconciliation.ps1` and `tools/release_preflight.ps1`; `.\tools\upstream_reconciliation.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** The reconciliation helper reported `ahead=0; behind=10`, `42 changed/untracked path(s)`, and runtime-sensitive upstream deltas in `ReadOut.spec`, `config.py`, extension files, `main.py`, `main_app.py`, `server.py`, and `ui.py`. Focused release docs/tools checks passed with `15 passed in 0.11s`. Full suite passed with `133 passed, 1 warning in 4.87s`. Secret scan passed. Preflight passed the new required artifact and helper syntax checks, then intentionally failed Git upstream currency, Python 3.10-3.12, and `espeak-ng`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This report does not remove the upstream graph blocker. It makes the remaining delta reviewable and repeatable.
+
+## Status update - 2026-06-23 06:33 -04:00
+- **Now:** Architect sign-off is an explicit release preflight gate instead of only a checklist note.
+- **Next:** Architect must check the required rows in `ARCHITECT_SIGNOFF.md`, then run `.\tools\architect_signoff_check.ps1`.
+- **Blockers:** Current sign-off packet is still intentionally failing because no required rows are accepted yet.
+
+### Architect Sign-off Gate - Added
+- **Done when:** Release preflight fails until required Architect-owned roadmap decisions are explicitly accepted.
+- **What changed:** Added `tools/architect_signoff_check.ps1`, linked it from the release docs, and made `tools/release_preflight.ps1` run it in quiet mode.
+- **Tests run:** PowerShell parser checks for `tools/architect_signoff_check.ps1` and `tools/release_preflight.ps1`; `.\tools\architect_signoff_check.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** The standalone sign-off checker reported each required row as `FAIL | Accept is not checked`, which matches the current unsigned packet. Focused release docs/tools checks passed with `16 passed in 0.10s`. Full suite passed with `134 passed, 1 warning in 5.14s`. Secret scan passed. Release preflight now requires and parses `tools/architect_signoff_check.ps1`, then reports `Architect sign-off | FAIL | architect_signoff_check.ps1 exit=1` alongside the known upstream/Python/espeak blockers. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This does not complete Architect-owned work. It makes the missing acceptance visible and release-blocking.
+
+## Status update - 2026-06-23 06:34 -04:00
+- **Now:** Target packaging evidence is an explicit release preflight gate.
+- **Next:** Fill `PACKAGING_VALIDATION.md` on macOS and Windows targets, then run `.\tools\packaging_validation_check.ps1`.
+- **Blockers:** The worksheet is still intentionally failing because all target validation rows remain `TBD`.
+
+### Packaging Validation Gate - Added
+- **Done when:** Release preflight fails until macOS and Windows packaging evidence is filled with concrete pass results or accepted gaps.
+- **What changed:** Added `tools/packaging_validation_check.ps1`, linked it from the release docs, and made `tools/release_preflight.ps1` run it in quiet mode.
+- **Tests run:** PowerShell parser checks for `tools/packaging_validation_check.ps1` and `tools/release_preflight.ps1`; `.\tools\packaging_validation_check.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** The standalone packaging checker reported every target row as failing because current results are `TBD` or `Pending`, which matches the unvalidated worksheet. Focused release docs/tools checks passed with `17 passed in 0.24s`. Full suite passed with `135 passed, 1 warning in 5.18s`. Secret scan passed. Release preflight now requires and parses `tools/packaging_validation_check.ps1`, then reports `Packaging validation evidence | FAIL | packaging_validation_check.ps1 exit=1` alongside the known upstream/Python/espeak/sign-off blockers. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This does not run package builds. It prevents the release checklist from treating blank target evidence as complete.
+
+## Status update - 2026-06-23 06:35 -04:00
+- **Now:** Release gate scripts have behavioral pytest coverage with real PowerShell execution against pass/fail fixtures.
+- **Next:** Use the same gates on the target release machines after sign-off and package builds.
+- **Blockers:** Behavioral coverage is green, but current sign-off and packaging worksheet state still intentionally fails.
+
+### Release Gate Behavioral Coverage - Added
+- **Done when:** Sign-off and packaging evidence gates are verified by execution, not only static string checks.
+- **What changed:** Added behavioral tests for `tools/architect_signoff_check.ps1` and `tools/packaging_validation_check.ps1`, using repo-local temporary fixtures that are cleaned after the test. Tightened packaging validation so `PASS` rows require evidence/notes, and made macOS/Windows lifecycle rows distinct.
+- **Tests run:** PowerShell parser checks for release gate scripts; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\architect_signoff_check.ps1`; `.\tools\packaging_validation_check.ps1`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** Focused release docs/tools checks passed with `19 passed in 18.34s`. Full suite passed with `137 passed, 1 warning in 21.89s`. Current standalone sign-off check still fails because Accept boxes are unchecked. Current standalone packaging validation still fails because target evidence rows are `TBD` or `Pending`. Secret scan passed. Preflight summarizes all expected failures, including upstream currency, Python 3.10-3.12, `espeak-ng`, Architect sign-off, and packaging evidence. `git diff --check` reported no whitespace errors, only CRLF conversion warnings. Temporary release-gate test directories were absent after the test run.
+- **Notes / risks:** This improves release-gate reliability but does not replace Architect acceptance or target package validation.
+
+## Status update - 2026-06-23 06:36 -04:00
+- **Now:** Interactive manual smoke evidence is an explicit release preflight gate.
+- **Next:** Fill `MANUAL_SMOKE_VALIDATION.md` on the intended release machine, then run `.\tools\manual_smoke_check.ps1`.
+- **Blockers:** The worksheet is still intentionally failing because all interactive smoke rows remain `TBD`.
+
+### Manual Smoke Validation Gate - Added
+- **Done when:** Release preflight fails until source `/control`, Tk desktop, audible preview, and Chrome extension runtime smoke evidence is filled with concrete pass results or accepted gaps.
+- **What changed:** Added `MANUAL_SMOKE_VALIDATION.md` and `tools/manual_smoke_check.ps1`, linked them from release docs, and made `tools/release_preflight.ps1` run the checker in quiet mode. Added behavioral pass/fail fixture coverage for the manual smoke checker.
+- **Tests run:** PowerShell parser checks for `tools/manual_smoke_check.ps1` and `tools/release_preflight.ps1`; `.\tools\manual_smoke_check.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** The standalone manual smoke checker reported all interactive rows as failing because current results are `TBD` or `Pending`. Focused release docs/tools checks passed with `22 passed in 36.25s`. Full suite passed with `140 passed, 1 warning in 34.48s`. Secret scan passed. Release preflight now requires and parses `tools/manual_smoke_check.ps1`, then reports `Manual smoke evidence | FAIL | manual_smoke_check.ps1 exit=1` alongside known upstream/Python/espeak/sign-off/packaging blockers. `git diff --check` reported no whitespace errors, only CRLF conversion warnings. Temporary release-gate test directories were absent after the test run.
+- **Notes / risks:** This does not perform interactive smoke tests. It prevents the release checklist from treating blank manual smoke evidence as complete.
+
+## Status update - 2026-06-23 06:37 -04:00
+- **Now:** Current roadmap blockers can be summarized from one non-mutating command.
+- **Next:** Use `.\tools\roadmap_audit.ps1` before handing the packet to Architect or before target packaging runs.
+- **Blockers:** The audit correctly fails until upstream currency, supported Python, `espeak-ng`, Architect sign-off, packaging evidence, and manual smoke evidence are resolved.
+
+### Roadmap Audit Helper - Added
+- **Done when:** A single local command summarizes the remaining roadmap gates without fetching, merging, building, launching GUI apps, or editing files.
+- **What changed:** Added `tools/roadmap_audit.ps1`, linked it from README, `RELEASE_CHECKLIST.md`, and `ROADMAP_STATUS.md`, and made release preflight require and parse it.
+- **Tests run:** PowerShell parser checks for `tools/roadmap_audit.ps1` and `tools/release_preflight.ps1`; `.\tools\roadmap_audit.ps1`; `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`; `python -m pytest`; `.\tools\secret_scan.ps1`; `.\tools\release_preflight.ps1`; `git diff --check`
+- **Evidence:** The roadmap audit reported `Roadmap item coverage | PASS`, then failed the expected current blockers: upstream graph behind by 10, no supported Python 3.10-3.12, no `espeak-ng`, missing Architect sign-off, missing packaging validation, and missing manual smoke validation. Focused release docs/tools checks passed with `24 passed in 35.35s`. Full suite passed with `142 passed, 1 warning in 35.44s`. Secret scan passed. Release preflight now requires and parses `tools/roadmap_audit.ps1` while still failing the known release blockers. `git diff --check` reported no whitespace errors, only CRLF conversion warnings.
+- **Notes / risks:** This summarizes blocker state; it does not complete external sign-off or target validation.
+
+## Status update - 2026-06-23 13:35 -04:00
+- **Now:** Roadmap work is reconciled onto clean branch `roadmap-integration` from `origin/main`; the upstream graph blocker is cleared in this worktree.
+- **Next:** Resolve target packaging prerequisites or run validation on machines that already have them.
+- **Tests:** `python -m pytest` passed with `142 passed, 1 warning in 37.11s`; release docs/tool checks passed with `24 passed in 30.17s`; `.\tools\secret_scan.ps1` passed; `git diff --check` passed with CRLF warnings only.
+- **Blockers:** This Windows host still has only Python 3.13 registered by `py -0p`, no `espeak-ng` on PATH, and no `dist\ReadOut\ReadOut.exe` or `dist/ReadOut.app` package artifacts. Architect sign-off, packaging worksheet evidence, and manual smoke worksheet evidence remain intentionally failing gates.
+- **Decisions needed (Architect):** P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4.
+
+### Upstream Integration Worktree - Verified
+- **Done when:** The roadmap implementation is based on the current remote branch instead of a stale dirty local checkout.
+- **What changed:** Created/used `C:\Users\digit\Desktop\github-davehomeassist\readout-roadmap-integration` on branch `roadmap-integration`, based on `origin/main`, then ported the roadmap implementation and release artifacts into that clean branch.
+- **Tests run:**
+  - `git rev-list --left-right --count HEAD...origin/main`
+  - `python -m pytest`
+  - `python -m pytest tests/test_release_docs.py tests/test_release_tools.py`
+  - `.\tools\secret_scan.ps1`
+  - `.\tools\roadmap_audit.ps1`
+  - `.\tools\release_preflight.ps1`
+  - `git diff --check`
+- **Evidence:** Git graph reported `0 0` against `origin/main`. Full test suite passed with `142 passed, 1 warning in 37.11s`. Roadmap audit now reports `Upstream graph | PASS | ahead=0; behind=0 vs origin/main`; it still fails on Python 3.10-3.12, `espeak-ng`, Architect sign-off, packaging validation, and manual smoke validation. Release preflight reports required files, PowerShell syntax, Git upstream currency, and secret scan as PASS, then fails the same remaining prerequisite/evidence gates.
+- **Notes / risks:** The original dirty local `main` worktree remains separate and should not be blindly pulled, merged, reset, or overwritten.
+
+### P3-A2 - Windows Packaging Host Preflight Rechecked
+- **Done when:** Windows packaging prerequisites and package artifacts are current-state verified before attempting a build.
+- **What changed:** Added `tools/windows_packaging_prereqs.ps1`, a non-mutating prerequisite report that checks supported Python, `espeak-ng`, and existing Windows package artifacts without creating a venv, installing dependencies, running PyInstaller, or launching the app. Rechecked local runtime availability and package outputs from the integration worktree.
+- **Tests run:**
+  - `py -0p`
+  - `Get-Command espeak-ng -ErrorAction SilentlyContinue`
+  - `Test-Path dist\ReadOut\ReadOut.exe`
+  - `.\tools\windows_packaging_prereqs.ps1`
+  - `.\tools\release_preflight.ps1`
+- **Evidence:** `py -0p` reported only `-3.13-64`; `Get-Command espeak-ng` returned no path; `Test-Path dist\ReadOut\ReadOut.exe` returned `False`; `.\tools\windows_packaging_prereqs.ps1` reported FAIL for Python 3.10-3.12, `espeak-ng on PATH`, and existing Windows package; release preflight failed `Python 3.10-3.12` and `espeak-ng on PATH` while passing required file, syntax, Git upstream currency, and secret-scan checks.
+- **Notes / risks:** No Windows package build was attempted because the build script is designed to fail before dependency install when supported Python or `espeak-ng` is absent. This is the correct show-safe behavior for release packaging.
+- **Follow-ups:** Install Python 3.12/3.11/3.10 and `espeak-ng`, then run `.\build_windows.ps1` and `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe`.

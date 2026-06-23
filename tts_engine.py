@@ -111,6 +111,7 @@ def speak(
     voice: str  = None,
     speed: float = None,
     save: bool   = False,
+    allow_always_save: bool = True,
     on_progress=None,
 ) -> dict:
     """
@@ -147,7 +148,7 @@ def speak(
     result: dict = {"status": "playing", "voice": voice, "speed": speed}
 
     # Optional file save
-    if save or cfg.get("always_save", False):
+    if save or (allow_always_save and cfg.get("always_save", False)):
         result["saved_to"] = save_wav(full_audio, sample_rate)
 
     return result

@@ -6,11 +6,7 @@ Thread layout
 main thread   → pystray tray icon (macOS REQUIRES tray on main thread)
 daemon thread → uvicorn FastAPI server
 daemon thread → Kokoro model warm-up
-
-The desktop UI is the web control panel served at ``/control`` (opened in the
-browser). The legacy Tk window was removed: it crashed on macOS 26+ (Tk 9 /
-NSApplication conflict, issue 001) and the control panel supersedes it on every
-platform.
+daemon thread → Tkinter UI window on non-macOS when enabled
 
 Quitting the tray icon stops the process; all daemon threads die with it.
 """
@@ -24,17 +20,18 @@ import threading
 import time
 import webbrowser
 
-import pystray
-from PIL import Image, ImageDraw
-import uvicorn
-
 from config import get_config, set_config, asset_path
+from dependency_check import DependencyIssue, check_dependencies, format_dependency_report
 import tts_engine
+
+_startup_dependency_issues: list[DependencyIssue] = []
 
 
 # ── Tray icon image (generated if icon.png not found) ────────────────────────
 
-def _make_icon_image() -> Image.Image:
+def _make_icon_image():
+    from PIL import Image, ImageDraw
+
     icon_path = asset_path("icon.png")
     if os.path.exists(icon_path):
         return Image.open(icon_path).resize((64, 64))
@@ -55,26 +52,16 @@ def _make_icon_image() -> Image.Image:
 # ── Server ────────────────────────────────────────────────────────────────────
 
 def _run_server():
+    import uvicorn
+
     cfg  = get_config()
     port = cfg.get("port", 7778)
     from server import app
-    # Pin the stdlib asyncio loop instead of uvloop. uvloop gives no meaningful
-    # benefit for this low-traffic local server, and importing its native
-    # extension during startup can stall for seconds (macOS Gatekeeper verifies
-    # the unsigned .so on first load), delaying the bind. asyncio is already
-    # imported, so the server comes up immediately and deterministically.
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning", loop="asyncio")
 
 
 def _wait_for_server(port: int, timeout: float = 30.0) -> bool:
-    """Block (cheaply) until the local API is accepting connections.
-
-    Used to gate the heavy Kokoro/transformers/torch import behind server
-    startup: importing that stack concurrently with uvicorn's own startup
-    imports can deadlock the bind on Python's global import lock. Polling a
-    socket does no heavy importing and releases the GIL, so uvicorn can finish
-    binding first.
-    """
+    """Wait until the local API accepts connections before model warmup."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
@@ -85,14 +72,18 @@ def _wait_for_server(port: int, timeout: float = 30.0) -> bool:
     return False
 
 
-# ── Control panel (the desktop UI) ──────────────────────────────────────────────
+# ── UI window ─────────────────────────────────────────────────────────────────
+
+_ui_app = None
+_ui_runtime = None
+
 
 def _parse_args(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="ReadOut desktop TTS")
     parser.add_argument(
         "--headless",
         action="store_true",
-        help="Run the local API + browser control panel without the tray.",
+        help="Run the local API + browser control panel without tray or Tk UI.",
     )
     parser.add_argument(
         "--no-browser",
@@ -125,9 +116,51 @@ def _open_control_panel(delay: float = 0.0) -> None:
     threading.Thread(target=_open, daemon=True).start()
 
 
+def _get_ui_runtime():
+    global _ui_runtime
+    if _ui_runtime is not None:
+        return _ui_runtime
+
+    if os.getenv("READOUT_FORCE_TK", "").lower() in {"1", "true", "yes"}:
+        _ui_runtime = (True, "")
+        return _ui_runtime
+
+    if os.getenv("READOUT_DISABLE_UI", "").lower() in {"1", "true", "yes"}:
+        _ui_runtime = (False, "Desktop UI disabled via READOUT_DISABLE_UI.")
+        return _ui_runtime
+
+    if sys.platform == "darwin":
+        _ui_runtime = (
+            False,
+            "macOS uses the browser control panel as the primary ReadOut UI.",
+        )
+        return _ui_runtime
+
+    _ui_runtime = (True, "")
+    return _ui_runtime
+
+def _launch_ui():
+    global _ui_app
+    from ui import ReadOutApp
+    _ui_app = ReadOutApp()
+    _ui_app.mainloop()
+
+
+def _launch_ui_or_fallback(icon: pystray.Icon | None = None, *, open_browser: bool | None = None) -> bool:
+    ui_ok, reason = _get_ui_runtime()
+    if not ui_ok:
+        should_open_browser = _should_auto_open_control_panel() if open_browser is None else open_browser
+        if icon is not None:
+            icon.notify(reason, "ReadOut")
+        if should_open_browser:
+            _open_control_panel(delay=1.0)
+        return False
+
+    _launch_ui()
+    return True
+
+
 def _warmup_model(icon: pystray.Icon | None = None) -> None:
-    # Let the API server bind before pulling in the heavy model stack, so the two
-    # don't race on Python's import lock (which can hang the server's startup).
     _wait_for_server(get_config().get("port", 7778))
     try:
         def _progress(msg: str):
@@ -144,7 +177,42 @@ def _warmup_model(icon: pystray.Icon | None = None) -> None:
             icon.notify(f"Model error: {exc}", "ReadOut")
 
 
+def _check_startup_dependencies() -> list[DependencyIssue]:
+    global _startup_dependency_issues
+    _startup_dependency_issues = check_dependencies()
+    if _startup_dependency_issues:
+        print(format_dependency_report(_startup_dependency_issues), file=sys.stderr)
+    return _startup_dependency_issues
+
+
+def _notify_dependency_issues(icon: pystray.Icon | None) -> None:
+    if icon is None or not _startup_dependency_issues:
+        return
+
+    first = _startup_dependency_issues[0]
+    icon.notify(f"{first.message} {first.fix}", "ReadOut dependency issue")
+
+
 # ── Tray menu actions ─────────────────────────────────────────────────────────
+
+def _on_show_window(icon, item):
+    global _ui_app
+    ui_ok, _reason = _get_ui_runtime()
+    if not ui_ok:
+        _open_control_panel()
+        return
+
+    if _ui_app is None or not _ui_app.winfo_exists():
+        t = threading.Thread(target=_launch_ui, daemon=True)
+        t.start()
+    else:
+        try:
+            _ui_app.deiconify()
+            _ui_app.lift()
+            _ui_app.focus_force()
+        except Exception:
+            pass
+
 
 def _on_stop_audio(icon, item):
     tts_engine.stop_audio()
@@ -174,26 +242,38 @@ def _engine_setter(engine: str):
 # ── Tray ──────────────────────────────────────────────────────────────────────
 
 def _build_tray() -> pystray.Icon:
-    img    = _make_icon_image()
+    import pystray
+
+    img   = _make_icon_image()
     voices = tts_engine.list_voices()
+    ui_ok, _reason = _get_ui_runtime()
 
-    voice_items = [pystray.MenuItem(v, _voice_setter(v)) for v in voices]
+    voice_items = [
+        pystray.MenuItem(v, _voice_setter(v))
+        for v in voices
+    ]
 
-    menu = pystray.Menu(
+    menu_items = [
         pystray.MenuItem("ReadOut — Running", None, enabled=False),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Open Control Panel", _on_open_control_panel),
-        pystray.MenuItem("Stop Audio", _on_stop_audio),
+        pystray.MenuItem("Show Window" if ui_ok else "Open Control Panel", _on_show_window),
+    ]
+    if ui_ok:
+        menu_items.append(pystray.MenuItem("Open Control Panel", _on_open_control_panel))
+    menu_items.extend([
+        pystray.MenuItem("Stop Audio",  _on_stop_audio),
         pystray.Menu.SEPARATOR,
-        pystray.MenuItem("Voice", pystray.Menu(*voice_items)),
+        pystray.MenuItem("Voice",  pystray.Menu(*voice_items)),
         pystray.MenuItem("Engine", pystray.Menu(
             pystray.MenuItem("Kokoro (local)", _engine_setter("kokoro")),
             pystray.MenuItem("OpenAI TTS",     _engine_setter("openai")),
-            pystray.MenuItem("ElevenLabs",     _engine_setter("elevenlabs")),
+            pystray.MenuItem("ElevenLabs",      _engine_setter("elevenlabs")),
         )),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", _on_quit),
-    )
+    ])
+
+    menu = pystray.Menu(*menu_items)
 
     return pystray.Icon("ReadOut", img, "ReadOut TTS", menu)
 
@@ -203,23 +283,25 @@ def _build_tray() -> pystray.Icon:
 def _setup(icon: pystray.Icon):
     """Runs in a background thread once the tray is ready."""
     icon.visible = True
+    _notify_dependency_issues(icon)
 
     # 1. Start FastAPI server
-    threading.Thread(target=_run_server, daemon=True).start()
+    server_thread = threading.Thread(target=_run_server, daemon=True)
+    server_thread.start()
 
     # 2. Warm up Kokoro model
-    threading.Thread(target=lambda: _warmup_model(icon), daemon=True).start()
+    warmup_thread = threading.Thread(target=lambda: _warmup_model(icon), daemon=True)
+    warmup_thread.start()
 
-    # 3. Open the control panel (the desktop UI), unless suppressed.
+    # 3. Launch the UI window
     cfg = get_config()
-    if cfg.get("window_visible", True) and _should_auto_open_control_panel():
-        _open_control_panel(delay=1.0)
-    else:
-        icon.notify(
-            f"ReadOut is running at {_get_control_url()}. "
-            f"Use the tray menu to open the control panel.",
-            "ReadOut",
-        )
+    if cfg.get("window_visible", True):
+        launched = _launch_ui_or_fallback(icon, open_browser=None)
+        if not launched and not _should_auto_open_control_panel():
+            icon.notify(
+                f"ReadOut is running at {_get_control_url()}. Use the tray menu to open the control panel.",
+                "ReadOut",
+            )
 
 
 def _run_headless(open_browser: bool = True):
@@ -234,6 +316,8 @@ def main(argv: list[str] | None = None):
     # On macOS M1-M4, enable Metal fallback for PyTorch
     if sys.platform == "darwin":
         os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+
+    _check_startup_dependencies()
 
     args = _parse_args(argv)
     if args.headless or os.getenv("READOUT_HEADLESS", "").lower() in {"1", "true", "yes"}:

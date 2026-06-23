@@ -7,19 +7,37 @@ echo "── ReadOut macOS Build ───────────────�
 
 # 1. Resolve a supported Python interpreter (3.10–3.12)
 PYTHON_BIN=""
-if [ -x ".venv/bin/python" ]; then
-  PYTHON_BIN=".venv/bin/python"
-elif [ -x "/opt/homebrew/opt/python@3.12/bin/python3.12" ]; then
-  PYTHON_BIN="/opt/homebrew/opt/python@3.12/bin/python3.12"
-elif command -v python3.12 >/dev/null 2>&1; then
-  PYTHON_BIN="$(command -v python3.12)"
-elif python3 - <<'PYEOF' >/dev/null 2>&1
+
+is_supported_python() {
+  "$1" - <<'PYEOF' >/dev/null 2>&1
 import sys
 raise SystemExit(0 if (3, 10) <= sys.version_info[:2] < (3, 13) else 1)
 PYEOF
-then
-  PYTHON_BIN="$(command -v python3)"
-else
+}
+
+for candidate in \
+  ".venv/bin/python" \
+  "/opt/homebrew/opt/python@3.12/bin/python3.12" \
+  "python3.12" \
+  "python3.11" \
+  "python3.10" \
+  "python3"
+do
+  if [ -x "$candidate" ]; then
+    resolved="$candidate"
+  elif command -v "$candidate" >/dev/null 2>&1; then
+    resolved="$(command -v "$candidate")"
+  else
+    continue
+  fi
+
+  if is_supported_python "$resolved"; then
+    PYTHON_BIN="$resolved"
+    break
+  fi
+done
+
+if [ -z "$PYTHON_BIN" ]; then
   echo "❌  Python 3.10–3.12 required. Install python@3.12 and retry."
   exit 1
 fi
@@ -27,22 +45,36 @@ fi
 PY="$("$PYTHON_BIN" --version 2>&1)"
 echo "Python: $PY"
 
-# 2. Create / activate venv
+# 2. Check espeak-ng is on PATH
+if ! command -v espeak-ng >/dev/null 2>&1; then
+  echo "❌  espeak-ng not found on PATH."
+  echo "    Install with: brew install espeak-ng"
+  exit 1
+fi
+echo "espeak-ng: OK"
+
+# 3. Create / activate venv
 if [ ! -d ".venv" ]; then
   echo "Creating venv..."
   "$PYTHON_BIN" -m venv .venv
 fi
 source .venv/bin/activate
 
-# 3. Install deps
+if ! is_supported_python ".venv/bin/python"; then
+  echo "❌  Existing .venv is not Python 3.10–3.12."
+  echo "    Remove .venv after saving any local work, recreate it with a supported Python, and retry."
+  exit 1
+fi
+
+# 4. Install deps
 echo "Installing dependencies..."
 .venv/bin/python -m pip install --upgrade pip -q
 .venv/bin/python -m pip install -r requirements.txt -q
 
-# 4. Set MPS fallback for M-series chips
+# 5. Set MPS fallback for M-series chips
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 
-# 5. Generate placeholder icon if not present
+# 6. Generate placeholder icon if not present
 if [ ! -f "assets/icon.icns" ]; then
   echo "Generating placeholder icon..."
   .venv/bin/python - <<'PYEOF'
@@ -70,14 +102,14 @@ print("icon.icns generated.")
 PYEOF
 fi
 
-# 6. Clean previous build
+# 7. Clean previous build
 rm -rf build dist
 
-# 7. PyInstaller
+# 8. PyInstaller
 echo "Running PyInstaller (macOS app mode: tray + control panel, no Tk window)..."
-.venv/bin/pyinstaller ReadOut.spec
+.venv/bin/python -m PyInstaller ReadOut.spec
 
-# 8. Verify
+# 9. Verify
 if [ -d "dist/ReadOut.app" ]; then
   echo ""
   echo "✅  Build complete: dist/ReadOut.app"

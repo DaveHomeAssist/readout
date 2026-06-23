@@ -12,6 +12,8 @@ def test_defaults_when_no_file(isolated_config):
     assert cfg["voice"] == "af_heart"
     assert cfg["port"] == 7778
     assert cfg["speed"] == 1.0
+    assert cfg["history_enabled"] is False
+    assert cfg["history_limit"] == 20
     # Returned dict must be a copy — mutating it must not poison DEFAULTS.
     cfg["voice"] = "mutated"
     assert config.DEFAULTS["voice"] == "af_heart"

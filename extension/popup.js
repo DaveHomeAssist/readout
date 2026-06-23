@@ -2,8 +2,6 @@
 
 const READOUT_URL = "http://localhost:7778";
 
-// Offline fallback only; the authoritative source is `catalogue`, loaded from
-// the server's /voices endpoint (engines = the server-side registry).
 const VOICES = {
   kokoro: [
     "af_heart", "af_sky", "af_bella", "af_sarah", "af_nicole",
@@ -15,45 +13,75 @@ const VOICES = {
   elevenlabs: ["Rachel", "Domi", "Bella", "Antoni", "Elli", "Josh", "Arnold", "Adam", "Sam"],
 };
 
-// Per-engine catalogue from /voices: { engine: [{id, label}, ...] }
 const catalogue = {};
-
-async function loadVoices() {
-  try {
-    const res = await fetch(`${READOUT_URL}/voices`, { signal: AbortSignal.timeout(2000) });
-    const data = await res.json();
-    if (Array.isArray(data.engines)) {
-      for (const e of data.engines) {
-        catalogue[e.name] = (e.voices || []).map((v) => ({ id: v.id, label: v.label || v.id }));
-      }
-    }
-  } catch { /* keep fallback */ }
-}
 
 const els = {
   status: document.getElementById("status"),
+  statusDetail: document.getElementById("status-detail"),
   engine: document.getElementById("engine"),
   voice: document.getElementById("voice"),
   speed: document.getElementById("speed"),
   speedVal: document.getElementById("speed-val"),
   btnSpeak: document.getElementById("btn-speak"),
+  btnPreview: document.getElementById("btn-preview"),
   btnStop: document.getElementById("btn-stop"),
 };
 
-// Populate voice dropdown for selected engine (catalogue first, fallback to VOICES)
+async function loadVoices() {
+  try {
+    const res = await fetch(`${READOUT_URL}/voices`, { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) throw new Error(`Voices ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data.engines)) {
+      for (const engine of data.engines) {
+        catalogue[engine.name] = (engine.voices || []).map((voice) => ({
+          id: voice.id,
+          label: voice.label || voice.id,
+        }));
+      }
+    }
+  } catch {
+    // Keep static offline fallback voices.
+  }
+}
+
+function setStatus(state, label, detail) {
+  els.status.textContent = label;
+  els.status.className = "status " + state;
+  els.statusDetail.textContent = detail;
+  els.statusDetail.className = "status-detail " + state;
+}
+
+function setLastError(message, nextAction) {
+  setStatus("error", "ERROR", `Last error: ${message} ${nextAction}`);
+}
+
+// Populate voice dropdown for selected engine
 function updateVoices(engine) {
-  const cat = catalogue[engine];
-  const list = cat && cat.length ? cat : (VOICES[engine] || []).map((v) => ({ id: v, label: v }));
-  els.voice.innerHTML = list.map((v) => `<option value="${v.id}">${v.label}</option>`).join("");
+  const dynamicList = catalogue[engine];
+  const list = dynamicList && dynamicList.length
+    ? dynamicList
+    : (VOICES[engine] || []).map((voice) => ({ id: voice, label: voice }));
+  els.voice.innerHTML = list.map((voice) => `<option value="${voice.id}">${voice.label}</option>`).join("");
 }
 
 // Check server status
 async function checkStatus() {
   try {
     const res = await fetch(`${READOUT_URL}/status`, { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
-    els.status.textContent = data.status === "ready" ? "READY" : "LOADING";
-    els.status.className = "status " + (data.status === "ready" ? "ready" : "loading");
+    const dependencyIssue = (data.dependency_issues || [])[0];
+    const state = dependencyIssue || data.load_error ? "error" : (data.status === "ready" ? "ready" : "loading");
+    const label = dependencyIssue || data.load_error ? "ERROR" : (data.status === "ready" ? "READY" : "LOADING");
+    const detail = dependencyIssue
+      ? `Dependency issue: ${dependencyIssue.message} ${dependencyIssue.fix}`
+      : data.load_error
+        ? `Server connected, but model failed: ${data.load_error}`
+        : data.status === "ready"
+          ? `Server connected. Engine: ${data.engine || "unknown"} | Voice: ${data.voice || "unknown"} | Speed: ${data.speed || "1.0"}x`
+          : "Server connected. Model is still loading; wait for READY before reading.";
+    setStatus(state, label, detail);
 
     if (data.engine) els.engine.value = data.engine;
     if (data.voice) {
@@ -65,8 +93,7 @@ async function checkStatus() {
       els.speedVal.textContent = data.speed + "x";
     }
   } catch {
-    els.status.textContent = "OFFLINE";
-    els.status.className = "status offline";
+    setStatus("offline", "OFFLINE", "Server offline. Start the ReadOut desktop app, then reopen this popup.");
   }
 }
 
@@ -85,13 +112,14 @@ els.btnSpeak.addEventListener("click", async () => {
   const text = await getSelectedText();
   if (!text) {
     els.btnSpeak.textContent = "No text selected";
+    setLastError("No text selected.", "Select text on the page, then click Read Selection.");
     setTimeout(() => { els.btnSpeak.textContent = "Read Selection"; }, 1500);
     return;
   }
 
   try {
     els.btnSpeak.textContent = "Reading...";
-    await fetch(`${READOUT_URL}/speak`, {
+    const res = await fetch(`${READOUT_URL}/speak`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -100,27 +128,82 @@ els.btnSpeak.addEventListener("click", async () => {
         speed: parseFloat(els.speed.value),
       }),
     });
+    if (!res.ok) throw new Error(`Speak ${res.status}`);
+    const data = await res.json();
+    if (data.status === "error") {
+      throw new Error(data.message || "ReadOut could not speak the selection.");
+    }
+    setStatus("ready", "READY", "Selection sent to ReadOut.");
     els.btnSpeak.textContent = "Read Selection";
-  } catch {
+  } catch (error) {
+    const message = error?.message || "ReadOut did not accept the selection.";
+    if (message.startsWith("Speak ") || message.includes("Failed to fetch")) {
+      setStatus("offline", "OFFLINE", "ReadOut did not accept the selection. Start the desktop app and check the extension origin allowlist.");
+    } else {
+      setLastError(message, "Check the selected engine, API key, and ReadOut status.");
+    }
     els.btnSpeak.textContent = "Server offline";
     setTimeout(() => { els.btnSpeak.textContent = "Read Selection"; }, 1500);
   }
 });
 
+// Preview selected voice
+els.btnPreview.addEventListener("click", async () => {
+  try {
+    els.btnPreview.textContent = "Previewing...";
+    const res = await fetch(`${READOUT_URL}/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        engine: els.engine.value,
+        voice: els.voice.value,
+        speed: parseFloat(els.speed.value),
+      }),
+    });
+    if (!res.ok) throw new Error(`Preview ${res.status}`);
+    const data = await res.json();
+    if (data.status === "error") {
+      throw new Error(data.message || "ReadOut could not preview this voice.");
+    }
+    setStatus("ready", "READY", `Previewing ${els.voice.value}.`);
+  } catch (error) {
+    const message = error?.message || "Could not preview voice.";
+    if (message.startsWith("Preview ") || message.includes("Failed to fetch")) {
+      setStatus("offline", "OFFLINE", "Could not preview voice. Start the desktop app and check the extension origin allowlist.");
+    } else {
+      setLastError(message, "Check the selected engine, API key, and ReadOut status.");
+    }
+  } finally {
+    els.btnPreview.textContent = "Preview";
+  }
+});
+
 // Stop
 els.btnStop.addEventListener("click", async () => {
-  await fetch(`${READOUT_URL}/stop`, { method: "POST" }).catch(() => {});
+  try {
+    const res = await fetch(`${READOUT_URL}/stop`, { method: "POST" });
+    if (!res.ok) throw new Error(`Stop ${res.status}`);
+    setStatus("ready", "READY", "Stop sent to ReadOut.");
+  } catch {
+    setStatus("offline", "OFFLINE", "Could not stop playback. Start the ReadOut desktop app, then try again.");
+  }
 });
 
 // Engine change → update voices + save to server
 els.engine.addEventListener("change", async () => {
   const engine = els.engine.value;
   updateVoices(engine);
-  await fetch(`${READOUT_URL}/config`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ engine }),
-  }).catch(() => {});
+  try {
+    const res = await fetch(`${READOUT_URL}/config`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ engine, voice: els.voice.value }),
+    });
+    if (!res.ok) throw new Error(`Config ${res.status}`);
+    setStatus("ready", "READY", `Engine saved: ${engine}.`);
+  } catch {
+    setLastError("Could not save engine.", "Check that ReadOut is running and this extension origin is allowed.");
+  }
 });
 
 // Speed label

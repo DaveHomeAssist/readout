@@ -26,6 +26,9 @@ DEFAULTS: dict = {
     "elevenlabs_api_key": "",
     "engine":            "kokoro",      # kokoro | openai | elevenlabs
     "window_visible":    True,          # show main window on launch
+    "allowed_origins":   [],            # extra exact browser origins, e.g. the Chrome extension ID
+    "history_enabled":   False,         # local recent-read history is off by default
+    "history_limit":     20,
 }
 
 
@@ -44,8 +47,6 @@ def set_config(updates: dict) -> None:
     current = get_config()
     current.update(updates)
     os.makedirs(CONFIG_DIR, exist_ok=True)
-    # The config holds plaintext API keys; keep it owner-only so other local
-    # accounts can't read them. Best-effort (no-op on filesystems without chmod).
     try:
         os.chmod(CONFIG_DIR, 0o700)
     except OSError:

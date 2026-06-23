@@ -1,4 +1,4 @@
-"""Kokoro — the local, on-device engine (zero egress)."""
+"""Kokoro local TTS engine."""
 from __future__ import annotations
 
 import tts_engine
@@ -16,10 +16,10 @@ class KokoroEngine(TTSEngine):
         return tts_engine.list_voices_labeled()
 
     def synthesize(self, req, cfg: dict) -> dict:
-        # tts_engine.speak owns synthesis, playback, and optional save.
         return tts_engine.speak(
             text=req.text,
             voice=req.voice,
             speed=req.speed,
             save=req.save,
+            allow_always_save=getattr(req, "allow_always_save", True),
         )

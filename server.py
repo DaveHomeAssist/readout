@@ -1,48 +1,162 @@
 """
 server.py — ReadOut REST API
-Endpoints:  POST /speak   POST /stop   GET /status   GET /voices   PATCH /config
-CORS restricted to the companion Chrome extension and localhost dev tools.
+Endpoints:  POST /speak   POST /preview   POST /stop   GET /status   GET /voices   PATCH /config   GET/DELETE /history
+Browser origins are restricted to an explicit local allowlist.
 Config responses redact provider API keys so the server never echoes back
 the OpenAI / ElevenLabs credentials a user just stored.
 """
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+import os
+from typing import Literal
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 
 import tts_engine
 import config as cfg_module
+import history_store
+from dependency_check import check_dependencies, issues_to_dicts
 from engines import registry
 
-app = FastAPI(title="ReadOut TTS", version="1.0.0")
+app = FastAPI(
+    title="ReadOut TTS",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["127.0.0.1", "localhost", "testserver"],
+)
 
 # Cap synthesis input so a huge paste can't pin CPU/RAM (issue 004).
 MAX_TEXT_CHARS = 20_000
 
-# Allow Chrome extension origins and local dev origins only. The service
-# listens on 127.0.0.1:7778, so the previous wildcard CORS policy let any
-# website the user visited drive the local daemon; pinning the origin closes
-# that drive-by path. Note: chrome-extension://.* permits any extension, not
-# just the companion one — the published extension ID is not pinned yet.
-_ALLOWED_ORIGIN_REGEX = (
-    r"^(chrome-extension://.*"
-    r"|http://localhost(:\d+)?"
-    r"|http://127\.0\.0\.1(:\d+)?)$"
+# The service listens on loopback. A wildcard CORS policy would let any website
+# the user visits drive the local daemon; omitting CORS headers is also not
+# enough because simple requests such as POST /stop still execute. This guard
+# rejects untrusted browser origins before endpoint code runs.
+_DEFAULT_ALLOWED_ORIGINS = frozenset(
+    {
+        "http://localhost",
+        "http://localhost:5173",
+        "http://localhost:7778",
+        "http://127.0.0.1",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:7778",
+    }
 )
+_ALLOWED_ORIGINS_ENV = "READOUT_ALLOWED_ORIGINS"
+_CORS_METHODS = ("GET", "POST", "PATCH", "DELETE", "OPTIONS")
+_CORS_HEADERS = ("content-type",)
+_CORS_METHODS_HEADER = ", ".join(_CORS_METHODS)
+_CORS_HEADERS_HEADER = "Content-Type"
+PREVIEW_TEXT = "This is a short ReadOut voice preview."
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=_ALLOWED_ORIGIN_REGEX,
-    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type"],
-    allow_credentials=False,
-)
 
 # Fields that must never appear in an HTTP response body. Keep this list
 # in sync with any new provider credential added to ConfigUpdate below.
 _SECRET_FIELDS = frozenset({"openai_api_key", "elevenlabs_api_key"})
+
+
+def _normalize_origins(origins) -> set[str]:
+    normalized: set[str] = set()
+    for origin in origins:
+        if not isinstance(origin, str):
+            continue
+        cleaned = origin.strip().rstrip("/")
+        if not cleaned or cleaned == "*":
+            continue
+        normalized.add(cleaned)
+    return normalized
+
+
+def _configured_allowed_origins() -> set[str]:
+    cfg = cfg_module.get_config()
+    configured = cfg.get("allowed_origins", [])
+    if isinstance(configured, str):
+        configured_origins = configured.split(",")
+    elif isinstance(configured, list):
+        configured_origins = configured
+    else:
+        configured_origins = []
+
+    env_origins = os.environ.get(_ALLOWED_ORIGINS_ENV, "").split(",")
+    return _normalize_origins([*configured_origins, *env_origins])
+
+
+def _allowed_origins() -> set[str]:
+    return set(_DEFAULT_ALLOWED_ORIGINS) | _configured_allowed_origins()
+
+
+def _add_vary_origin(response: Response) -> None:
+    vary = response.headers.get("Vary")
+    if not vary:
+        response.headers["Vary"] = "Origin"
+        return
+    parts = {part.strip().lower() for part in vary.split(",")}
+    if "origin" not in parts:
+        response.headers["Vary"] = f"{vary}, Origin"
+
+
+def _apply_cors_headers(response: Response, origin: str) -> Response:
+    response.headers["Access-Control-Allow-Origin"] = origin
+    _add_vary_origin(response)
+    return response
+
+
+def _origin_is_allowed(origin: str | None) -> bool:
+    if not origin:
+        return True
+    return origin.strip().rstrip("/") in _allowed_origins()
+
+
+def _preflight_headers_allowed(requested_headers: str) -> bool:
+    requested = {
+        header.strip().lower()
+        for header in requested_headers.split(",")
+        if header.strip()
+    }
+    return requested <= set(_CORS_HEADERS)
+
+
+@app.middleware("http")
+async def enforce_allowed_origin(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if not origin:
+        return await call_next(request)
+
+    normalized_origin = origin.strip().rstrip("/")
+    if not _origin_is_allowed(normalized_origin):
+        return JSONResponse(
+            {"detail": "Origin not allowed"},
+            status_code=403,
+        )
+
+    requested_method = request.headers.get("access-control-request-method", "")
+    if request.method == "OPTIONS" and requested_method:
+        if requested_method.upper() not in _CORS_METHODS:
+            return Response(status_code=400)
+        requested_headers = request.headers.get("access-control-request-headers", "")
+        if not _preflight_headers_allowed(requested_headers):
+            return Response(status_code=400)
+        return _apply_cors_headers(
+            Response(
+                status_code=204,
+                headers={
+                    "Access-Control-Allow-Methods": _CORS_METHODS_HEADER,
+                    "Access-Control-Allow-Headers": _CORS_HEADERS_HEADER,
+                },
+            ),
+            normalized_origin,
+        )
+
+    response = await call_next(request)
+    return _apply_cors_headers(response, normalized_origin)
 
 
 def _public_config(cfg: dict) -> dict:
@@ -292,7 +406,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
 
     .transport {
       display: grid;
-      grid-template-columns: 2fr 2fr 1fr;
+      grid-template-columns: 2fr 2fr 1fr 1fr;
       gap: 8px;
       margin-top: 14px;
     }
@@ -468,6 +582,31 @@ CONTROL_PANEL_HTML = """<!doctype html>
     }
     .info-note code { color: var(--accent); }
 
+    .history-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      max-height: 180px;
+      overflow: auto;
+    }
+    .history-item {
+      padding: 9px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .history-meta {
+      margin-top: 5px;
+      color: var(--faint);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
     [hidden] { display: none !important; }
     .kbd {
       font-size: 10px; color: var(--faint);
@@ -535,7 +674,8 @@ CONTROL_PANEL_HTML = """<!doctype html>
           </div>
           <div class="transport">
             <button class="btn primary" id="speakBtn" type="button">Speak</button>
-            <button class="btn" id="saveBtn" type="button">Speak &amp; Save WAV</button>
+            <button class="btn" id="saveBtn" type="button" aria-label="Speak + Save WAV">Speak &amp; Save WAV</button>
+            <button class="btn" id="previewBtn" type="button">Preview Voice</button>
             <button class="btn stop" id="stopBtn" type="button">Stop</button>
           </div>
           <div class="feedback" id="feedback" role="status" aria-live="polite">Waiting for local server status&#8230;</div>
@@ -589,6 +729,25 @@ CONTROL_PANEL_HTML = """<!doctype html>
               <label>Save directory</label>
               <div class="kv"><span class="kv-icon" aria-hidden="true">&#128193;</span><span id="saveDir">&#8230;</span></div>
             </div>
+          </section>
+
+          <section class="card card-pad">
+            <div class="section-head"><span class="section-title">Recent Reads</span></div>
+            <div class="toggle-row">
+              <div class="toggle-copy">
+                <div class="t-title">Remember recent reads on this device</div>
+                <div class="hint" id="historyPrivacy">History is off. New reads are not stored.</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="historyEnabled" aria-label="Remember recent reads on this device">
+                <span class="track" aria-hidden="true"></span><span class="knob" aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="toolbar" style="margin-top:12px;">
+              <button class="btn ghost" id="clearHistoryBtn" type="button">Clear History</button>
+              <span class="hint" style="align-self:center;">Local only via <code>/history</code></span>
+            </div>
+            <div class="history-list" id="historyList" aria-live="polite"></div>
           </section>
         </aside>
       </div>
@@ -647,7 +806,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
     </div>
 
     <div class="info-note">
-      This web control panel is the primary desktop interface on systems where the native window can&#8217;t start
+      This web control panel is the primary macOS control surface and the primary desktop interface on systems where the native window can&#8217;t start
       (e.g. macOS 26+). The local API runs at <code id="apiBase">http://127.0.0.1:7778</code> and never leaves your machine when using Kokoro.
     </div>
   </main>
@@ -681,9 +840,11 @@ CONTROL_PANEL_HTML = """<!doctype html>
       voice: $("voice"), voiceHint: $("voiceHint"),
       text: $("text"), charCount: $("charCount"),
       speed: $("speed"), speedValue: $("speedValue"),
-      speakBtn: $("speakBtn"), saveBtn: $("saveBtn"), stopBtn: $("stopBtn"),
+      speakBtn: $("speakBtn"), saveBtn: $("saveBtn"), previewBtn: $("previewBtn"), stopBtn: $("stopBtn"),
       refreshBtn: $("refreshBtn"), pasteBtn: $("pasteBtn"), clearBtn: $("clearBtn"),
       alwaysSave: $("alwaysSave"), saveDir: $("saveDir"),
+      historyEnabled: $("historyEnabled"), clearHistoryBtn: $("clearHistoryBtn"),
+      historyList: $("historyList"), historyPrivacy: $("historyPrivacy"),
       openaiKey: $("openaiKey"), elevenKey: $("elevenKey"),
       openaiSave: $("openaiSave"), elevenSave: $("elevenSave"),
       openaiBadge: $("openaiBadge"), elevenBadge: $("elevenBadge"),
@@ -740,6 +901,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
       online = state !== "offline";
       els.speakBtn.disabled = !online;
       els.saveBtn.disabled = !online;
+      els.previewBtn.disabled = !online;
     }
 
     function setFeedback(target, message, tone) {
@@ -772,6 +934,36 @@ CONTROL_PANEL_HTML = """<!doctype html>
       }
     }
 
+    function escapeHtml(value) {
+      return String(value || "").replace(/[<>&]/g, (ch) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[ch]));
+    }
+
+    function renderHistory(items) {
+      if (!items || !items.length) {
+        els.historyList.innerHTML = "";
+        return;
+      }
+      els.historyList.innerHTML = items.map((item) => {
+        const text = escapeHtml(item.text);
+        const meta = `${escapeHtml(item.engine || "unknown")} | ${escapeHtml(item.voice || "unknown")} | ${escapeHtml(item.speed || "1.0")}x`;
+        return `<div class="history-item">${text}<div class="history-meta">${meta}</div></div>`;
+      }).join("");
+    }
+
+    async function refreshHistory() {
+      try {
+        const res = await fetch(`${BASE}/history`, { signal: AbortSignal.timeout(2500) });
+        const data = await res.json();
+        els.historyEnabled.checked = Boolean(data.enabled);
+        els.historyPrivacy.textContent = data.enabled
+          ? "History is on. Recent reads are stored locally on this device only."
+          : "History is off. New reads are not stored.";
+        renderHistory(data.history || []);
+      } catch (_e) {
+        els.historyPrivacy.textContent = "History status unavailable until the local server responds.";
+      }
+    }
+
     async function loadVoices() {
       try {
         const res = await fetch(`${BASE}/voices`, { signal: AbortSignal.timeout(2500) });
@@ -792,6 +984,10 @@ CONTROL_PANEL_HTML = """<!doctype html>
             typeof v === "string" ? { id: v, label: v } : { id: v.id, label: v.label || v.id });
         }
       } catch (_e) { /* keep fallback */ }
+    }
+
+    async function loadVoiceCatalogue() {
+      return loadVoices();
     }
 
     async function refreshStatus() {
@@ -826,12 +1022,17 @@ CONTROL_PANEL_HTML = """<!doctype html>
         els.cfgModel.textContent = data.model_ready ? "Ready" : (data.status === "loading" ? "Loading…" : "Not loaded");
         els.cfgEndpoint.textContent = BASE;
 
-        if (data.load_error) {
+        const dependencyIssues = data.dependency_issues || [];
+        if (dependencyIssues.length) {
+          const issue = dependencyIssues[0];
+          setFeedback(els.feedback, `Dependency issue: ${issue.message} ${issue.fix}`, "error");
+        } else if (data.load_error) {
           setFeedback(els.feedback, "Engine error: " + data.load_error, "error");
         } else if (els.feedback.dataset.tone === "error" || !els.feedback.dataset.tone) {
           setFeedback(els.feedback,
             `Ready · ${engine} · ${data.voice || ""} · ${Number(data.speed || 1).toFixed(1)}×`, "");
         }
+        await refreshHistory();
       } catch (_e) {
         setStatus("offline");
         setFeedback(els.feedback, "The local ReadOut API is not responding. Make sure the app is running.", "error");
@@ -870,7 +1071,30 @@ CONTROL_PANEL_HTML = """<!doctype html>
       } catch (_e) {
         setFeedback(els.feedback, "Could not reach the local server.", "error");
       } finally {
-        els.speakBtn.disabled = !online; els.saveBtn.disabled = !online;
+        els.speakBtn.disabled = !online; els.saveBtn.disabled = !online; els.previewBtn.disabled = !online;
+        refreshStatus();
+      }
+    }
+
+    async function previewVoice() {
+      setFeedback(els.feedback, "Previewing voice…", "busy");
+      els.previewBtn.disabled = true;
+      try {
+        const res = await fetch(`${BASE}/preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ engine: currentEngine(), voice: els.voice.value, speed: Number(els.speed.value) })
+        });
+        const data = await res.json();
+        if (data.status === "error") {
+          setFeedback(els.feedback, data.message || "Preview failed.", "error");
+        } else {
+          setFeedback(els.feedback, "Preview playing.", "ok");
+        }
+      } catch (_e) {
+        setFeedback(els.feedback, "Could not reach the local server for preview.", "error");
+      } finally {
+        els.previewBtn.disabled = !online;
         refreshStatus();
       }
     }
@@ -918,7 +1142,19 @@ CONTROL_PANEL_HTML = """<!doctype html>
       setFeedback(els.feedback, els.alwaysSave.checked ? "Always-save enabled." : "Always-save disabled.", "ok");
     });
 
+    els.historyEnabled.addEventListener("change", async () => {
+      await patchConfig({ history_enabled: els.historyEnabled.checked });
+      await refreshHistory();
+    });
+
+    els.clearHistoryBtn.addEventListener("click", async () => {
+      await fetch(`${BASE}/history`, { method: "DELETE" });
+      await refreshHistory();
+      setFeedback(els.feedback, "Recent reads cleared.", "ok");
+    });
+
     els.speakBtn.addEventListener("click", () => speak(false));
+    els.previewBtn.addEventListener("click", previewVoice);
     els.saveBtn.addEventListener("click", () => speak(true));
     els.stopBtn.addEventListener("click", async () => {
       try { await fetch(`${BASE}/stop`, { method: "POST" }); setFeedback(els.feedback, "Playback stopped.", ""); }
@@ -951,7 +1187,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
     // ── Init ──
     els.apiBase.textContent = BASE;
     (async () => {
-      await loadVoices();
+      await loadVoiceCatalogue();
       updateVoices(currentEngine());
       await refreshStatus();
       setInterval(refreshStatus, 5000);
@@ -971,13 +1207,22 @@ class SpeakRequest(BaseModel):
     save:  bool         = False
 
 
+class PreviewRequest(BaseModel):
+    voice:  str   | None = None
+    speed:  float | None = None
+    engine: Literal["kokoro", "openai", "elevenlabs"] | None = None
+
+
 class ConfigUpdate(BaseModel):
     voice:            str   | None = None
     speed:            float | None = None
     always_save:      bool  | None = None
-    engine:           str   | None = None
+    engine:           Literal["kokoro", "openai", "elevenlabs"] | None = None
     openai_api_key:   str   | None = None
     elevenlabs_api_key: str | None = None
+    allowed_origins:  list[str] | None = None
+    history_enabled:  bool  | None = None
+    history_limit:    int   | None = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -991,19 +1236,17 @@ def root():
 def control_panel():
     return HTMLResponse(CONTROL_PANEL_HTML)
 
-@app.post("/speak")
-def speak(req: SpeakRequest):
-    """
-    Synthesise and play text.
-    Routes to the active engine from config.
-    """
+
+def _speak_with_config(req: SpeakRequest, cfg: dict, *, allow_always_save: bool = True) -> dict:
     if len(req.text) > MAX_TEXT_CHARS:
         return {
             "status": "error",
             "message": f"Text too long ({len(req.text)} chars; max {MAX_TEXT_CHARS}).",
         }
 
-    cfg    = cfg_module.get_config()
+    if not allow_always_save:
+        cfg = {**cfg, "always_save": False}
+
     engine = cfg.get("engine", "kokoro")
 
     if engine == "openai":
@@ -1011,13 +1254,57 @@ def speak(req: SpeakRequest):
     if engine == "elevenlabs":
         return _speak_elevenlabs(req, cfg)
 
-    # Default: Kokoro local
-    return tts_engine.speak(
-        text  = req.text,
-        voice = req.voice,
-        speed = req.speed,
-        save  = req.save,
+    kwargs = {
+        "text": req.text,
+        "voice": req.voice,
+        "speed": req.speed,
+        "save": req.save,
+    }
+    if not allow_always_save:
+        kwargs["allow_always_save"] = False
+    return tts_engine.speak(**kwargs)
+
+
+@app.post("/speak")
+def speak(req: SpeakRequest):
+    """
+    Synthesise and play text.
+    Routes to the active engine from config.
+    """
+    cfg = cfg_module.get_config()
+    result = _speak_with_config(req, cfg)
+    if result.get("status") == "playing":
+        history_store.add_read(
+            req.text,
+            engine=cfg.get("engine", "kokoro"),
+            voice=req.voice or cfg.get("voice"),
+            speed=req.speed or cfg.get("speed"),
+        )
+    return result
+
+
+@app.post("/preview")
+def preview(req: PreviewRequest):
+    """
+    Play a short voice sample without requiring user text or writing a file.
+    The optional engine override is request-local and does not mutate config.
+    """
+    cfg = cfg_module.get_config()
+    if req.engine:
+        cfg = {**cfg, "engine": req.engine}
+
+    result = _speak_with_config(
+        SpeakRequest(
+            text=PREVIEW_TEXT,
+            voice=req.voice,
+            speed=req.speed,
+            save=False,
+        ),
+        cfg,
+        allow_always_save=False,
     )
+    result["preview"] = True
+    return result
 
 
 @app.post("/stop")
@@ -1041,6 +1328,7 @@ def status():
         "elevenlabs_api_key": bool(cfg.get("elevenlabs_api_key")),
         "model_ready":   not tts_engine.is_first_run(),
         "load_error":    tts_engine.get_load_error(),
+        "dependency_issues": issues_to_dicts(check_dependencies()),
         "max_text_chars": MAX_TEXT_CHARS,
         "version":       "1.0.0",
     }
@@ -1057,12 +1345,28 @@ def voices():
     }
 
 
+@app.get("/history")
+def history():
+    cfg = cfg_module.get_config()
+    return {
+        "enabled": history_store.history_enabled(cfg),
+        "history": history_store.get_history() if history_store.history_enabled(cfg) else [],
+    }
+
+
+@app.delete("/history")
+def clear_history():
+    history_store.clear_history()
+    return {"status": "cleared"}
+
+
 @app.patch("/config")
 def update_config(update: ConfigUpdate):
     updates = {k: v for k, v in update.model_dump().items() if v is not None}
-    engine = updates.get("engine")
-    if engine is not None and engine not in registry.names():
-        raise HTTPException(status_code=400, detail=f"Unsupported engine: {engine}")
+    if "allowed_origins" in updates:
+        updates["allowed_origins"] = sorted(_normalize_origins(updates["allowed_origins"]))
+    if "history_limit" in updates:
+        updates["history_limit"] = max(1, min(int(updates["history_limit"]), 100))
 
     cfg_module.set_config(updates)
     # Never echo provider API keys back in an HTTP response. The client

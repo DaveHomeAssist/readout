@@ -25,6 +25,22 @@
     .status.ready { background: #1a2a0a; color: #b8f542; }
     .status.offline { background: #2a0a0a; color: #ff5252; }
     .status.loading { background: #2a1a0a; color: #ffaa52; }
+    .status.error { background: #2a0a0a; color: #ff5252; }
+    .status-detail {
+      min-height: 34px;
+      margin-bottom: 12px;
+      padding: 8px 10px;
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      background: #161616;
+      color: #aaa;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+    .status-detail.ready { border-color: #263916; color: #c9f7a0; }
+    .status-detail.loading { border-color: #3a2b16; color: #ffd596; }
+    .status-detail.offline,
+    .status-detail.error { border-color: #3a1616; color: #ffb3b3; }
 
     /* ── View tabs ── */
     .view-tabs {
@@ -141,6 +157,9 @@
     <span class="title">ReadOut</span>
     <span id="status" class="status offline">OFFLINE</span>
   </div>
+  <div id="status-detail" class="status-detail offline" role="status">
+    Checking local ReadOut server...
+  </div>
 
   <!-- View tabs -->
   <div class="view-tabs">
@@ -168,6 +187,7 @@
 
     <div class="actions">
       <button class="stop" id="btn-stop" type="button">Stop</button>
+      <button id="btn-preview" type="button">Preview</button>
       <button class="primary" id="btn-speak" type="button">Read Selection</button>
     </div>
   </div>
@@ -209,6 +229,7 @@
         <p>Kokoro — local, free, no API key</p>
         <p>OpenAI TTS — requires API key in config</p>
         <p>ElevenLabs — requires API key in config</p>
+        <p class="dim">Preview plays a short sample for the selected voice.</p>
         <p class="dim">Config: ~/.readout/config.json</p>
       </div>
     </div>
