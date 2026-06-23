@@ -52,8 +52,16 @@ function Invoke-Helper {
     )
 
     $powershellExe = (Get-Process -Id $PID).Path
-    & $powershellExe -NoProfile -ExecutionPolicy Bypass -File (Resolve-Path $ScriptPath) @Arguments
-    return $LASTEXITCODE
+    $output = @(& $powershellExe -NoProfile -ExecutionPolicy Bypass -File (Resolve-Path $ScriptPath) @Arguments 2>&1)
+    $detail = (($output -join " / ") -replace "\|", "/")
+    if ($detail.Length -gt 500) {
+        $detail = $detail.Substring(0, 500) + "..."
+    }
+
+    return [pscustomobject]@{
+        ExitCode = $LASTEXITCODE
+        Detail = $detail
+    }
 }
 
 function Get-LogTail {
@@ -122,12 +130,12 @@ try {
     if ($IncludeAudio) {
         $smokeArgs += "-IncludeAudio"
     }
-    $smokeExit = Invoke-Helper -ScriptPath ".\tools\server_smoke.ps1" -Arguments $smokeArgs
-    Add-Result -Check "Non-audio server smoke" -Result ($(if ($smokeExit -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$smokeExit"
+    $smoke = Invoke-Helper -ScriptPath ".\tools\server_smoke.ps1" -Arguments $smokeArgs
+    Add-Result -Check "Non-audio server smoke" -Result ($(if ($smoke.ExitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$($smoke.ExitCode); $($smoke.Detail)"
 
     if (-not $SkipCors) {
-        $corsExit = Invoke-Helper -ScriptPath ".\tools\cors_origin_matrix.ps1" -Arguments @("-BaseUrl", $BaseUrl)
-        Add-Result -Check "CORS origin matrix" -Result ($(if ($corsExit -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$corsExit"
+        $cors = Invoke-Helper -ScriptPath ".\tools\cors_origin_matrix.ps1" -Arguments @("-BaseUrl", $BaseUrl)
+        Add-Result -Check "CORS origin matrix" -Result ($(if ($cors.ExitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$($cors.ExitCode); $($cors.Detail)"
     } else {
         Add-Result -Check "CORS origin matrix" -Result "SKIP" -Detail "SkipCors set"
     }
