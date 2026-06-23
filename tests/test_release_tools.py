@@ -87,6 +87,31 @@ def test_control_workflow_smoke_is_stateful_but_restores_local_files():
         assert required in text
 
 
+def test_control_browser_runtime_smoke_renders_control_status_without_audio():
+    text = (ROOT / "tools" / "control_browser_runtime_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "Start-Process",
+        "-WindowStyle Hidden",
+        "uvicorn",
+        "server:app",
+        "Chrome or Edge was not found",
+        "--headless=new",
+        "--virtual-time-budget=5000",
+        "--dump-dom",
+        "/control",
+        "/status",
+        "Refusing browser runtime smoke against non-loopback host",
+        "A server is already responding",
+        "statusLabel",
+        "feedback",
+        "/control status display updates",
+        "Remove-Item",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_extension_static_smoke_covers_manifest_and_endpoint_contracts():
     text = (ROOT / "tools" / "extension_static_smoke.ps1").read_text(encoding="utf-8")
 
@@ -212,6 +237,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\cors_origin_matrix.ps1",
         "tools\\server_smoke.ps1",
         "tools\\control_workflow_smoke.ps1",
+        "tools\\control_browser_runtime_smoke.ps1",
         "tools\\extension_static_smoke.ps1",
         "tools\\tk_desktop_static_smoke.ps1",
         "tools\\tk_desktop_runtime_smoke.ps1",

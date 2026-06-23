@@ -244,6 +244,9 @@ These checks explain the issue before the first model warmup fails.
   stateful non-audio `/control` backend workflow smoke: status refresh, config
   history toggle, history clear, and stop. It backs up and restores local
   `~/.readout/config.json` and `history.json`.
+- `.\tools\control_browser_runtime_smoke.ps1` starts a temporary source server
+  and validates the JavaScript-rendered `/control` status display in headless
+  Chrome or Edge. It does not prove audible playback.
 - `.\tools\extension_static_smoke.ps1` checks the Chrome extension manifest,
   least-privilege permissions, popup controls, endpoint wiring, context-menu
   IDs, and toast contract without launching Chrome.

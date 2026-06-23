@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 19:40 -04:00
+Last updated: 2026-06-23 19:53 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -60,8 +60,10 @@ Finish these open rows:
    - Source `/control` rows already backed by live non-audio source evidence:
      `/control` opens on `127.0.0.1:7778` and `/control` history toggle /
      Clear History.
-   - Fill remaining source `/control` manual rows: status display, audible
-     Preview Voice, Speak text, Speak + Save WAV, and Stop during playback.
+   - Source `/control` browser-rendered status display is backed by
+     `.\tools\control_browser_runtime_smoke.ps1`.
+   - Fill remaining source `/control` manual rows: audible Preview Voice, Speak
+     text, Speak + Save WAV, and Stop during playback.
    - Tk desktop non-audio rows already backed by runtime evidence: desktop
      opens and engine/voice/speed controls persist through backend config.
    - Fill remaining Tk desktop smoke rows: Preview Voice audio and
@@ -75,6 +77,7 @@ Finish these open rows:
    - Confirm `.\tools\release_preflight.ps1` reports `Upstream reconciliation`
      `Extension static smoke`, and `Tk desktop static smoke` as PASS.
    - With ReadOut running, run `.\tools\control_workflow_smoke.ps1`.
+   - Run `.\tools\control_browser_runtime_smoke.ps1`.
    - Run `.\tools\release_preflight.ps1`.
    - Run `git diff --check`.
    - Update `MILESTONE_LOG.md`, `ROADMAP_STATUS.md`, and any worksheet rows with

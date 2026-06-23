@@ -36,6 +36,7 @@ Use this checklist for every release candidate.
 - [ ] Record pass/fail output in `MILESTONE_LOG.md`.
 - [ ] With ReadOut running, run non-audio API/control smoke: `.\tools\server_smoke.ps1`.
 - [ ] With ReadOut running, run non-audio control workflow smoke: `.\tools\control_workflow_smoke.ps1`.
+- [ ] Run browser-rendered status smoke: `.\tools\control_browser_runtime_smoke.ps1`.
 - [ ] Run a manual `/control` smoke test:
   - [ ] Open `http://127.0.0.1:7778/control`.
   - [ ] Check status display.

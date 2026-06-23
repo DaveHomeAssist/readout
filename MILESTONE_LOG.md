@@ -796,3 +796,15 @@
 - **What changed:** Added `tools/tk_desktop_runtime_smoke.ps1`, wired it into release preflight required-file/syntax checks, README, release checklist, roadmap status, next executor prompt, manual smoke evidence, and release tests. `MANUAL_SMOKE_VALIDATION.md` now records PASS evidence for Tk desktop opening and desktop engine/voice/speed persistence.
 - **Evidence:** `.\tools\tk_desktop_runtime_smoke.ps1` passed Port available, Launch source server, Server ready, Tk window opens (`560x680` on `1920x1080` screen), Tk controls present, Desktop engine persists (`openai`/`alloy`), Desktop voice persists (`nova`), Desktop speed persists (`1.7`), Stop source server, and Restore local config/history.
 - **Notes / risks:** This is a non-audio runtime smoke. It does not prove audible Preview Voice, Speak, Save WAV, Stop during playback, Chrome extension runtime behavior, or package tray/menu-bar/audio rows.
+
+## Status update - 2026-06-23 19:53 -04:00
+- **Now:** Source `/control` browser-rendered status display has current Chrome DOM evidence on this Windows workstation.
+- **Next:** Finish remaining source `/control` audio/save/stop rows, audible Tk rows, Chrome extension runtime rows, and package manual visual/audio rows.
+- **Tests:** `.\tools\control_browser_runtime_smoke.ps1` passed all rows; focused release docs/tool tests passed with `32 passed in 30.74s`; full suite passed with `150 passed, 1 warning in 35.25s`; clean-tree `.\tools\release_preflight.ps1` passed upstream reconciliation, required files/syntax, Python, hosted `espeak-ng`, secret scan, extension static smoke, Tk desktop static smoke, and Architect sign-off, then still failed packaging/manual evidence as expected; `.\tools\manual_smoke_check.ps1` now reports PASS for `/control` status display updates while still failing the remaining unproven manual rows; `git diff --check` passed with CRLF warnings only.
+- **Blockers:** Package manual visual/audio evidence and remaining manual audio/runtime rows remain incomplete.
+
+### Source Control Browser Runtime Smoke Helper - Added
+- **Done when:** The `/control` page status display can be proven to update in a real Chromium renderer without claiming audible playback.
+- **What changed:** Added `tools/control_browser_runtime_smoke.ps1`, wired it into release preflight required-file/syntax checks, README, release checklist, roadmap status, next executor prompt, manual smoke evidence, and release tests. `MANUAL_SMOKE_VALIDATION.md` now records PASS evidence for `/control` status display updates.
+- **Evidence:** `.\tools\control_browser_runtime_smoke.ps1` started a temporary source server on `127.0.0.1:7778`, opened `/control` in headless Chrome, and verified `/control status display updates PASS` with rendered DOM `state=ready`, `label=Ready`, and updated feedback from `/status`.
+- **Notes / risks:** This is a non-audio source-control browser smoke. It does not prove audible Preview Voice, Speak, Save WAV, Stop during playback, Chrome extension runtime behavior, or package tray/menu-bar/audio rows.
