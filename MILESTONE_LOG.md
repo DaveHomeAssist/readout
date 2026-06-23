@@ -609,3 +609,19 @@
   - `.\tools\release_preflight.ps1`
 - **Evidence:** Focused release docs/tool tests passed with `25 passed in 30.99s`. Upstream reconciliation reported `Graph | PASS | ahead=2; behind=0`, `Runtime-sensitive upstream paths | PASS`, and no upstream-only commits or file delta. Roadmap audit reported `Upstream graph | PASS | ahead=2; behind=0 vs origin/main`, then failed only the known Python/espeak/sign-off/packaging/manual evidence gates. Release preflight reported `Git upstream currency | PASS | ahead=0; behind=0 vs origin/roadmap-integration`, then failed the same known release blockers.
 - **Notes / risks:** This hardens the verifiers only. It does not install prerequisites, create package artifacts, accept Architect decisions, or perform interactive manual smoke.
+
+## Status update - 2026-06-23 15:01 -04:00
+- **Now:** A manual GitHub Actions package-smoke workflow exists so Windows/macOS package builds and non-audio smoke checks can run on suitable hosted runners instead of this under-provisioned workstation.
+- **Next:** Trigger the `package-smoke` workflow, review uploaded evidence artifacts, then fill `PACKAGING_VALIDATION.md` with the real results.
+- **Tests:** Release docs/tool tests passed; local roadmap audit still fails only the known external evidence/sign-off/prerequisite gates.
+- **Blockers:** Workflow evidence has not been produced yet; manual tray/audio/extension evidence and Architect sign-off are still required.
+
+### Hosted Package Smoke Workflow - Added
+- **Done when:** The repo has a repeatable CI path that can build Windows and macOS packages with Python 3.12 and `espeak-ng`, run the existing package smoke helpers, and upload artifacts for the packaging worksheet.
+- **What changed:** Added `.github/workflows/package-smoke.yml` as a manual `workflow_dispatch` workflow with separate Windows and macOS jobs. The Windows job installs eSpeak NG through WinGet, runs `build_windows.ps1`, runs `tools/windows_package_smoke.ps1`, and uploads the package/log/smoke evidence. The macOS job installs `espeak-ng` through Homebrew, runs `build_mac.sh`, runs `tools/mac_package_smoke.sh`, archives `ReadOut.app`, and uploads package/log/smoke evidence.
+- **Tests run:**
+  - `python -m pytest tests/test_release_docs.py tests/test_release_tools.py`
+  - `git diff --check`
+  - `.\tools\roadmap_audit.ps1`
+- **Evidence:** Focused release docs/tool tests passed with `26 passed in 34.28s`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings. Roadmap audit reported upstream graph PASS and still failed the expected local Python/espeak/sign-off/packaging/manual evidence gates.
+- **Notes / risks:** The workflow has not run yet. CI package smoke is non-audio and still does not replace manual tray/menu-bar visual confirmation, audible preview checks, Chrome extension smoke, or Architect acceptance unless an explicit accepted gap is recorded.

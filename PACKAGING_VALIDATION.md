@@ -4,6 +4,11 @@ Last updated: 2026-06-21 07:36 -04:00
 
 Use this worksheet on the target packaging machines. Paste completed tables into
 `MILESTONE_LOG.md` under the matching P3-A1 or P3-A2 entry.
+When local target hardware is unavailable, the manual GitHub Actions workflow
+`.github/workflows/package-smoke.yml` can produce hosted-runner package and
+non-audio smoke evidence artifacts. CI evidence still does not replace manual
+tray/menu-bar visual confirmation or audible preview checks unless the
+Architect explicitly accepts that gap.
 
 After filling target results, run `.\tools\packaging_validation_check.ps1`.
 Release-ready rows should use `PASS`, `PASSED`, `OK`, `DONE`, or `COMPLETE`
@@ -16,6 +21,7 @@ column names the accepted risk.
 |---|---|---|
 | `ARCHITECT_SIGNOFF.md` reviewed | TBD | |
 | `.\tools\release_preflight.ps1` or target equivalent run | TBD | |
+| GitHub Actions `package-smoke` workflow run, if used | TBD | |
 | Python 3.10-3.12 confirmed | TBD | |
 | `espeak-ng` confirmed on PATH | TBD | |
 | Full test suite run | TBD | |

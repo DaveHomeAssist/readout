@@ -239,6 +239,9 @@ These checks explain the issue before the first model warmup fails.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
   supported Python, `espeak-ng`, and existing package-artifact state without
   installing dependencies or launching PyInstaller.
+- The manual GitHub Actions workflow `.github/workflows/package-smoke.yml`
+  builds Windows and macOS packages on hosted runners, runs the non-audio
+  package smoke helpers, and uploads package/evidence artifacts.
 - After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app`
   launches the packaged app, verifies the local server/control surface, and
   quits the app.

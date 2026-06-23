@@ -1,0 +1,101 @@
+name: package-smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows-package-smoke:
+    name: Windows package smoke
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install espeak-ng
+        shell: pwsh
+        run: |
+          winget install --id eSpeak-NG.eSpeak-NG --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+          $candidateRoots = @(
+            "$env:ProgramFiles\eSpeak NG",
+            "${env:ProgramFiles(x86)}\eSpeak NG"
+          )
+          $exe = $candidateRoots |
+            Where-Object { Test-Path $_ } |
+            ForEach-Object { Get-ChildItem -Path $_ -Filter espeak-ng.exe -Recurse -ErrorAction SilentlyContinue } |
+            Select-Object -First 1
+          if (-not $exe) {
+            $exe = Get-Command espeak-ng -ErrorAction SilentlyContinue
+          }
+          if (-not $exe) {
+            throw "espeak-ng.exe was not found after winget install."
+          }
+          $dir = Split-Path $exe.Path
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
+          & $exe.Path --version
+
+      - name: Build Windows package
+        shell: pwsh
+        run: .\build_windows.ps1 *>&1 | Tee-Object -FilePath build-windows.log
+
+      - name: Run Windows package smoke
+        shell: pwsh
+        run: .\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe *>&1 | Tee-Object -FilePath windows-package-smoke.md
+
+      - name: Upload Windows package and evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: readout-windows-package-smoke
+          path: |
+            dist/ReadOut/**
+            build-windows.log
+            windows-package-smoke.md
+          if-no-files-found: warn
+
+  macos-package-smoke:
+    name: macOS package smoke
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install espeak-ng
+        run: |
+          brew install espeak-ng
+          espeak-ng --version
+
+      - name: Build macOS package
+        run: ./build_mac.sh 2>&1 | tee build-macos.log
+
+      - name: Run macOS package smoke
+        run: |
+          chmod +x tools/mac_package_smoke.sh
+          ./tools/mac_package_smoke.sh --app dist/ReadOut.app 2>&1 | tee macos-package-smoke.md
+
+      - name: Archive macOS app bundle
+        if: always()
+        run: |
+          if [ -d dist/ReadOut.app ]; then
+            tar -czf ReadOut-macOS.tar.gz -C dist ReadOut.app
+          fi
+
+      - name: Upload macOS package and evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: readout-macos-package-smoke
+          path: |
+            ReadOut-macOS.tar.gz
+            build-macos.log
+            macos-package-smoke.md
+          if-no-files-found: warn

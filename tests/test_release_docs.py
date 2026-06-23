@@ -40,6 +40,7 @@ def test_release_checklist_has_security_test_and_packaging_gates():
     assert r".\tools\windows_packaging_prereqs.ps1" in text
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
+    assert "package-smoke workflow" in text
     assert "Confirm `/config` responses redact" in text
     assert "## 4. macOS Build Gate" in text
     assert "## 5. Windows Build Gate" in text
@@ -106,6 +107,7 @@ def test_readme_links_release_readiness_artifacts():
     assert r".\tools\windows_packaging_prereqs.ps1" in text
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
+    assert ".github/workflows/package-smoke.yml" in text
 
 
 def test_architect_signoff_packet_covers_pending_owner_decisions():
@@ -139,6 +141,29 @@ def test_packaging_validation_worksheet_covers_target_build_gates():
         r".\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe",
         "Release Evidence Summary",
         "Known Acceptable Gaps",
+        ".github/workflows/package-smoke.yml",
+    ]:
+        assert required in text
+
+
+def test_package_smoke_workflow_builds_and_smokes_both_targets():
+    text = (ROOT / ".github" / "workflows" / "package-smoke.yml").read_text(encoding="utf-8")
+
+    for required in [
+        "workflow_dispatch",
+        "windows-latest",
+        "macos-latest",
+        "actions/setup-python@v5",
+        'python-version: "3.12"',
+        "eSpeak-NG.eSpeak-NG",
+        "brew install espeak-ng",
+        ".\\build_windows.ps1",
+        ".\\tools\\windows_package_smoke.ps1",
+        "./build_mac.sh",
+        "./tools/mac_package_smoke.sh --app dist/ReadOut.app",
+        "actions/upload-artifact@v4",
+        "readout-windows-package-smoke",
+        "readout-macos-package-smoke",
     ]:
         assert required in text
 

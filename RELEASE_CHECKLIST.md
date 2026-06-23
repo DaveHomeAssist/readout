@@ -10,6 +10,7 @@ Use this checklist for every release candidate.
 - [ ] Run packaging validation check after target smoke evidence is filled: `.\tools\packaging_validation_check.ps1`.
 - [ ] Run manual smoke validation check after interactive evidence is filled: `.\tools\manual_smoke_check.ps1`.
 - [ ] Run local release preflight: `.\tools\release_preflight.ps1`.
+- [ ] If target hardware is unavailable locally, run the manual GitHub Actions package-smoke workflow and attach its uploaded evidence artifacts.
 - [ ] Use Python 3.10-3.12.
 - [ ] Confirm `espeak-ng --version` works on the target machine.
 - [ ] Confirm `python -m pip install -r requirements.txt` completes in the release environment.
@@ -56,6 +57,7 @@ Use this checklist for every release candidate.
 - [ ] Confirm tray `Open Control Panel` opens `/control`.
 - [ ] Confirm lifecycle: start, preview, speak, stop, quit.
 - [ ] Fill P3-A1 section in `PACKAGING_VALIDATION.md`.
+- [ ] If using CI evidence, attach the `readout-macos-package-smoke` artifact and note any remaining manual tray-icon gap.
 - [ ] Record build path, app size, and smoke results in `MILESTONE_LOG.md`.
 
 ## 5. Windows Build Gate
@@ -67,6 +69,7 @@ Use this checklist for every release candidate.
 - [ ] Confirm `/control` workflows work.
 - [ ] Confirm lifecycle: start, preview, speak, stop, quit.
 - [ ] Fill P3-A2 section in `PACKAGING_VALIDATION.md`.
+- [ ] If using CI evidence, attach the `readout-windows-package-smoke` artifact.
 - [ ] Record build path and smoke results in `MILESTONE_LOG.md`.
 
 ## 6. Release Notes
