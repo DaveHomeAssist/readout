@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 18:21 -04:00
+Last updated: 2026-06-23 18:37 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -13,16 +13,16 @@ Do not restart the old packaging prerequisite loop. Hosted evidence already
 proves Python 3.10-3.12, `espeak-ng`, Windows package build, macOS package
 build, and non-audio package smoke:
 
-- GitHub Actions package-smoke run `28051156266` passed on
-  `b2f02cee11ff6340ad5fcec51db4bb29e2856fdc`.
-- Windows job `83041801593` built `dist\ReadOut\ReadOut.exe`, passed server,
+- GitHub Actions package-smoke run `28061318132` passed on current head
+  `06369b46b3d929adcec1cba1c1ebc706a548b0c9`.
+- Windows job `83075924486` built `dist\ReadOut\ReadOut.exe`, passed server,
   `/control`, CORS, and process-stop checks, and uploaded artifact
-  `readout-windows-package-smoke` id `7831258309`.
-- macOS job `83041801690` built `dist/ReadOut.app`, passed packaged app launch,
+  `readout-windows-package-smoke` id `7835190908`.
+- macOS job `83075924465` built `dist/ReadOut.app`, passed packaged app launch,
   server, `/status`, `/voices`, `/history`, `/control`, and blocked-origin
-  checks, and uploaded artifact `readout-macos-package-smoke` id `7831229443`.
-- Tests workflow run `28051156286` passed Python 3.10, 3.11, and 3.12 jobs on
-  the same head SHA.
+  checks, and uploaded artifact `readout-macos-package-smoke` id `7835173905`.
+- Tests workflow run `28061248462` passed Python 3.10, 3.11, and 3.12 jobs on
+  the same current head SHA.
 
 First verify current state:
 

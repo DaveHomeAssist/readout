@@ -724,3 +724,15 @@
 - **What changed:** Added `tools/tk_desktop_static_smoke.ps1`, wired it into `tools/release_preflight.ps1`, and linked it from README, release checklist, roadmap status, next-executor prompt, and manual smoke support evidence.
 - **Evidence:** The helper passed Tk app class, localhost server target, supported engine tabs, no Browser engine tab, Preview Voice, Save WAV, play/stop controls, config persistence wiring, `/voices`, `/status`, `/preview`, `/speak`, `/stop`, and save-true payload checks.
 - **Notes / risks:** This does not prove the Tk window opens on the target machine or that audible Preview Voice/Speak/Save WAV/Stop works. Those rows remain manual release gates.
+
+## Status update - 2026-06-23 18:37 -04:00
+- **Now:** Current-head hosted Windows and macOS package smoke evidence is recorded for commit `06369b46b3d929adcec1cba1c1ebc706a548b0c9`.
+- **Next:** Complete only the remaining owner/manual gates: Architect sign-off, macOS visible tray/menu-bar and audible lifecycle rows, Windows audible lifecycle row, and the interactive source/Tk/Chrome manual smoke worksheet.
+- **Tests:** GitHub Actions tests run `28061248462` passed Python 3.10, 3.11, and 3.12 jobs on the current head. GitHub Actions package-smoke run `28061318132` passed Windows job `83075924486` and macOS job `83075924465` on the same head.
+- **Blockers:** No local Python or `espeak-ng` install is required unless the task changes to local workstation packaging. The release remains yellow because Architect sign-off, package manual visual/audio rows, and manual smoke evidence remain incomplete.
+
+### Current-head Hosted Package Smoke Evidence - Refreshed
+- **Done when:** Package evidence references the current integration head instead of an older package-smoke commit.
+- **What changed:** Updated `PACKAGING_VALIDATION.md`, `ROADMAP_STATUS.md`, `ARCHITECT_SIGNOFF.md`, and `NEXT_EXECUTOR_PROMPT.md` to cite package-smoke run `28061318132` and tests run `28061248462`.
+- **Evidence:** macOS job `83075924465` built `dist/ReadOut.app`, reported app bundle exists, launch, server ready, `/status`, `/voices`, `/history`, `/control`, and blocked-origin checks as PASS, and uploaded artifact `readout-macos-package-smoke` id `7835173905` with digest `sha256:0e9888702bbc65dbf766b3a7e0410cfb54197ef9c10eb3840beb4e28c8b545de`. Windows job `83075924486` built `dist\ReadOut\ReadOut.exe`, reported executable exists, launch, server ready, non-audio server smoke, CORS origin matrix, and process stop as PASS, and uploaded artifact `readout-windows-package-smoke` id `7835190908` with digest `sha256:7d13725b70c151c04c9b081e9881a3a44eacfb418b34730e93d092c4dbd5e3a4`.
+- **Notes / risks:** Hosted package smoke is still non-audio/headless. It clears package prerequisite evidence for the current head, but it does not prove audible preview/speak/stop, visible macOS tray/menu-bar controls, Tk/Chrome manual runtime behavior, or Architect acceptance.

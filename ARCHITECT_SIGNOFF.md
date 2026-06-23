@@ -1,6 +1,6 @@
 # ReadOut Architect Sign-off Packet
 
-Last updated: 2026-06-23 16:00 -04:00
+Last updated: 2026-06-23 18:37 -04:00
 
 Purpose: give the Architect one compact place to accept or revise the roadmap
 decisions that are implemented but still waiting on owner sign-off.
@@ -27,7 +27,7 @@ decisions that are implemented but still waiting on owner sign-off.
 ## Current Non-Architect Blockers
 - Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; `ROADMAP_STATUS.md` and `UPSTREAM_RECONCILIATION.md` now track the clean-branch state. The original dirty local `main` worktree remains a safety copy and should not be blindly pulled, merged, reset, or overwritten.
 - Fresh source-only live checks passed on 2026-06-23 14:48 -04:00: temporary Uvicorn server, `tools/server_smoke.ps1` non-audio API/control smoke, and `tools/cors_origin_matrix.ps1` CORS matrix. These checks do not replace target package smoke, audible preview, Tk desktop, Chrome extension, or Architect acceptance.
-- Hosted package-smoke run `28051156266` passed for Windows and macOS at `b2f02cee11ff6340ad5fcec51db4bb29e2856fdc`; `PACKAGING_VALIDATION.md` records the package artifacts and non-audio smoke evidence.
+- Current-head hosted package-smoke run `28061318132` passed for Windows and macOS at `06369b46b3d929adcec1cba1c1ebc706a548b0c9`; `PACKAGING_VALIDATION.md` records the package artifacts and non-audio smoke evidence.
 - P3-A1 still needs manual macOS menu-bar/tray visibility, tray `Open Control Panel`, audible preview/speak/stop lifecycle, and clean-quit evidence, unless those gaps are explicitly accepted as release risks.
 - P3-A2 still needs manual Windows audible preview/speak/stop lifecycle evidence, unless that gap is explicitly accepted as a release risk.
 - Manual smoke tests still remain for source `/control`, Tk desktop, Chrome extension popup, and audible playback workflows.

@@ -121,8 +121,8 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
     text = (ROOT / "NEXT_EXECUTOR_PROMPT.md").read_text(encoding="utf-8")
     for required in [
         "roadmap-integration",
-        "28051156266",
-        "28051156286",
+        "28061318132",
+        "28061248462",
         "architect_signoff_check.ps1",
         "packaging_validation_check.ps1",
         "manual_smoke_check.ps1",
@@ -150,7 +150,7 @@ def test_architect_signoff_packet_covers_pending_owner_decisions():
         "tools/server_smoke.ps1",
         "tools/cors_origin_matrix.ps1",
         "hosted package-smoke evidence",
-        "28051156266",
+        "28061318132",
         "P3-A1 still needs manual macOS",
         "P3-A2 still needs manual Windows",
     ]:
