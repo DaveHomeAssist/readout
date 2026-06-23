@@ -32,6 +32,7 @@ def test_release_checklist_has_security_test_and_packaging_gates():
     assert r".\tools\manual_smoke_check.ps1" in text
     assert r".\tools\roadmap_audit.ps1" in text
     assert r".\tools\secret_scan.ps1" in text
+    assert r".\tools\extension_static_smoke.ps1" in text
     assert "python -m pytest" in text
     assert "tests/test_live_http_smoke.py" in text
     assert "tests/test_server_cors.py" in text
@@ -104,6 +105,7 @@ def test_readme_links_release_readiness_artifacts():
     assert r".\tools\manual_smoke_check.ps1" in text
     assert r".\tools\roadmap_audit.ps1" in text
     assert r".\tools\secret_scan.ps1" in text
+    assert r".\tools\extension_static_smoke.ps1" in text
     assert r".\tools\cors_origin_matrix.ps1" in text
     assert r".\tools\server_smoke.ps1" in text
     assert r".\tools\control_workflow_smoke.ps1" in text

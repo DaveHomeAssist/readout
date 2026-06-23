@@ -87,6 +87,33 @@ def test_control_workflow_smoke_is_stateful_but_restores_local_files():
         assert required in text
 
 
+def test_extension_static_smoke_covers_manifest_and_endpoint_contracts():
+    text = (ROOT / "tools" / "extension_static_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "manifest_version",
+        "contextMenus",
+        "activeTab",
+        "scripting",
+        "Least privilege: no storage permission",
+        "http://localhost:7778/*",
+        "background.js",
+        "popup.html",
+        "btn-preview",
+        "Read Selection",
+        "`${READOUT_URL}/status`",
+        "`${READOUT_URL}/voices`",
+        "`${READOUT_URL}/preview`",
+        "`${READOUT_URL}/speak`",
+        "`${READOUT_URL}/stop`",
+        "`${READOUT_URL}/config`",
+        "readout-speak-save",
+        "readout-toast",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_cors_matrix_script_covers_required_phase0_cases():
     text = (ROOT / "tools" / "cors_origin_matrix.ps1").read_text(encoding="utf-8")
 
@@ -128,6 +155,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\cors_origin_matrix.ps1",
         "tools\\server_smoke.ps1",
         "tools\\control_workflow_smoke.ps1",
+        "tools\\extension_static_smoke.ps1",
         "tools\\windows_packaging_prereqs.ps1",
         "tools\\windows_package_smoke.ps1",
     ]:

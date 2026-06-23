@@ -205,6 +205,7 @@ $requiredFiles = @(
     "tools\cors_origin_matrix.ps1",
     "tools\server_smoke.ps1",
     "tools\control_workflow_smoke.ps1",
+    "tools\extension_static_smoke.ps1",
     "tools\windows_packaging_prereqs.ps1",
     "tools\windows_package_smoke.ps1"
 )
@@ -213,7 +214,7 @@ foreach ($file in $requiredFiles) {
     Add-Check -Check "Required file: $file" -Result ($(if (Test-Path $file) { "PASS" } else { "FAIL" })) -Detail $file
 }
 
-foreach ($script in @("tools\secret_scan.ps1", "tools\architect_signoff_check.ps1", "tools\packaging_validation_check.ps1", "tools\manual_smoke_check.ps1", "tools\roadmap_audit.ps1", "tools\upstream_reconciliation.ps1", "tools\cors_origin_matrix.ps1", "tools\server_smoke.ps1", "tools\control_workflow_smoke.ps1", "tools\windows_packaging_prereqs.ps1", "tools\windows_package_smoke.ps1", "tools\release_preflight.ps1", "build_windows.ps1")) {
+foreach ($script in @("tools\secret_scan.ps1", "tools\architect_signoff_check.ps1", "tools\packaging_validation_check.ps1", "tools\manual_smoke_check.ps1", "tools\roadmap_audit.ps1", "tools\upstream_reconciliation.ps1", "tools\cors_origin_matrix.ps1", "tools\server_smoke.ps1", "tools\control_workflow_smoke.ps1", "tools\extension_static_smoke.ps1", "tools\windows_packaging_prereqs.ps1", "tools\windows_package_smoke.ps1", "tools\release_preflight.ps1", "build_windows.ps1")) {
     try {
         Test-PowerShellSyntax -Path $script
         Add-Check -Check "PowerShell syntax: $script" -Result "PASS" -Detail "parsed"

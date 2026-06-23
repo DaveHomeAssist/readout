@@ -243,6 +243,9 @@ These checks explain the issue before the first model warmup fails.
   stateful non-audio `/control` backend workflow smoke: status refresh, config
   history toggle, history clear, and stop. It backs up and restores local
   `~/.readout/config.json` and `history.json`.
+- `.\tools\extension_static_smoke.ps1` checks the Chrome extension manifest,
+  least-privilege permissions, popup controls, endpoint wiring, context-menu
+  IDs, and toast contract without launching Chrome.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
   supported Python, `espeak-ng`, and existing package-artifact state without
   installing dependencies or launching PyInstaller.

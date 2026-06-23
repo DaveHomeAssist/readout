@@ -676,3 +676,15 @@
 - **What changed:** Added `tools/control_workflow_smoke.ps1`, linked it from README, `RELEASE_CHECKLIST.md`, `NEXT_EXECUTOR_PROMPT.md`, and release preflight required-file/syntax checks.
 - **Evidence:** The helper checks `/status`, `/control`, `PATCH /config` history controls, `GET/DELETE /history`, and `POST /stop`, then restores local `~/.readout/config.json` and `history.json` byte-for-byte. A temporary local server on `127.0.0.1:7784` passed all helper rows: loopback target, status refresh backend, control panel backend page, history toggle via config, history status refresh, Clear History backend, Stop backend, and Restore local config/history.
 - **Notes / risks:** This does not prove audible preview/speak/save, visible tray/menu-bar behavior, Tk desktop interaction, or Chrome extension behavior.
+
+## Status update - 2026-06-23 17:58 -04:00
+- **Now:** A Chrome extension static release smoke helper exists.
+- **Next:** Run it before manual Chrome smoke so manifest, permission, endpoint, context-menu, and popup contracts are checked without launching Chrome.
+- **Tests:** Full suite passed with `147 passed, 1 warning in 35.27s`; `.\tools\extension_static_smoke.ps1` passed; focused release docs/tools/extension popup tests passed with `33 passed in 31.97s`; `git diff --check` passed with CRLF warnings only; `.\tools\roadmap_audit.ps1` and `.\tools\manual_smoke_check.ps1` still fail only the expected Architect/manual evidence gates.
+- **Blockers:** Chrome runtime popup/audio behavior, manual audible playback, package manual rows, and Architect acceptance remain incomplete.
+
+### Extension Static Smoke Helper - Added
+- **Done when:** The extension release contract can be checked without Chrome or network access.
+- **What changed:** Added `tools/extension_static_smoke.ps1`, linked it from README, `RELEASE_CHECKLIST.md`, `NEXT_EXECUTOR_PROMPT.md`, release preflight required-file/syntax checks, and manual smoke support evidence.
+- **Evidence:** The helper checks Manifest V3, least-privilege permissions, exact localhost host permission, popup/default icon files, popup status and preview controls, popup endpoint wiring, context-menu IDs, `/speak` and `/stop` wiring, and content-script toast wiring. It passed all rows on 2026-06-23 17:58 -04:00.
+- **Notes / risks:** This does not prove the extension can be loaded in Chrome, that the extension origin is allowlisted, that popup READY/OFFLINE paths render at runtime, or that audio playback works.

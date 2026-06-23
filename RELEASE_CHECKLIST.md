@@ -17,6 +17,7 @@ Use this checklist for every release candidate.
 - [ ] Confirm `python -m pip install -r requirements.txt` completes in the release environment.
 - [ ] Run secret scan: `.\tools\secret_scan.ps1`.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.
+- [ ] Run Chrome extension static smoke: `.\tools\extension_static_smoke.ps1`.
 - [ ] Confirm no provider API keys or private values are committed or pasted into logs.
 
 ## 2. Security Gate

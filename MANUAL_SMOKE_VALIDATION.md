@@ -1,6 +1,6 @@
 # ReadOut Manual Smoke Validation
 
-Last updated: 2026-06-23 17:54 -04:00
+Last updated: 2026-06-23 17:58 -04:00
 
 Use this worksheet for release checks that require an interactive desktop,
 browser, extension, or audible playback path. Fill it on the intended release
@@ -19,6 +19,7 @@ confirmation.
 | Check | Result | Evidence |
 |---|---|---|
 | Source `/control` backend workflow | PASS | 2026-06-23 17:54 -04:00: temporary Uvicorn server on `127.0.0.1:7784`; `.\tools\control_workflow_smoke.ps1 -BaseUrl http://127.0.0.1:7784` passed loopback target, status refresh backend, control panel page, history config toggle, history refresh, Clear History backend, Stop backend, and byte-preserving local config/history restore. |
+| Chrome extension static contract | PASS | 2026-06-23 17:58 -04:00: `.\tools\extension_static_smoke.ps1` passed Manifest V3, permissions, exact localhost host permission, service worker, default popup, icons, popup controls, popup endpoint wiring, context-menu IDs, `/speak` and `/stop` background wiring, and content toast contract. This does not replace Chrome runtime popup/audio/manual smoke rows. |
 
 ## Source Control Panel Smoke
 
