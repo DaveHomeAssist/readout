@@ -10,7 +10,7 @@ Use this checklist for every release candidate.
 - [ ] Run Architect sign-off check: `.\tools\architect_signoff_check.ps1`.
 - [ ] Run packaging validation check after target smoke evidence is filled: `.\tools\packaging_validation_check.ps1`.
 - [ ] Run manual smoke validation check after interactive evidence is filled: `.\tools\manual_smoke_check.ps1`.
-- [ ] Run local release preflight: `.\tools\release_preflight.ps1` (includes upstream reconciliation, secret scan, and extension static smoke).
+- [ ] Run local release preflight: `.\tools\release_preflight.ps1` (includes upstream reconciliation, secret scan, extension static smoke, and Tk desktop static smoke).
 - [ ] If target hardware is unavailable locally, run the manual GitHub Actions package-smoke workflow and attach its uploaded evidence artifacts.
 - [ ] Use Python 3.10-3.12.
 - [ ] Confirm `espeak-ng --version` works on the target machine.
@@ -18,6 +18,7 @@ Use this checklist for every release candidate.
 - [ ] Run secret scan: `.\tools\secret_scan.ps1`.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.
 - [ ] Run Chrome extension static smoke: `.\tools\extension_static_smoke.ps1`.
+- [ ] Run Tk desktop static smoke: `.\tools\tk_desktop_static_smoke.ps1`.
 - [ ] Confirm no provider API keys or private values are committed or pasted into logs.
 
 ## 2. Security Gate

@@ -114,6 +114,36 @@ def test_extension_static_smoke_covers_manifest_and_endpoint_contracts():
         assert required in text
 
 
+def test_tk_desktop_static_smoke_covers_desktop_controls_and_endpoint_contracts():
+    text = (ROOT / "tools" / "tk_desktop_static_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "class ReadOutApp(tk.Tk):",
+        "BASE_URL",
+        '"kokoro":',
+        '"openai":',
+        '"elevenlabs":',
+        '"browser":',
+        "Unsupported browser engine absent",
+        "Preview Voice",
+        "Save WAV",
+        "_patch(\"/config\", payload)",
+        "payload = {\"engine\": key}",
+        "payload[\"voice\"] = voice_id",
+        "self._patch_config({\"voice\": voice_id})",
+        "self._patch_config({\"speed\": v})",
+        "_get(\"/voices\")",
+        "_get(\"/status\")",
+        "_post(\"/preview\"",
+        "_post(\"/speak\"",
+        "_post(\"/stop\")",
+        "save true payload",
+        "Auto-read control absent",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_cors_matrix_script_covers_required_phase0_cases():
     text = (ROOT / "tools" / "cors_origin_matrix.ps1").read_text(encoding="utf-8")
 
@@ -156,6 +186,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\server_smoke.ps1",
         "tools\\control_workflow_smoke.ps1",
         "tools\\extension_static_smoke.ps1",
+        "tools\\tk_desktop_static_smoke.ps1",
         "tools\\windows_packaging_prereqs.ps1",
         "tools\\windows_package_smoke.ps1",
     ]:
@@ -176,8 +207,10 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
     assert "$trackingBranch" in text
     assert "Secret scan" in text
     assert "Extension static smoke" in text
+    assert "Tk desktop static smoke" in text
     assert "Invoke-PreflightCommand" in text
     assert "extension_static_smoke.ps1 exit=$exitCode" in text
+    assert "tk_desktop_static_smoke.ps1 exit=$exitCode" in text
     assert "-Quiet" in text
     assert "Architect sign-off" in text
     assert "architect_signoff_check.ps1" in text

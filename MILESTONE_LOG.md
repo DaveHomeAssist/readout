@@ -712,3 +712,15 @@
 - **What changed:** `tools/upstream_reconciliation.ps1` now supports `-Quiet` and exits nonzero for `REVIEW` rows. `tools/release_preflight.ps1` now calls it with `-UpstreamRef origin/main` and reports `Upstream reconciliation` separately from branch tracking currency.
 - **Evidence:** `.\tools\upstream_reconciliation.ps1` reports graph `PASS` with `ahead=14; behind=0` against `origin/main`; during the edit pass it correctly returned nonzero because the worktree had local changes. `.\tools\release_preflight.ps1` now prints `Upstream reconciliation` and preserves the known failing Architect/manual evidence rows. Focused and full pytest runs passed.
 - **Notes / risks:** This is a release gate/reporting improvement only. It does not change app behavior, sign the Architect packet, or replace the remaining manual smoke worksheets.
+
+## Status update - 2026-06-23 18:21 -04:00
+- **Now:** Tk desktop source-contract smoke is automated and included in release preflight.
+- **Next:** Still complete the manual desktop launch/audio row, Chrome runtime row, `/control` audio rows, packaging manual rows, and Architect sign-off.
+- **Tests:** `.\tools\tk_desktop_static_smoke.ps1` passed all static Tk desktop rows; focused release/docs/UI tests passed with `40 passed in 30.44s`.
+- **Blockers:** Architect sign-off, packaging validation evidence, and manual smoke evidence remain intentionally failing.
+
+### Tk Desktop Static Smoke Helper - Added
+- **Done when:** The Tk desktop source contract can be checked without launching a GUI or playing audio.
+- **What changed:** Added `tools/tk_desktop_static_smoke.ps1`, wired it into `tools/release_preflight.ps1`, and linked it from README, release checklist, roadmap status, next-executor prompt, and manual smoke support evidence.
+- **Evidence:** The helper passed Tk app class, localhost server target, supported engine tabs, no Browser engine tab, Preview Voice, Save WAV, play/stop controls, config persistence wiring, `/voices`, `/status`, `/preview`, `/speak`, `/stop`, and save-true payload checks.
+- **Notes / risks:** This does not prove the Tk window opens on the target machine or that audible Preview Voice/Speak/Save WAV/Stop works. Those rows remain manual release gates.

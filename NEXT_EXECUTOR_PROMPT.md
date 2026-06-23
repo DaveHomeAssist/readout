@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 18:11 -04:00
+Last updated: 2026-06-23 18:21 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -67,7 +67,7 @@ Finish these open rows:
    - Run `python -m pytest`.
    - Run `.\tools\secret_scan.ps1`.
    - Confirm `.\tools\release_preflight.ps1` reports `Upstream reconciliation`
-     and `Extension static smoke` as PASS.
+     `Extension static smoke`, and `Tk desktop static smoke` as PASS.
    - With ReadOut running, run `.\tools\control_workflow_smoke.ps1`.
    - Run `.\tools\release_preflight.ps1`.
    - Run `git diff --check`.

@@ -1,6 +1,6 @@
 # ReadOut Roadmap Status
 
-Last updated: 2026-06-23 18:11 -04:00
+Last updated: 2026-06-23 18:21 -04:00
 
 This is the current requirement-by-requirement audit for the roadmap. It does
 not replace `MILESTONE_LOG.md`; it is the short release-readiness view. Run
@@ -43,7 +43,7 @@ context.
 |---|---|---|---|
 | P1-A1 | Complete | UI/docs copy tests block `Save MP3` and require `Save WAV` | None |
 | P1-A2 | Complete, pending Architect review | Browser engine tab removed; unsupported `engine: browser` rejected; decision logged; `ARCHITECT_SIGNOFF.md` packet | Architect review |
-| P1-A3 | Complete | Desktop methods PATCH engine/voice/speed payloads; status polling restores persisted engine/voice/speed without repatching; `MANUAL_SMOKE_VALIDATION.md` and `tools/manual_smoke_check.ps1` gate target smoke evidence | Manual desktop smoke before release |
+| P1-A3 | Complete | Desktop methods PATCH engine/voice/speed payloads; status polling restores persisted engine/voice/speed without repatching; `tools/tk_desktop_static_smoke.ps1` verifies Tk desktop control and endpoint wiring without launching a GUI; `MANUAL_SMOKE_VALIDATION.md` and `tools/manual_smoke_check.ps1` gate target smoke evidence | Manual desktop launch/audio smoke before release |
 | P1-A4 | Complete, pending Architect review | Auto-read control removed; decision logged; `ARCHITECT_SIGNOFF.md` packet | Architect review |
 | P1-A5 | Complete, pending Architect review | Queue download buttons removed; decision logged; `ARCHITECT_SIGNOFF.md` packet | Architect review |
 
@@ -71,4 +71,4 @@ context.
 - Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; rerun `tools/upstream_reconciliation.ps1`, `tools/roadmap_audit.ps1`, and `tools/release_preflight.ps1` before release to confirm `behind=0` and preflight `Upstream reconciliation` PASS.
 - Hosted macOS package build and non-audio smoke evidence exists, but visible menu-bar/tray and audible lifecycle evidence remain pending; final release should pass `tools/packaging_validation_check.ps1`.
 - Hosted Windows package build and headless non-audio smoke evidence exists, but audible preview/speak/stop evidence remains pending; final release should pass `tools/packaging_validation_check.ps1`.
-- Manual smoke tests remain for Tk desktop, Chrome extension popup, `/control` audio preview, packaged macOS lifecycle, and packaged Windows lifecycle. Use `tools/release_preflight.ps1 -RunSourceSmoke` first, `tools/server_smoke.ps1` for non-audio API/control checks, and `tools/manual_smoke_check.ps1` after filling interactive smoke evidence.
+- Manual smoke tests remain for Tk desktop launch/audio, Chrome extension popup/runtime, `/control` audio preview, packaged macOS lifecycle, and packaged Windows lifecycle. Use `tools/release_preflight.ps1 -RunSourceSmoke` first, `tools/server_smoke.ps1` for non-audio API/control checks, `tools/tk_desktop_static_smoke.ps1` for Tk source-contract support evidence, and `tools/manual_smoke_check.ps1` after filling interactive smoke evidence.

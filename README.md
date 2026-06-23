@@ -217,7 +217,7 @@ These checks explain the issue before the first model warmup fails.
 - Upstream graph reconciliation notes live in `UPSTREAM_RECONCILIATION.md`.
 - `.\tools\release_preflight.ps1` checks required release artifacts, upstream
   reconciliation, local Python/espeak prerequisites, secret scan, extension
-  static smoke, and optional test/live-server gates.
+  static smoke, Tk desktop static smoke, and optional test/live-server gates.
 - `.\tools\upstream_reconciliation.ps1` prints the local `origin/main` graph
   and file delta without fetching, merging, or editing files.
 - `.\tools\release_preflight.ps1 -RunSourceSmoke` also runs the in-process
@@ -247,6 +247,9 @@ These checks explain the issue before the first model warmup fails.
 - `.\tools\extension_static_smoke.ps1` checks the Chrome extension manifest,
   least-privilege permissions, popup controls, endpoint wiring, context-menu
   IDs, and toast contract without launching Chrome.
+- `.\tools\tk_desktop_static_smoke.ps1` checks the Tk desktop source contract,
+  including supported engine tabs, Preview Voice, Save WAV, stop/speak endpoint
+  wiring, and config persistence without launching a GUI.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
   supported Python, `espeak-ng`, and existing package-artifact state without
   installing dependencies or launching PyInstaller.

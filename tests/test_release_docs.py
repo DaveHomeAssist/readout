@@ -33,6 +33,7 @@ def test_release_checklist_has_security_test_and_packaging_gates():
     assert r".\tools\roadmap_audit.ps1" in text
     assert r".\tools\secret_scan.ps1" in text
     assert r".\tools\extension_static_smoke.ps1" in text
+    assert r".\tools\tk_desktop_static_smoke.ps1" in text
     assert "python -m pytest" in text
     assert "tests/test_live_http_smoke.py" in text
     assert "tests/test_server_cors.py" in text
@@ -106,6 +107,7 @@ def test_readme_links_release_readiness_artifacts():
     assert r".\tools\roadmap_audit.ps1" in text
     assert r".\tools\secret_scan.ps1" in text
     assert r".\tools\extension_static_smoke.ps1" in text
+    assert r".\tools\tk_desktop_static_smoke.ps1" in text
     assert r".\tools\cors_origin_matrix.ps1" in text
     assert r".\tools\server_smoke.ps1" in text
     assert r".\tools\control_workflow_smoke.ps1" in text
@@ -124,6 +126,7 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
         "architect_signoff_check.ps1",
         "packaging_validation_check.ps1",
         "manual_smoke_check.ps1",
+        "Tk desktop static smoke",
         "Menu-bar/tray icon visible",
         "Windows: verify audible preview/speak/stop lifecycle",
         "Do not install Python or `espeak-ng`",
@@ -207,6 +210,7 @@ def test_manual_smoke_validation_worksheet_covers_interactive_gates():
         "Source Control Panel Smoke",
         "Automated Non-Audio Support Evidence",
         r".\tools\control_workflow_smoke.ps1",
+        r".\tools\tk_desktop_static_smoke.ps1",
         "Tk Desktop Smoke",
         "Chrome Extension Smoke",
         r".\tools\manual_smoke_check.ps1",
