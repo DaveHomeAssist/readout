@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 19:23 -04:00
+Last updated: 2026-06-23 19:30 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -57,7 +57,11 @@ Finish these open rows:
    - Run `.\tools\packaging_validation_check.ps1`.
 
 2. `MANUAL_SMOKE_VALIDATION.md`
-   - Fill source `/control` manual smoke rows.
+   - Source `/control` rows already backed by live non-audio source evidence:
+     `/control` opens on `127.0.0.1:7778` and `/control` history toggle /
+     Clear History.
+   - Fill remaining source `/control` manual rows: status display, audible
+     Preview Voice, Speak text, Speak + Save WAV, and Stop during playback.
    - Fill Tk desktop smoke rows.
    - Fill Chrome extension smoke rows.
    - Run `.\tools\manual_smoke_check.ps1`.

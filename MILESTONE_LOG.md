@@ -772,3 +772,15 @@
 - **What changed:** `README.md`, `RELEASE_CHECKLIST.md`, and `NEXT_EXECUTOR_PROMPT.md` now distinguish target/hosted Python and `espeak-ng` evidence from local workstation setup.
 - **Evidence:** Package-smoke run `28062313500` and tests run `28062313482` remain the source of truth for Python 3.10-3.12 and `espeak-ng` package prerequisite rows.
 - **Notes / risks:** This is documentation scope control only; it does not clear package manual visual/audio or manual smoke gates.
+
+## Status update - 2026-06-23 19:30 -04:00
+- **Now:** Two source `/control` non-audio rows have direct current evidence on the real `127.0.0.1:7778` port.
+- **Next:** Finish the remaining source audio/status/stop-during-playback rows, Tk desktop smoke, Chrome extension runtime smoke, and package manual visual/audio rows.
+- **Tests:** Full suite passed with `148 passed, 1 warning in 34.96s`; focused release docs/tool tests passed with `30 passed in 30.52s`; `.\tools\manual_smoke_check.ps1` now reports PASS for `/control` opens and `/control` history toggle/Clear History while still failing the unproven manual rows; `.\tools\roadmap_audit.ps1` still fails only packaging/manual smoke gates; `git diff --check` passed with CRLF warnings only.
+- **Blockers:** Package manual visual/audio evidence and most manual smoke rows remain incomplete.
+
+### Source Control Non-Audio Evidence - Refreshed
+- **Done when:** Source `/control` opens and history enable/clear behavior are backed by a current live source-server run on the actual release port.
+- **What changed:** `MANUAL_SMOKE_VALIDATION.md` now records PASS evidence for `/control` opening on `127.0.0.1:7778` and the source `/control` history toggle/Clear History backend workflow. `NEXT_EXECUTOR_PROMPT.md` now names the remaining source `/control` manual rows instead of asking the next executor to redo the whole section.
+- **Evidence:** Temporary source server on `127.0.0.1:7778` reported `SERVER_READY status=ready; engine=kokoro; dependency_issues=3`. `.\tools\server_smoke.ps1 -BaseUrl http://127.0.0.1:7778` passed `/status`, `/voices`, `/history`, and `/control`. `.\tools\control_workflow_smoke.ps1 -BaseUrl http://127.0.0.1:7778` passed loopback target, status refresh backend, control panel backend page, history toggle via config, history status refresh, Clear History backend, Stop backend, and byte-preserving local config/history restore.
+- **Notes / risks:** This does not prove browser-rendered status display updates, audible preview/speak/save/stop behavior, Tk desktop launch/audio, Chrome extension runtime behavior, or package tray/menu-bar/audio rows.
