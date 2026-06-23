@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 18:37 -04:00
+Last updated: 2026-06-23 18:54 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -13,15 +13,16 @@ Do not restart the old packaging prerequisite loop. Hosted evidence already
 proves Python 3.10-3.12, `espeak-ng`, Windows package build, macOS package
 build, and non-audio package smoke:
 
-- GitHub Actions package-smoke run `28061318132` passed on current head
-  `06369b46b3d929adcec1cba1c1ebc706a548b0c9`.
-- Windows job `83075924486` built `dist\ReadOut\ReadOut.exe`, passed server,
+- GitHub Actions package-smoke run `28062313500` passed on current head
+  `440cb577875dfd2aad8a359df972471e5c207511`.
+- Windows job `83079089531` built `dist\ReadOut\ReadOut.exe`, passed server,
   `/control`, CORS, and process-stop checks, and uploaded artifact
-  `readout-windows-package-smoke` id `7835190908`.
-- macOS job `83075924465` built `dist/ReadOut.app`, passed packaged app launch,
+  `readout-windows-package-smoke` id `7835571251`.
+- macOS job `83079089516` built `dist/ReadOut.app`, passed packaged app launch,
   server, `/status`, `/voices`, `/history`, `/control`, and blocked-origin
-  checks, and uploaded artifact `readout-macos-package-smoke` id `7835173905`.
-- Tests workflow run `28061248462` passed Python 3.10, 3.11, and 3.12 jobs on
+  checks, verified clean quit, and uploaded artifact
+  `readout-macos-package-smoke` id `7835539633`.
+- Tests workflow run `28062313482` passed Python 3.10, 3.11, and 3.12 jobs on
   the same current head SHA.
 
 First verify current state:
@@ -52,7 +53,6 @@ Finish these open rows:
    - macOS: verify `Menu-bar/tray icon visible`.
    - macOS: verify tray `Open Control Panel` opens `/control`.
    - macOS: verify audible preview/speak/stop lifecycle.
-   - macOS: verify clean quit, or record an accepted gap.
    - Windows: verify audible preview/speak/stop lifecycle, or record an
      accepted gap.
    - Run `.\tools\packaging_validation_check.ps1`.

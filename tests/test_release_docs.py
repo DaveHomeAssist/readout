@@ -82,7 +82,10 @@ def test_roadmap_status_tracks_every_workstream_item():
     assert "Architect sign-off" in text
     assert "Current Integration Risk" in text
     assert "origin/main" in text
-    assert "Hosted macOS package build and non-audio smoke evidence exists" in text
+    assert (
+        "Hosted macOS package build, non-audio smoke, and clean-quit evidence exists"
+        in text
+    )
     assert "Hosted Windows package build and headless non-audio smoke evidence exists" in text
 
 
@@ -121,8 +124,8 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
     text = (ROOT / "NEXT_EXECUTOR_PROMPT.md").read_text(encoding="utf-8")
     for required in [
         "roadmap-integration",
-        "28061318132",
-        "28061248462",
+        "28062313500",
+        "28062313482",
         "architect_signoff_check.ps1",
         "packaging_validation_check.ps1",
         "manual_smoke_check.ps1",
@@ -150,7 +153,7 @@ def test_architect_signoff_packet_covers_pending_owner_decisions():
         "tools/server_smoke.ps1",
         "tools/cors_origin_matrix.ps1",
         "hosted package-smoke evidence",
-        "28061318132",
+        "28062313500",
         "P3-A1 still needs manual macOS",
         "P3-A2 still needs manual Windows",
     ]:

@@ -1,6 +1,6 @@
 # ReadOut Roadmap Status
 
-Last updated: 2026-06-23 18:37 -04:00
+Last updated: 2026-06-23 18:54 -04:00
 
 This is the current requirement-by-requirement audit for the roadmap. It does
 not replace `MILESTONE_LOG.md`; it is the short release-readiness view. Run
@@ -60,8 +60,8 @@ context.
 
 | ID | Status | Current Evidence | Remaining Proof |
 |---|---|---|---|
-| P3-A1 | Partial hosted validation, pending manual macOS smoke | `build_mac.sh` checks supported Python and `espeak-ng`; build-script tests cover preflight expectations; packaged entrypoint tests prove tray/control-panel routing; current-head GitHub Actions package-smoke run `28061318132` built `dist/ReadOut.app`, passed `tools/mac_package_smoke.sh`, and uploaded artifact `7835173905`; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` still fails until manual rows are passed or accepted as gaps | Manually verify menu-bar/tray icon, tray `Open Control Panel`, audible preview/speak/stop, and clean quit or record accepted gaps |
-| P3-A2 | Partial hosted validation, pending manual Windows audio smoke | `build_windows.ps1` avoids broken Python shims, checks supported Python and `espeak-ng`; current-head GitHub Actions package-smoke run `28061318132` built `dist\ReadOut\ReadOut.exe`, passed headless `tools/windows_package_smoke.ps1`, verified `/control` and CORS, stopped the exe, and uploaded artifact `7835190908`; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` still fails until manual audio rows are passed or accepted as gaps | Manually verify Windows audible preview/speak/stop lifecycle or record an accepted gap |
+| P3-A1 | Partial hosted validation, pending manual macOS smoke | `build_mac.sh` checks supported Python and `espeak-ng`; build-script tests cover preflight expectations; packaged entrypoint tests prove tray/control-panel routing; current-head GitHub Actions package-smoke run `28062313500` built `dist/ReadOut.app`, passed `tools/mac_package_smoke.sh`, verified clean quit, and uploaded artifact `7835539633`; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` still fails until manual rows are passed or accepted as gaps | Manually verify menu-bar/tray icon, tray `Open Control Panel`, and audible preview/speak/stop, or record accepted gaps |
+| P3-A2 | Partial hosted validation, pending manual Windows audio smoke | `build_windows.ps1` avoids broken Python shims, checks supported Python and `espeak-ng`; current-head GitHub Actions package-smoke run `28062313500` built `dist\ReadOut\ReadOut.exe`, passed headless `tools/windows_package_smoke.ps1`, verified `/control` and CORS, stopped the exe, and uploaded artifact `7835571251`; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` still fails until manual audio rows are passed or accepted as gaps | Manually verify Windows audible preview/speak/stop lifecycle or record an accepted gap |
 | P3-A3 | Complete | Dependency checks expose Python/Kokoro/espeak-ng issues in startup, `/status`, popup, and `/control`; tests cover pass/fail states | Clean-machine smoke before release |
 | P3-A4 | Drafted, pending Architect acceptance | `RELEASE_CHECKLIST.md`; release-doc tests; `tools/release_preflight.ps1 -RunSourceSmoke`; `tools/architect_signoff_check.ps1` with behavioral pass/fail fixture tests; `ARCHITECT_SIGNOFF.md` packet | Architect acceptance |
 
@@ -69,6 +69,6 @@ context.
 - Architect sign-off is still required for P0-A4 and P3-A4; use `ARCHITECT_SIGNOFF.md` and verify with `tools/architect_signoff_check.ps1`.
 - Architect review is still required for decision-log items marked pending review; use `ARCHITECT_SIGNOFF.md` and verify with `tools/architect_signoff_check.ps1`.
 - Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; rerun `tools/upstream_reconciliation.ps1`, `tools/roadmap_audit.ps1`, and `tools/release_preflight.ps1` before release to confirm `behind=0` and preflight `Upstream reconciliation` PASS.
-- Hosted macOS package build and non-audio smoke evidence exists, but visible menu-bar/tray and audible lifecycle evidence remain pending; final release should pass `tools/packaging_validation_check.ps1`.
+- Hosted macOS package build, non-audio smoke, and clean-quit evidence exists, but visible menu-bar/tray and audible lifecycle evidence remain pending; final release should pass `tools/packaging_validation_check.ps1`.
 - Hosted Windows package build and headless non-audio smoke evidence exists, but audible preview/speak/stop evidence remains pending; final release should pass `tools/packaging_validation_check.ps1`.
 - Manual smoke tests remain for Tk desktop launch/audio, Chrome extension popup/runtime, `/control` audio preview, packaged macOS lifecycle, and packaged Windows lifecycle. Use `tools/release_preflight.ps1 -RunSourceSmoke` first, `tools/server_smoke.ps1` for non-audio API/control checks, `tools/tk_desktop_static_smoke.ps1` for Tk source-contract support evidence, and `tools/manual_smoke_check.ps1` after filling interactive smoke evidence.
