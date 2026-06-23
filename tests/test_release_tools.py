@@ -112,7 +112,10 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
     assert "Python 3.10-3.12" in text
     assert "espeak-ng on PATH" in text
     assert "Git upstream currency" in text
-    assert "git rev-list --left-right --count" in text
+    assert "safe.directory=$script:GitSafeDirectory" in text
+    assert "rev-list" in text
+    assert "--left-right" in text
+    assert "--count" in text
     assert "Secret scan" in text
     assert "-Quiet" in text
     assert "Architect sign-off" in text
@@ -160,7 +163,8 @@ def test_upstream_reconciliation_helper_is_report_only():
     text = (ROOT / "tools" / "upstream_reconciliation.ps1").read_text(encoding="utf-8")
 
     assert "HEAD...$Upstream" in text
-    assert "git @GitArgs" in text
+    assert "safe.directory=$script:GitSafeDirectory" in text
+    assert "@GitArgs" in text
     assert "rev-list" in text
     assert "diff\", \"--name-status\"" in text
     assert "log\", \"--oneline\"" in text
@@ -184,6 +188,7 @@ def test_roadmap_audit_helper_rolls_up_release_gates_without_mutation():
         "Python 3.10-3.12",
         "espeak-ng",
         "Upstream graph",
+        "safe.directory=$script:GitSafeDirectory",
         "Next Action",
         "exit 1",
     ]:

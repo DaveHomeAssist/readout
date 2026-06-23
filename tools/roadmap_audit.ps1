@@ -8,6 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $results = New-Object System.Collections.Generic.List[object]
+$script:GitSafeDirectory = ((Resolve-Path ".").Path -replace "\\", "/")
 
 function Add-Result {
     param(
@@ -109,16 +110,27 @@ function Test-RoadmapRows {
     }
 }
 
+function Invoke-GitText {
+    param([string[]]$GitArgs)
+
+    $output = & git -c "safe.directory=$script:GitSafeDirectory" @GitArgs 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw ($output -join "`n")
+    }
+    return $output
+}
+
 function Test-UpstreamCurrency {
     try {
-        & git rev-parse --verify $Upstream *> $null
-        if ($LASTEXITCODE -ne 0) {
+        try {
+            Invoke-GitText -GitArgs @("rev-parse", "--verify", $Upstream) *> $null
+        } catch {
             Add-Result -Area "Upstream graph" -Result "FAIL" -Detail "$Upstream is not available locally." -NextAction "Refresh or configure the upstream ref."
             return
         }
 
-        $counts = (& git rev-list --left-right --count "HEAD...$Upstream" 2>$null)
-        if ($LASTEXITCODE -ne 0 -or -not $counts) {
+        $counts = Invoke-GitText -GitArgs @("rev-list", "--left-right", "--count", "HEAD...$Upstream")
+        if (-not $counts) {
             Add-Result -Area "Upstream graph" -Result "FAIL" -Detail "Could not compare HEAD with $Upstream." -NextAction "Run git status/log diagnostics."
             return
         }

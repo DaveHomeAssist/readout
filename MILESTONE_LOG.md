@@ -592,3 +592,20 @@
   - `.\tools\cors_origin_matrix.ps1 -BaseUrl http://127.0.0.1:7778`
 - **Evidence:** Server smoke passed `GET /status`, `GET /voices`, `GET /history`, and `GET /control`; `/status` returned `dependency_issues=3`, matching the known local prerequisite gaps. CORS matrix passed no-origin status, allowed local status, allowed local config preflight, blocked evil status, and blocked evil stop. The temporary Uvicorn process was stopped after the checks.
 - **Notes / risks:** This is not package smoke evidence and does not prove audible Preview Voice, Speak, Save WAV, Stop playback, Tk desktop, Chrome extension, macOS app lifecycle, or Windows `ReadOut.exe` lifecycle.
+
+## Status update - 2026-06-23 14:54 -04:00
+- **Now:** Release Git verifiers handle this Windows checkout's Git ownership protection without requiring global `safe.directory` config.
+- **Next:** Resolve the same real target blockers: supported Python, `espeak-ng`, package artifacts, package smoke, manual smoke, and Architect sign-off.
+- **Tests:** Release docs/tool tests passed; upstream reconciliation, roadmap audit, and release preflight now report Git state correctly.
+- **Blockers:** Packaging/sign-off/manual evidence remains intentionally failing.
+
+### Release Git Verifiers - Hardened
+- **Done when:** Roadmap/release helpers can inspect Git state from this checkout without misreporting the repo as unavailable or requiring a global machine config change.
+- **What changed:** `tools/release_preflight.ps1`, `tools/roadmap_audit.ps1`, and `tools/upstream_reconciliation.ps1` now pass a command-local `safe.directory` for the current repo. `tools/upstream_reconciliation.ps1` now reports only upstream-side file deltas with `HEAD...origin/main`, so local roadmap commits are not mislabeled as upstream changes.
+- **Tests run:**
+  - `python -m pytest tests/test_release_tools.py tests/test_release_docs.py`
+  - `.\tools\upstream_reconciliation.ps1`
+  - `.\tools\roadmap_audit.ps1`
+  - `.\tools\release_preflight.ps1`
+- **Evidence:** Focused release docs/tool tests passed with `25 passed in 30.99s`. Upstream reconciliation reported `Graph | PASS | ahead=2; behind=0`, `Runtime-sensitive upstream paths | PASS`, and no upstream-only commits or file delta. Roadmap audit reported `Upstream graph | PASS | ahead=2; behind=0 vs origin/main`, then failed only the known Python/espeak/sign-off/packaging/manual evidence gates. Release preflight reported `Git upstream currency | PASS | ahead=0; behind=0 vs origin/roadmap-integration`, then failed the same known release blockers.
+- **Notes / risks:** This hardens the verifiers only. It does not install prerequisites, create package artifacts, accept Architect decisions, or perform interactive manual smoke.

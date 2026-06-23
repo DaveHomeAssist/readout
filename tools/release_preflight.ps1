@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $results = New-Object System.Collections.Generic.List[object]
+$script:GitSafeDirectory = ((Resolve-Path ".").Path -replace "\\", "/")
 
 function Add-Check {
     param(
@@ -106,6 +107,16 @@ function Test-PowerShellSyntax {
     }
 }
 
+function Invoke-GitText {
+    param([string[]]$GitArgs)
+
+    $output = & git -c "safe.directory=$script:GitSafeDirectory" @GitArgs 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw ($output -join "`n")
+    }
+    return $output
+}
+
 Write-Host "ReadOut release preflight"
 Write-Host "Working directory: $(Get-Location)"
 
@@ -149,14 +160,18 @@ foreach ($script in @("tools\secret_scan.ps1", "tools\architect_signoff_check.ps
 }
 
 try {
-    & git rev-parse --is-inside-work-tree *> $null
-    if ($LASTEXITCODE -eq 0) {
-        $upstream = (& git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>$null)
-        if ($LASTEXITCODE -ne 0 -or -not $upstream) {
+    $inside = Invoke-GitText -GitArgs @("rev-parse", "--is-inside-work-tree")
+    if (($inside | Select-Object -First 1) -eq "true") {
+        try {
+            $upstream = Invoke-GitText -GitArgs @("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+        } catch {
+            $upstream = $null
+        }
+        if (-not $upstream) {
             Add-Check -Check "Git upstream currency" -Result "SKIP" -Detail "No upstream branch is configured."
         } else {
-            $counts = (& git rev-list --left-right --count "HEAD...@{u}" 2>$null)
-            if ($LASTEXITCODE -ne 0 -or -not $counts) {
+            $counts = Invoke-GitText -GitArgs @("rev-list", "--left-right", "--count", "HEAD...@{u}")
+            if (-not $counts) {
                 Add-Check -Check "Git upstream currency" -Result "FAIL" -Detail "Could not compare HEAD with upstream."
             } else {
                 $parts = ($counts -split "\s+") | Where-Object { $_ -ne "" }

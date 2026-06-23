@@ -7,10 +7,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$script:GitSafeDirectory = ((Resolve-Path ".").Path -replace "\\", "/")
+
 function Invoke-GitText {
     param([string[]]$GitArgs)
 
-    $output = & git @GitArgs 2>&1
+    $output = & git -c "safe.directory=$script:GitSafeDirectory" @GitArgs 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw ($output -join "`n")
     }
@@ -50,7 +52,7 @@ $status = Invoke-GitText -GitArgs @("status", "--short")
 $dirtyCount = @($status | Where-Object { $_ }).Count
 Write-TableRow -Check "Worktree" -Result ($(if ($dirtyCount -eq 0) { "PASS" } else { "REVIEW" })) -Detail "$dirtyCount changed/untracked path(s)"
 
-$changedPaths = @(Invoke-GitText -GitArgs @("diff", "--name-only", "HEAD..$Upstream") | Where-Object { $_ })
+$changedPaths = @(Invoke-GitText -GitArgs @("diff", "--name-only", "HEAD...$Upstream") | Where-Object { $_ })
 $runtimeSensitive = @(
     "server.py",
     "main.py",
@@ -75,7 +77,7 @@ if ($commits.Count -eq 0) {
 
 Write-Host ""
 Write-Host "## File delta vs upstream"
-$delta = @(Invoke-GitText -GitArgs @("diff", "--name-status", "HEAD..$Upstream"))
+$delta = @(Invoke-GitText -GitArgs @("diff", "--name-status", "HEAD...$Upstream"))
 if ($delta.Count -eq 0) {
     Write-Host "None"
 } else {
