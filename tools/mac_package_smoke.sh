@@ -11,6 +11,7 @@ INCLUDE_AUDIO=0
 SKIP_CORS=0
 FAILED=0
 APP_LAUNCHED=0
+APP_EXECUTABLE=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -55,6 +56,37 @@ server_ready() {
   curl -fsS "$BASE_URL/status" >/tmp/readout_status_$$.json 2>/dev/null
 }
 
+resolve_app_executable() {
+  local app_dir
+  local app_name
+  app_dir="$(cd "$(dirname "$APP_PATH")" && pwd -P)" || return 1
+  app_name="$(basename "$APP_PATH")"
+  APP_EXECUTABLE="$app_dir/$app_name/Contents/MacOS/ReadOut"
+}
+
+app_pids() {
+  if [ -n "$APP_EXECUTABLE" ] && [ -x "$APP_EXECUTABLE" ]; then
+    pgrep -f "$APP_EXECUTABLE" 2>/dev/null || true
+  else
+    pgrep -x "ReadOut" 2>/dev/null || true
+  fi
+}
+
+wait_for_app_shutdown() {
+  local timeout="$1"
+  local deadline
+  local pids
+  deadline=$(( $(date +%s) + timeout ))
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    pids="$(app_pids)"
+    if [ -z "$pids" ] && ! server_ready; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 cleanup() {
   rm -f /tmp/readout_status_$$.json
   if [ "$APP_LAUNCHED" -eq 1 ]; then
@@ -72,6 +104,7 @@ if [ ! -d "$APP_PATH" ]; then
   exit 1
 fi
 add_result "App bundle exists" "PASS" "$APP_PATH"
+resolve_app_executable
 
 if server_ready; then
   add_result "Port available" "FAIL" "A server is already responding at $BASE_URL"
@@ -183,6 +216,23 @@ if [ "$SKIP_CORS" -eq 0 ]; then
   esac
 else
   add_result "Blocked origin" "SKIP" "--skip-cors set"
+fi
+
+if [ "$APP_LAUNCHED" -eq 1 ]; then
+  if osascript -e 'tell application "ReadOut" to quit' >/dev/null 2>&1; then
+    if wait_for_app_shutdown 20; then
+      add_result "App quits cleanly" "PASS" "no app process or server response after quit"
+    else
+      remaining_pids="$(app_pids)"
+      if [ -z "$remaining_pids" ]; then
+        remaining_pids="none"
+      fi
+      add_result "App quits cleanly" "FAIL" "processes=$remaining_pids; server may still be responding"
+    fi
+  else
+    add_result "App quits cleanly" "FAIL" "osascript quit failed"
+  fi
+  APP_LAUNCHED=0
 fi
 
 exit "$FAILED"

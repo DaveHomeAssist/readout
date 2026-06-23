@@ -575,6 +575,9 @@ def test_mac_package_smoke_validates_packaged_app_lifecycle():
     assert "dist/ReadOut.app" in text
     assert "open -n" in text
     assert "osascript" in text
+    assert "App quits cleanly" in text
+    assert "wait_for_app_shutdown" in text
+    assert "pgrep" in text
     assert "/status" in text
     assert "/voices" in text
     assert "/history" in text
