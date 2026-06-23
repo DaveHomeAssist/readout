@@ -151,6 +151,8 @@ def test_package_smoke_workflow_builds_and_smokes_both_targets():
 
     for required in [
         "workflow_dispatch",
+        "roadmap-integration",
+        "ReadOut.spec",
         "windows-latest",
         "macos-latest",
         "actions/setup-python@v5",

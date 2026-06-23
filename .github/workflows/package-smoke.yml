@@ -2,6 +2,22 @@ name: package-smoke
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - roadmap-integration
+    paths:
+      - ".github/workflows/package-smoke.yml"
+      - "ReadOut.spec"
+      - "build_mac.sh"
+      - "build_windows.ps1"
+      - "requirements.txt"
+      - "assets/**"
+      - "engines/**"
+      - "extension/**"
+      - "tools/*package_smoke*"
+      - "tools/server_smoke.ps1"
+      - "tools/cors_origin_matrix.ps1"
+      - "*.py"
 
 jobs:
   windows-package-smoke:
