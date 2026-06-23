@@ -625,3 +625,18 @@
   - `.\tools\roadmap_audit.ps1`
 - **Evidence:** Focused release docs/tool tests passed with `26 passed in 34.28s`. `git diff --check` reported no whitespace errors, only CRLF conversion warnings. Roadmap audit reported upstream graph PASS and still failed the expected local Python/espeak/sign-off/packaging/manual evidence gates.
 - **Notes / risks:** The workflow has not run yet. CI package smoke is non-audio and still does not replace manual tray/menu-bar visual confirmation, audible preview checks, Chrome extension smoke, or Architect acceptance unless an explicit accepted gap is recorded.
+
+## Status update - 2026-06-23 15:31 -04:00
+- **Now:** Hosted Windows and macOS package builds plus non-audio package smoke checks passed on GitHub Actions for commit `b2f02cee11ff6340ad5fcec51db4bb29e2856fdc`.
+- **Next:** Complete manual visible tray/menu-bar and audible preview/speak/stop smoke evidence, or have the Architect explicitly accept those gaps.
+- **Tests:** GitHub Actions package-smoke run `28051156266` passed; tests workflow run `28051156286` passed Python 3.10, 3.11, and 3.12 jobs.
+- **Blockers:** Architect sign-off, manual smoke worksheet, macOS visible tray/menu-bar verification, and audible lifecycle evidence remain required.
+
+### Hosted Package Smoke Evidence - Recorded
+- **Done when:** Windows and macOS hosted runners build package artifacts with Python 3.12 and `espeak-ng`, run packaged app server/control/CORS smoke, and upload evidence artifacts.
+- **What changed:** `PACKAGING_VALIDATION.md` and `ROADMAP_STATUS.md` now record the successful package-smoke run, artifact IDs, and remaining manual-only gaps. `tools/roadmap_audit.ps1` now treats filled hosted/target evidence for Python 3.10-3.12 and `espeak-ng` as satisfying those roadmap prerequisite rows, so local workstation gaps are not reported as release blockers unless packages must be built on this host.
+- **Tests run:**
+  - GitHub Actions `package-smoke` run `28051156266`
+  - GitHub Actions tests workflow run `28051156286`
+- **Evidence:** Run `28051156266` passed overall at head `b2f02cee11ff6340ad5fcec51db4bb29e2856fdc`. Windows job `83041801593` built `dist\ReadOut\ReadOut.exe`, reported `Executable exists PASS`, `Server ready PASS`, `Non-audio server smoke PASS`, `CORS origin matrix PASS`, and `Stop packaged exe PASS`, then uploaded artifact `readout-windows-package-smoke` id `7831258309` with digest `sha256:6bfa7ce5974e8f13bdf335e4b1e967ea8efdff6dec04d213e3e4d2980a91f57d`. macOS job `83041801690` built `dist/ReadOut.app` size `593M`, reported `App bundle exists PASS`, `Launch packaged app PASS`, `Server ready PASS`, `/status`, `/voices`, `/history`, `/control`, and blocked-origin checks PASS, then uploaded artifact `readout-macos-package-smoke` id `7831229443` with digest `sha256:26bdd209799a0dd36eda66efcbd985d7b6a26c0c2c4242c6c66b37299462d335`. Tests run `28051156286` passed Python 3.10, 3.11, and 3.12 jobs on the same head SHA. `.\tools\roadmap_audit.ps1` now reports Python 3.10-3.12 PASS and `espeak-ng` PASS from hosted/target evidence, then still fails Architect sign-off, packaging validation, and manual smoke validation.
+- **Notes / risks:** This clears the hosted Python/`espeak-ng` package-build path. It does not prove visible macOS tray/menu-bar behavior, audible preview/speak/stop lifecycle, Chrome extension manual smoke, or Architect acceptance.

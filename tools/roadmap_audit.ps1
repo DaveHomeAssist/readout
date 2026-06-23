@@ -66,6 +66,67 @@ function Test-SupportedPython {
     }
 }
 
+function Convert-MarkdownTableRow {
+    param([string]$Line)
+
+    if ($Line -notmatch "^\|") {
+        return $null
+    }
+
+    $columns = $Line.Trim().Trim("|") -split "\|" | ForEach-Object { $_.Trim() }
+    if ($columns.Count -lt 3) {
+        return $null
+    }
+
+    if ($columns[0] -in @("---", "Check", "Item", "Gap")) {
+        return $null
+    }
+
+    return $columns
+}
+
+function Test-ReleaseEvidencePass {
+    param([string]$Result, [string]$Evidence)
+
+    return (
+        $Result.Trim() -match "^(PASS|PASSED|OK|DONE|COMPLETE|COMPLETED)$" -and
+        $Evidence.Trim() -ne "" -and
+        $Evidence.Trim() -notmatch "^(TBD|Pending)$"
+    )
+}
+
+function Get-PackagingEvidence {
+    param([string]$Check)
+
+    if (-not (Test-Path "PACKAGING_VALIDATION.md")) {
+        return $null
+    }
+
+    foreach ($line in Get-Content -Path "PACKAGING_VALIDATION.md") {
+        $columns = Convert-MarkdownTableRow -Line $line
+        if (-not $columns) {
+            continue
+        }
+
+        if ($columns[0] -eq $Check -and (Test-ReleaseEvidencePass -Result $columns[1] -Evidence $columns[2])) {
+            return $columns[2]
+        }
+    }
+
+    return $null
+}
+
+function Limit-Detail {
+    param([string]$Text, [int]$Length = 160)
+
+    $cleaned = ($Text -replace "\|", "/" -replace "\s+", " ").Trim()
+    if ($cleaned.Length -le $Length) {
+        return $cleaned
+    }
+
+    return $cleaned.Substring(0, $Length) + "..."
+}
+
 function Resolve-SupportedPythonLabel {
     $candidates = @(
         @{ Label = "existing .venv"; Exe = ".\.venv\Scripts\python.exe"; Args = @() },
@@ -154,15 +215,21 @@ Write-Host "Working directory: $(Get-Location)"
 Test-RoadmapRows
 Test-UpstreamCurrency
 
+$pythonEvidence = Get-PackagingEvidence -Check "Python 3.10-3.12 confirmed"
 $pythonLabel = Resolve-SupportedPythonLabel
 if ($pythonLabel) {
     Add-Result -Area "Python 3.10-3.12" -Result "PASS" -Detail "Found via $pythonLabel." -NextAction "Use this runtime for release packaging."
+} elseif ($pythonEvidence) {
+    Add-Result -Area "Python 3.10-3.12" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $pythonEvidence)) -NextAction "No local install needed unless building packages on this host."
 } else {
     Add-Result -Area "Python 3.10-3.12" -Result "FAIL" -Detail "No supported Python runtime found." -NextAction "Install Python 3.12, 3.11, or 3.10."
 }
 
+$espeakEvidence = Get-PackagingEvidence -Check '`espeak-ng` confirmed on PATH'
 if (Get-Command espeak-ng -ErrorAction SilentlyContinue) {
     Add-Result -Area "espeak-ng" -Result "PASS" -Detail "Found on PATH." -NextAction "Keep available for package validation."
+} elseif ($espeakEvidence) {
+    Add-Result -Area "espeak-ng" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $espeakEvidence)) -NextAction "No local install needed unless building packages on this host."
 } else {
     Add-Result -Area "espeak-ng" -Result "FAIL" -Detail "Not found on PATH." -NextAction "Install espeak-ng and verify espeak-ng --version."
 }

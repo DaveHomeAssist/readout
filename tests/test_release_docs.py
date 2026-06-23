@@ -79,8 +79,8 @@ def test_roadmap_status_tracks_every_workstream_item():
     assert "Architect sign-off" in text
     assert "Current Integration Risk" in text
     assert "origin/main" in text
-    assert "macOS packaging validation requires a macOS target" in text
-    assert "Windows packaging validation requires Python 3.10-3.12" in text
+    assert "Hosted macOS package build and non-audio smoke evidence exists" in text
+    assert "Hosted Windows package build and headless non-audio smoke evidence exists" in text
 
 
 def test_readme_links_release_readiness_artifacts():

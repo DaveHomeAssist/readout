@@ -309,7 +309,8 @@ def test_packaging_validation_check_behaviour(workspace_tmp_dir):
     output = _combined_output(result)
     assert result.returncode == 1
     assert "`./build_mac.sh` completed" in output
-    assert "Current: TBD" in output
+    assert "Menu-bar/tray icon visible" in output
+    assert "Current: Pending manual" in output
 
     complete = workspace_tmp_dir / "complete.md"
     complete.write_text(

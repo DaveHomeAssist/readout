@@ -1,6 +1,6 @@
 # ReadOut Roadmap Status
 
-Last updated: 2026-06-23 13:30 -04:00
+Last updated: 2026-06-23 15:31 -04:00
 
 This is the current requirement-by-requirement audit for the roadmap. It does
 not replace `MILESTONE_LOG.md`; it is the short release-readiness view. Run
@@ -59,8 +59,8 @@ review context.
 
 | ID | Status | Current Evidence | Remaining Proof |
 |---|---|---|---|
-| P3-A1 | Preflight hardened, pending macOS validation | `build_mac.sh` checks supported Python and `espeak-ng`; build-script tests cover preflight expectations; packaged entrypoint tests prove tray/control-panel routing; `tools/mac_package_smoke.sh` launches and validates packaged app server/control lifecycle when a build exists; `.github/workflows/package-smoke.yml` can produce hosted macOS package/smoke artifacts; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` fails until target evidence is filled and has behavioral pass/fail fixture tests | Run macOS PyInstaller build; run macOS package smoke; manually verify tray icon |
-| P3-A2 | Preflight hardened, pending Windows runtime validation | `build_windows.ps1` avoids broken Python shims, checks supported Python and `espeak-ng`; local run fails early with actionable Python message; `tools/windows_package_smoke.ps1` launches and validates packaged exe lifecycle when a build exists; `.github/workflows/package-smoke.yml` can produce hosted Windows package/smoke artifacts; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` fails until target evidence is filled and has behavioral pass/fail fixture tests | Install Python 3.10-3.12 and `espeak-ng` or run the manual package-smoke workflow; build `ReadOut.exe`; run Windows package smoke |
+| P3-A1 | Partial hosted validation, pending manual macOS smoke | `build_mac.sh` checks supported Python and `espeak-ng`; build-script tests cover preflight expectations; packaged entrypoint tests prove tray/control-panel routing; GitHub Actions package-smoke run `28051156266` built `dist/ReadOut.app`, passed `tools/mac_package_smoke.sh`, and uploaded artifact `7831229443`; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` still fails until manual rows are passed or accepted as gaps | Manually verify menu-bar/tray icon, tray `Open Control Panel`, audible preview/speak/stop, and clean quit or record accepted gaps |
+| P3-A2 | Partial hosted validation, pending manual Windows audio smoke | `build_windows.ps1` avoids broken Python shims, checks supported Python and `espeak-ng`; GitHub Actions package-smoke run `28051156266` built `dist\ReadOut\ReadOut.exe`, passed headless `tools/windows_package_smoke.ps1`, verified `/control` and CORS, stopped the exe, and uploaded artifact `7831258309`; `PACKAGING_VALIDATION.md` captures results; `tools/packaging_validation_check.ps1` still fails until manual audio rows are passed or accepted as gaps | Manually verify Windows audible preview/speak/stop lifecycle or record an accepted gap |
 | P3-A3 | Complete | Dependency checks expose Python/Kokoro/espeak-ng issues in startup, `/status`, popup, and `/control`; tests cover pass/fail states | Clean-machine smoke before release |
 | P3-A4 | Drafted, pending Architect acceptance | `RELEASE_CHECKLIST.md`; release-doc tests; `tools/release_preflight.ps1 -RunSourceSmoke`; `tools/architect_signoff_check.ps1` with behavioral pass/fail fixture tests; `ARCHITECT_SIGNOFF.md` packet | Architect acceptance |
 
@@ -68,6 +68,6 @@ review context.
 - Architect sign-off is still required for P0-A4 and P3-A4; use `ARCHITECT_SIGNOFF.md` and verify with `tools/architect_signoff_check.ps1`.
 - Architect review is still required for decision-log items marked pending review; use `ARCHITECT_SIGNOFF.md` and verify with `tools/architect_signoff_check.ps1`.
 - Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; rerun `tools/upstream_reconciliation.ps1` and `tools/roadmap_audit.ps1` before release to confirm `behind=0`.
-- macOS packaging validation requires a macOS target; final release should pass `tools/packaging_validation_check.ps1`.
-- Windows packaging validation requires Python 3.10-3.12 and `espeak-ng`; this host currently has only Python 3.13 registered through the launcher and no `espeak-ng`; final release should pass `tools/packaging_validation_check.ps1`.
+- Hosted macOS package build and non-audio smoke evidence exists, but visible menu-bar/tray and audible lifecycle evidence remain pending; final release should pass `tools/packaging_validation_check.ps1`.
+- Hosted Windows package build and headless non-audio smoke evidence exists, but audible preview/speak/stop evidence remains pending; final release should pass `tools/packaging_validation_check.ps1`.
 - Manual smoke tests remain for Tk desktop, Chrome extension popup, `/control` audio preview, packaged macOS lifecycle, and packaged Windows lifecycle. Use `tools/release_preflight.ps1 -RunSourceSmoke` first, `tools/server_smoke.ps1` for non-audio API/control checks, and `tools/manual_smoke_check.ps1` after filling interactive smoke evidence.
