@@ -1,6 +1,6 @@
 # ReadOut Packaging Validation Worksheet
 
-Last updated: 2026-06-23 18:54 -04:00
+Last updated: 2026-06-23 19:12 -04:00
 
 Use this worksheet on the target packaging machines. Paste completed tables into
 `MILESTONE_LOG.md` under the matching P3-A1 or P3-A2 entry.
@@ -19,7 +19,7 @@ column names the accepted risk.
 
 | Check | Result | Notes |
 |---|---|---|
-| `ARCHITECT_SIGNOFF.md` reviewed | Pending | Required rows are still unsigned. |
+| `ARCHITECT_SIGNOFF.md` reviewed | PASS | Architect decisions are accepted in the Notion Architect sign-off page and transcribed in `ARCHITECT_SIGNOFF.md`; `tools/architect_signoff_check.ps1` is expected to pass. |
 | `.\tools\release_preflight.ps1` or target equivalent run | PASS | Target-equivalent GitHub Actions package-smoke run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed on package-producing commit `440cb577875dfd2aad8a359df972471e5c207511`; local full preflight remains blocked by sign-off and manual evidence gates. |
 | GitHub Actions `package-smoke` workflow run, if used | PASS | Run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed; Windows job `83079089531` and macOS job `83079089516` both succeeded. |
 | Python 3.10-3.12 confirmed | PASS | Tests workflow [28062313482](https://github.com/DaveHomeAssist/readout/actions/runs/28062313482) passed Python 3.10, 3.11, and 3.12 jobs on the package-producing commit; package-smoke used Python 3.12 on Windows and macOS. |
@@ -87,7 +87,7 @@ Record:
 |---|---|---|
 | P3-A1 macOS packaging | Partial | Hosted build, non-audio package smoke, and clean quit passed; visible menu-bar/tray and audible lifecycle evidence remain pending. |
 | P3-A2 Windows packaging | Partial | Hosted build, headless package smoke, `/control`, CORS, and stop checks passed; audible lifecycle evidence remains pending. |
-| P3-A4 release checklist accepted | Pending | Architect acceptance is still required. |
+| P3-A4 release checklist accepted | PASS | Architect accepted `RELEASE_CHECKLIST.md` as the reusable release gate; package/manual evidence rows still control final release readiness. |
 
 ## Known Acceptable Gaps
 

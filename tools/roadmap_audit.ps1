@@ -235,13 +235,25 @@ if (Get-Command espeak-ng -ErrorAction SilentlyContinue) {
 }
 
 $signoffExit = Invoke-QuietScript -Path ".\tools\architect_signoff_check.ps1"
-Add-Result -Area "Architect sign-off" -Result ($(if ($signoffExit -eq 0) { "PASS" } else { "FAIL" })) -Detail "architect_signoff_check.ps1 exit=$signoffExit" -NextAction "Complete ARCHITECT_SIGNOFF.md and rerun the checker."
+Add-Result `
+    -Area "Architect sign-off" `
+    -Result ($(if ($signoffExit -eq 0) { "PASS" } else { "FAIL" })) `
+    -Detail "architect_signoff_check.ps1 exit=$signoffExit" `
+    -NextAction ($(if ($signoffExit -eq 0) { "No Architect sign-off blocker." } else { "Complete ARCHITECT_SIGNOFF.md and rerun the checker." }))
 
 $packagingExit = Invoke-QuietScript -Path ".\tools\packaging_validation_check.ps1"
-Add-Result -Area "Packaging validation" -Result ($(if ($packagingExit -eq 0) { "PASS" } else { "FAIL" })) -Detail "packaging_validation_check.ps1 exit=$packagingExit" -NextAction "Fill PACKAGING_VALIDATION.md on macOS and Windows targets."
+Add-Result `
+    -Area "Packaging validation" `
+    -Result ($(if ($packagingExit -eq 0) { "PASS" } else { "FAIL" })) `
+    -Detail "packaging_validation_check.ps1 exit=$packagingExit" `
+    -NextAction ($(if ($packagingExit -eq 0) { "No packaging validation blocker." } else { "Fill PACKAGING_VALIDATION.md on macOS and Windows targets." }))
 
 $manualExit = Invoke-QuietScript -Path ".\tools\manual_smoke_check.ps1"
-Add-Result -Area "Manual smoke validation" -Result ($(if ($manualExit -eq 0) { "PASS" } else { "FAIL" })) -Detail "manual_smoke_check.ps1 exit=$manualExit" -NextAction "Fill MANUAL_SMOKE_VALIDATION.md on the intended release machine."
+Add-Result `
+    -Area "Manual smoke validation" `
+    -Result ($(if ($manualExit -eq 0) { "PASS" } else { "FAIL" })) `
+    -Detail "manual_smoke_check.ps1 exit=$manualExit" `
+    -NextAction ($(if ($manualExit -eq 0) { "No manual smoke blocker." } else { "Fill MANUAL_SMOKE_VALIDATION.md on the intended release machine." }))
 
 Write-Host ""
 Write-Host "| Area | Result | Detail | Next Action |"

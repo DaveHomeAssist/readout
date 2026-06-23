@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 18:54 -04:00
+Last updated: 2026-06-23 19:12 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -42,19 +42,13 @@ First verify current state:
 Expected current state is YELLOW, not GREEN:
 
 - `roadmap_audit.ps1` should pass roadmap coverage, upstream graph,
-  Python 3.10-3.12, and `espeak-ng`.
-- It should still fail Architect sign-off, packaging validation, and manual
-  smoke validation until the rows below are completed or accepted as gaps.
+  Python 3.10-3.12, `espeak-ng`, and Architect sign-off.
+- It should still fail packaging validation and manual smoke validation until
+  the rows below are completed or accepted as gaps.
 
 Finish these open rows:
 
-1. `ARCHITECT_SIGNOFF.md`
-   - Review each required row.
-   - Check Accept or Revise.
-   - If revising, write the requested change in Notes.
-   - Run `.\tools\architect_signoff_check.ps1`.
-
-2. `PACKAGING_VALIDATION.md`
+1. `PACKAGING_VALIDATION.md`
    - macOS: verify `Menu-bar/tray icon visible`.
    - macOS: verify tray `Open Control Panel` opens `/control`.
    - macOS: verify audible preview/speak/stop lifecycle.
@@ -62,13 +56,13 @@ Finish these open rows:
      accepted gap.
    - Run `.\tools\packaging_validation_check.ps1`.
 
-3. `MANUAL_SMOKE_VALIDATION.md`
+2. `MANUAL_SMOKE_VALIDATION.md`
    - Fill source `/control` manual smoke rows.
    - Fill Tk desktop smoke rows.
    - Fill Chrome extension smoke rows.
    - Run `.\tools\manual_smoke_check.ps1`.
 
-4. Final release gate
+3. Final release gate
    - Run `python -m pytest`.
    - Run `.\tools\secret_scan.ps1`.
    - Confirm `.\tools\release_preflight.ps1` reports `Upstream reconciliation`
@@ -86,7 +80,7 @@ Status reporting rules:
   `packaging_validation_check.ps1`, `manual_smoke_check.ps1`,
   `upstream_reconciliation.ps1`, `release_preflight.ps1`, tests, secret scan,
   and diff check all pass.
-- Report YELLOW while any manual or sign-off row is incomplete but progress is
+- Report YELLOW while any manual/package row is incomplete but progress is
   recorded.
 - Report RED for failed builds, failed smoke tests, or rejected Architect rows.
 - Report GREY only if the repo, GitHub run evidence, or worksheets cannot be

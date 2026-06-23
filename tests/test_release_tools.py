@@ -543,7 +543,7 @@ def test_roadmap_audit_current_blocker_behaviour():
     assert "ReadOut roadmap audit" in output
     assert "Roadmap item coverage | PASS" in output
     assert "Upstream graph |" in output
-    assert "Architect sign-off | FAIL" in output
+    assert "Architect sign-off | PASS" in output
     assert "Packaging validation | FAIL" in output
     assert "Manual smoke validation | FAIL" in output
 

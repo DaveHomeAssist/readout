@@ -37,13 +37,13 @@
 ## 2026-06-21 - Security and Release Gates
 
 ### P0-A4 - Local-only Threat Model
-- **Decision:** Draft threat model created in `THREAT_MODEL.md`; final status requires Architect sign-off.
+- **Decision:** Local-only threat model accepted by Architect in Notion `ARCH | ReadOut Architect Sign-off - Phase 0-3` and transcribed to `ARCHITECT_SIGNOFF.md`.
 - **Reason:** The hardening work depends on explicit assumptions around loopback-only access, trusted no-Origin local callers, external TTS providers, and local plaintext storage.
-- **Verification:** Threat-model doc includes actors, assets, trust boundaries, controls, explicit assumptions, residual risks, and sign-off status.
+- **Verification:** Threat-model doc includes actors, assets, trust boundaries, controls, explicit assumptions, residual risks, and sign-off status; `tools/architect_signoff_check.ps1` verifies the local transcribed gate.
 - **Revisit when:** A shared-secret header, LAN binding, or new storage/sync behavior is introduced.
 
 ### P3-A4 - Release Checklist
-- **Decision:** Use `RELEASE_CHECKLIST.md` for every release candidate; final status requires Architect acceptance.
+- **Decision:** Use `RELEASE_CHECKLIST.md` for every release candidate; Architect accepted this as the reusable release gate in Notion `ARCH | ReadOut Architect Sign-off - Phase 0-3`, and the decision is transcribed to `ARCHITECT_SIGNOFF.md`.
 - **Reason:** Releases need one repeatable checklist with security, test, smoke, packaging, and release-note gates.
-- **Verification:** Checklist includes security gate, full test suite, CORS/redaction checks, macOS build gate, Windows build gate, and milestone evidence requirements.
+- **Verification:** Checklist includes security gate, full test suite, CORS/redaction checks, macOS build gate, Windows build gate, and milestone evidence requirements; `tools/architect_signoff_check.ps1` verifies the accepted local gate. Packaging/manual evidence still remains separate release evidence.
 - **Revisit when:** Packaging or distribution process changes.

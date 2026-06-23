@@ -748,3 +748,15 @@
 - **What changed:** `tools/mac_package_smoke.sh` now resolves the app executable, watches for the ReadOut process to disappear after `osascript` quit, verifies the local server no longer responds, and emits an `App quits cleanly` PASS/FAIL row. `PACKAGING_VALIDATION.md`, `ROADMAP_STATUS.md`, `ARCHITECT_SIGNOFF.md`, and `NEXT_EXECUTOR_PROMPT.md` now cite the refreshed package-producing evidence.
 - **Evidence:** macOS job `83079089516` in run `28062313500` built `dist/ReadOut.app`, passed app bundle, launch, server ready, `/status`, `/voices`, `/history`, `/control`, blocked-origin, and `App quits cleanly PASS`; artifact `readout-macos-package-smoke` id `7835539633`, digest `sha256:e47d55b52e30355d306099d40016eaeb43f7a10b942c44f141ae8cfc5f278758`. Windows job `83079089531` passed and uploaded artifact `readout-windows-package-smoke` id `7835571251`, digest `sha256:143face540b9243b602fa9171cee3502ecfd40de194ffc7fdb7caa87df39cc17`.
 - **Notes / risks:** This removes the clean-quit manual packaging row. It still does not prove visible macOS menu-bar/tray behavior, tray menu selection, audible preview/speak/stop lifecycle, Chrome runtime behavior, Tk manual launch/audio, or Architect acceptance.
+
+## Status update - 2026-06-23 19:12 -04:00
+- **Now:** Architect sign-off is transcribed from the canonical Notion Architect page into `ARCHITECT_SIGNOFF.md`; `tools/architect_signoff_check.ps1` passes.
+- **Next:** Complete only package manual visual/audio rows and the interactive manual smoke worksheet, or record explicit accepted gaps.
+- **Tests:** `.\tools\architect_signoff_check.ps1` passed all required rows. Focused release docs/tool tests passed with `30 passed in 33.70s`. `.\tools\packaging_validation_check.ps1` now passes Architect/precondition/P3-A4 rows and fails only macOS menu-bar/tray, tray Open Control Panel, macOS audible lifecycle, Windows audible lifecycle, and P3-A1/P3-A2 summaries. `.\tools\roadmap_audit.ps1` now reports Architect sign-off PASS and still fails packaging/manual smoke.
+- **Blockers:** Package manual visual/audio evidence and manual smoke evidence remain incomplete. No local Python or `espeak-ng` install is required unless the task changes to local workstation packaging.
+
+### Architect Sign-off Gate - Cleared
+- **Done when:** The repo-local Architect worksheet reflects the existing Architect decisions and the checker passes without clearing package/manual smoke.
+- **What changed:** `ARCHITECT_SIGNOFF.md`, `DECISION_LOG.md`, `ROADMAP_STATUS.md`, `PACKAGING_VALIDATION.md`, and `NEXT_EXECUTOR_PROMPT.md` now record the accepted Architect decisions from the Notion Architect sign-off page. `tools/roadmap_audit.ps1` now prints a pass-appropriate next action for cleared gates.
+- **Evidence:** `.\tools\architect_signoff_check.ps1` reports PASS for P0-A4, P1-A2, P1-A4, P1-A5, P2-A1, P2-A4, and P3-A4. Packaging and manual smoke checkers still fail the remaining target/manual rows, so release status remains yellow.
+- **Notes / risks:** This clears the Architect decision gate only. It does not replace target machine visual checks or audible playback/manual smoke evidence.
