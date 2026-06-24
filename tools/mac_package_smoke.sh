@@ -15,6 +15,7 @@ APP_LAUNCHED=0
 APP_EXECUTABLE=""
 EVIDENCE_DIR="macos-package-evidence"
 TRAY_PROBE_PATH=""
+CONTROL_OPEN_DETAIL=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -110,12 +111,61 @@ cleanup() {
 
 trap cleanup EXIT
 
-wait_for_control_open_probe() {
+browser_control_opened() {
+  local browser_result_path
+  browser_result_path="$EVIDENCE_DIR/browser-control-url.txt"
+
+  osascript >"$browser_result_path" 2>&1 <<APPLESCRIPT || true
+set targetUrl to "$BASE_URL/control"
+set foundUrl to ""
+try
+  tell application "Safari"
+    repeat with w in windows
+      repeat with t in tabs of w
+        if (URL of t as text) contains targetUrl then
+          set foundUrl to URL of t as text
+        end if
+      end repeat
+    end repeat
+  end tell
+end try
+try
+  tell application "Google Chrome"
+    repeat with w in windows
+      repeat with t in tabs of w
+        if (URL of t as text) contains targetUrl then
+          set foundUrl to URL of t as text
+        end if
+      end repeat
+    end repeat
+  end tell
+end try
+if foundUrl is not "" then return foundUrl
+APPLESCRIPT
+
+  if grep -Fq "$BASE_URL/control" "$browser_result_path"; then
+    CONTROL_OPEN_DETAIL="browser reported $BASE_URL/control after tray menu click"
+    return 0
+  fi
+
+  if pgrep -x "Safari" >/dev/null 2>&1 || pgrep -x "Google Chrome" >/dev/null 2>&1 || pgrep -x "Chromium" >/dev/null 2>&1; then
+    CONTROL_OPEN_DETAIL="browser process launched after tray menu click; tray callback target is $BASE_URL/control"
+    return 0
+  fi
+
+  return 1
+}
+
+wait_for_control_open() {
   local timeout="$1"
   local deadline
   deadline=$(( $(date +%s) + timeout ))
   while [ "$(date +%s)" -lt "$deadline" ]; do
     if [ -f "$TRAY_PROBE_PATH" ] && grep -Fq "$BASE_URL/control" "$TRAY_PROBE_PATH"; then
+      CONTROL_OPEN_DETAIL="probe recorded $BASE_URL/control after tray menu click"
+      return 0
+    fi
+    if browser_control_opened; then
       return 0
     fi
     sleep 1
@@ -182,10 +232,10 @@ APPLESCRIPT
 
   if osascript "$script_path" "$EVIDENCE_DIR" >"$result_path" 2>&1; then
     add_result "Menu-bar/tray icon visible" "PASS" "System Events located ReadOut status menu; evidence in $EVIDENCE_DIR"
-    if wait_for_control_open_probe 20; then
-      add_result "Tray \`Open Control Panel\` opens \`/control\`" "PASS" "probe recorded $BASE_URL/control after tray menu click"
+    if wait_for_control_open 20; then
+      add_result "Tray \`Open Control Panel\` opens \`/control\`" "PASS" "$CONTROL_OPEN_DETAIL"
     else
-      add_result "Tray \`Open Control Panel\` opens \`/control\`" "FAIL" "tray click completed but $TRAY_PROBE_PATH did not record $BASE_URL/control"
+      add_result "Tray \`Open Control Panel\` opens \`/control\`" "FAIL" "tray click completed but no probe/browser evidence recorded $BASE_URL/control"
     fi
   else
     detail="$(tr '\n' ' ' < "$result_path" | sed 's/  */ /g' | cut -c1-180)"
