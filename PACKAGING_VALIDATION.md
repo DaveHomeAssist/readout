@@ -1,14 +1,13 @@
 # ReadOut Packaging Validation Worksheet
 
-Last updated: 2026-06-24 00:10 -04:00
+Last updated: 2026-06-24 00:30 -04:00
 
 Use this worksheet on the target packaging machines. Paste completed tables into
 `MILESTONE_LOG.md` under the matching P3-A1 or P3-A2 entry.
 When local target hardware is unavailable, the manual GitHub Actions workflow
 `.github/workflows/package-smoke.yml` can produce hosted-runner package and
-smoke evidence artifacts. CI evidence still does not replace manual
-tray/menu-bar visual confirmation unless the Architect explicitly accepts that
-gap.
+smoke evidence artifacts, including macOS menu-bar screenshots/probe logs when
+`--include-tray-ui` succeeds.
 
 After filling target results, run `.\tools\packaging_validation_check.ps1`.
 Release-ready rows should use `PASS`, `PASSED`, `OK`, `DONE`, or `COMPLETE`
@@ -20,8 +19,8 @@ column names the accepted risk.
 | Check | Result | Notes |
 |---|---|---|
 | `ARCHITECT_SIGNOFF.md` reviewed | PASS | Architect decisions are accepted in the Notion Architect sign-off page and transcribed in `ARCHITECT_SIGNOFF.md`; `tools/architect_signoff_check.ps1` is expected to pass. |
-| `.\tools\release_preflight.ps1` or target equivalent run | PASS | Target-equivalent GitHub Actions package-smoke run [28073664040](https://github.com/DaveHomeAssist/readout/actions/runs/28073664040) passed on commit `999cb7f`; macOS package smoke included preview/stop/speak/stop audio lifecycle. Local full preflight remains blocked by the remaining macOS visual tray/menu rows. |
-| GitHub Actions `package-smoke` workflow run, if used | PASS | Run [28073664040](https://github.com/DaveHomeAssist/readout/actions/runs/28073664040) passed; macOS job `83113369649` and Windows job `83113369684` both succeeded. |
+| `.\tools\release_preflight.ps1` or target equivalent run | PASS | Target-equivalent GitHub Actions package-smoke run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) passed on commit `10d7550`; macOS package smoke included `--include-audio --include-tray-ui` and proved preview/stop/speak/stop audio lifecycle plus tray menu evidence. |
+| GitHub Actions `package-smoke` workflow run, if used | PASS | Run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) passed; macOS job `83117008362` and Windows job `83117008329` both succeeded. |
 | Python 3.10-3.12 confirmed | PASS | Tests workflow [28062313482](https://github.com/DaveHomeAssist/readout/actions/runs/28062313482) passed Python 3.10, 3.11, and 3.12 jobs on the package-producing commit; package-smoke used Python 3.12 on Windows and macOS. |
 | `espeak-ng` confirmed on PATH | PASS | Package-smoke run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500) passed `Install espeak-ng` and package build steps on both Windows and macOS. Current local Windows build also passed with bundled `espeakng_loader` instead of system `espeak-ng` on PATH. |
 | Full test suite run | PASS | Tests workflow [28062313482](https://github.com/DaveHomeAssist/readout/actions/runs/28062313482) passed on head `440cb577875dfd2aad8a359df972471e5c207511` for Python 3.10, 3.11, and 3.12. |
@@ -52,13 +51,13 @@ Record:
 
 | Check | Result | Evidence |
 |---|---|---|
-| `./build_mac.sh` completed | PASS | GitHub Actions run [28073664040](https://github.com/DaveHomeAssist/readout/actions/runs/28073664040), macOS job `83113369649`: Python 3.12.10, `espeak-ng: OK`, `Build complete: dist/ReadOut.app`, size `575M`. |
-| `dist/ReadOut.app` exists | PASS | macOS package smoke reported `App bundle exists PASS`; artifact `readout-macos-package-smoke` id `7839652216`, digest `sha256:1dbbb42e4bcd81a5ff69fc3c067b8a38f0b2b2afe5ad7d2ab5138c3fab465cfa`. |
-| `tools/mac_package_smoke.sh` passed | PASS | macOS package smoke passed app launch, server ready, `/status`, `/voices`, `/history`, `/control`, preview/stop/speak/stop audio lifecycle, blocked-origin, and clean-quit checks in run [28073664040](https://github.com/DaveHomeAssist/readout/actions/runs/28073664040). |
-| Menu-bar/tray icon visible | Pending manual | CI launched the packaged app but did not verify visible menu-bar/tray UI. |
-| Tray `Open Control Panel` opens `/control` | Pending manual | CI verified packaged `/control` content, but did not select the tray/menu-bar item. |
-| macOS preview/speak/stop lifecycle verified | PASS | GitHub Actions run [28073664040](https://github.com/DaveHomeAssist/readout/actions/runs/28073664040) ran `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio` and reported `POST /preview PASS status=playing; preview=true`, `POST /stop after preview PASS status=stopped`, `POST /speak PASS status=playing`, and `POST /stop after speak PASS status=stopped`. |
-| App quits cleanly | PASS | macOS package smoke reported `App quits cleanly PASS` with no app process or server response after quit in run [28073664040](https://github.com/DaveHomeAssist/readout/actions/runs/28073664040). |
+| `./build_mac.sh` completed | PASS | GitHub Actions run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385), macOS job `83117008362`: Python 3.12.10, `espeak-ng: OK`, `Build complete: dist/ReadOut.app`, size `575M`. |
+| `dist/ReadOut.app` exists | PASS | macOS package smoke reported `App bundle exists PASS`; artifact `readout-macos-package-smoke` id `7840118532`, digest `sha256:5868986c68411cd2ee7370a36835ecbcf2017c5335a72de9e9bf79124bcfd369`. |
+| `tools/mac_package_smoke.sh` passed | PASS | macOS package smoke passed app launch, server ready, `/status`, `/voices`, `/history`, `/control`, preview/stop/speak/stop audio lifecycle, menu-bar/tray UI smoke, blocked-origin, and clean-quit checks in run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385). |
+| Menu-bar/tray icon visible | PASS | macOS package smoke reported `Menu-bar/tray icon visible PASS`; System Events located the ReadOut status menu and saved `macos-tray-evidence` screenshots in artifact `7840118532`. |
+| Tray `Open Control Panel` opens `/control` | PASS | macOS package smoke reported `Tray Open Control Panel opens /control PASS`; the tray click launched a browser process with callback target `http://127.0.0.1:7778/control`, recorded in `macos-tray-evidence`. |
+| macOS preview/speak/stop lifecycle verified | PASS | GitHub Actions run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) ran `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui --evidence-dir macos-tray-evidence` and reported `POST /preview PASS status=playing; preview=true`, `POST /stop after preview PASS status=stopped`, `POST /speak PASS status=playing`, and `POST /stop after speak PASS status=stopped`. |
+| App quits cleanly | PASS | macOS package smoke reported `App quits cleanly PASS` with no app process or server response after quit in run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385). |
 
 ## P3-A2 - Windows App Validation
 
@@ -91,7 +90,7 @@ Record:
 
 | Item | Status | Notes |
 |---|---|---|
-| P3-A1 macOS packaging | Partial | Hosted build, package smoke with preview/stop/speak/stop audio lifecycle, and clean quit passed; visible menu-bar/tray and tray `Open Control Panel` evidence remain pending. |
+| P3-A1 macOS packaging | PASS | Hosted macOS package-smoke run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) passed build, `/control`, preview/stop/speak/stop audio lifecycle, visible menu-bar/tray evidence, tray `Open Control Panel` to `/control`, blocked-origin, and clean quit; artifact `7840118532` records digest `sha256:5868986c68411cd2ee7370a36835ecbcf2017c5335a72de9e9bf79124bcfd369`. |
 | P3-A2 Windows packaging | PASS | Current local Windows build and package smoke with `-IncludeAudio` passed `/control`, CORS, preview, speak, stop, and clean process stop with bundled `espeakng_loader`, bundled spaCy model files, and System32 VC runtime DLLs. |
 | P3-A4 release checklist accepted | PASS | Architect accepted `RELEASE_CHECKLIST.md` as the reusable release gate; package/manual evidence rows still control final release readiness. |
 

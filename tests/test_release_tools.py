@@ -538,7 +538,16 @@ def test_architect_signoff_check_behaviour(workspace_tmp_dir):
 
 def test_packaging_validation_check_behaviour(workspace_tmp_dir):
     pending = workspace_tmp_dir / "pending.md"
-    pending.write_text((ROOT / "PACKAGING_VALIDATION.md").read_text(encoding="utf-8"), encoding="utf-8")
+    pending_text = (ROOT / "PACKAGING_VALIDATION.md").read_text(encoding="utf-8")
+    pending_text = pending_text.replace(
+        "| Menu-bar/tray icon visible | PASS | macOS package smoke reported `Menu-bar/tray icon visible PASS`; System Events located the ReadOut status menu and saved `macos-tray-evidence` screenshots in artifact `7840118532`. |",
+        "| Menu-bar/tray icon visible | Pending manual | CI launched the packaged app but did not verify visible menu-bar/tray UI. |",
+    )
+    pending_text = pending_text.replace(
+        "| P3-A1 macOS packaging | PASS | Hosted macOS package-smoke run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) passed build, `/control`, preview/stop/speak/stop audio lifecycle, visible menu-bar/tray evidence, tray `Open Control Panel` to `/control`, blocked-origin, and clean quit; artifact `7840118532` records digest `sha256:5868986c68411cd2ee7370a36835ecbcf2017c5335a72de9e9bf79124bcfd369`. |",
+        "| P3-A1 macOS packaging | Partial | Visible menu-bar/tray evidence remains pending. |",
+    )
+    pending.write_text(pending_text, encoding="utf-8")
 
     result = _run_ps_script("packaging_validation_check.ps1", "-Path", str(pending))
     output = _combined_output(result)
@@ -675,12 +684,12 @@ def test_roadmap_audit_current_blocker_behaviour():
     result = _run_ps_script("roadmap_audit.ps1")
     output = _combined_output(result)
 
-    assert result.returncode == 1
+    assert result.returncode == 0
     assert "ReadOut roadmap audit" in output
     assert "Roadmap item coverage | PASS" in output
     assert "Upstream graph |" in output
     assert "Architect sign-off | PASS" in output
-    assert "Packaging validation | FAIL" in output
+    assert "Packaging validation | PASS" in output
     assert "Manual smoke validation | PASS" in output
 
 

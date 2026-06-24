@@ -27,16 +27,16 @@ decisions that are implemented but still waiting on owner sign-off.
 ## Current Non-Architect Blockers
 - Upstream graph reconciliation is cleared in the `roadmap-integration` worktree; `ROADMAP_STATUS.md` and `UPSTREAM_RECONCILIATION.md` now track the clean-branch state. The original dirty local `main` worktree remains a safety copy and should not be blindly pulled, merged, reset, or overwritten.
 - Fresh source-only live checks passed on 2026-06-23 14:48 -04:00: temporary Uvicorn server, `tools/server_smoke.ps1` non-audio API/control smoke, and `tools/cors_origin_matrix.ps1` CORS matrix. These checks do not replace target package smoke, audible preview, Tk desktop, Chrome extension, or Architect acceptance.
-- Hosted package-smoke run `28073664040` passed for Windows and macOS at commit `999cb7f`; `PACKAGING_VALIDATION.md` records package artifacts, macOS `/control`, macOS preview/stop/speak/stop audio lifecycle, macOS clean-quit evidence, and current Windows package evidence.
-- P3-A1 still needs macOS menu-bar/tray visibility and tray `Open Control Panel` evidence. Current branch adds `tools/mac_package_smoke.sh --include-tray-ui` to try to capture those rows through System Events screenshots/probe logs; if that cannot run on the target, the rows still need human macOS evidence or explicit accepted release risks.
+- Hosted package-smoke run `28074903385` passed for Windows and macOS at commit `10d7550`; `PACKAGING_VALIDATION.md` records package artifacts, macOS `/control`, macOS preview/stop/speak/stop audio lifecycle, macOS visible menu-bar/tray evidence, tray `Open Control Panel` callback to `/control`, macOS clean-quit evidence, and current Windows package evidence.
+- P3-A1 macOS package validation is complete from hosted package-smoke evidence, including `--include-tray-ui` screenshots/probe logs in artifact `7840118532`.
 - P3-A2 Windows package validation is complete.
 - Architect decision sign-off is now transcribed from the Notion Architect page. Manual smoke validation is complete with automated runtime evidence for source `/control`, Tk desktop, and Chrome extension workflows.
 
 ## Release Gate Rule
-The Architect decision rows above are accepted. That does not make the release
-green by itself: final release still requires `tools/packaging_validation_check.ps1`
-and `tools/manual_smoke_check.ps1` to pass, or explicit accepted gaps for the
-remaining target-specific visual/audio/manual rows.
+The Architect decision rows above are accepted. Final release still requires
+`tools/packaging_validation_check.ps1` and `tools/manual_smoke_check.ps1` to
+pass on current worksheets, or explicit accepted gaps for any future target
+specific visual/audio/manual rows.
 
 Before final release, re-run `tools/release_preflight.ps1`, `tools/server_smoke.ps1`,
 and `tools/cors_origin_matrix.ps1`, then confirm hosted package-smoke evidence

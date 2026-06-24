@@ -66,6 +66,7 @@ def test_status_reports_load_error(client, monkeypatch):
     monkeypatch.setattr(tts_engine, "is_loading", lambda: False)
     monkeypatch.setattr(tts_engine, "is_first_run", lambda: True)
     monkeypatch.setattr(tts_engine, "get_load_error", lambda: "model download failed")
+    monkeypatch.setattr(server, "check_dependencies", lambda: [])
     data = client.get("/status").json()
     assert data["status"] == "ready"
     assert data["model_ready"] is False

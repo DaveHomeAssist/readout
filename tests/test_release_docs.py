@@ -86,7 +86,7 @@ def test_roadmap_status_tracks_every_workstream_item():
     assert "Current Integration Risk" in text
     assert "origin/main" in text
     assert (
-        "Hosted macOS package build, `/control`, audio lifecycle, blocked-origin, and clean-quit evidence now exists"
+        "Hosted macOS package build, `/control`, audio lifecycle, visible menu-bar/tray, tray `Open Control Panel`, blocked-origin, and clean-quit evidence now exists"
         in text
     )
     assert "Current local Windows package build and package audio endpoint smoke evidence passes" in text
@@ -130,18 +130,18 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
     text = (ROOT / "NEXT_EXECUTOR_PROMPT.md").read_text(encoding="utf-8")
     for required in [
         "roadmap-integration",
-        "28073664040",
+        "28074903385",
         "28062313482",
         "architect_signoff_check.ps1",
         "packaging_validation_check.ps1",
         "manual_smoke_check.ps1",
-        "Tk desktop static smoke",
+        "tk_desktop_static_smoke.ps1",
         "control_browser_runtime_smoke.ps1",
         "control_browser_action_smoke.ps1",
         "extension_runtime_smoke.ps1",
         "Menu-bar/tray icon visible",
         "macOS package audio lifecycle",
-        "Current local Windows evidence now includes audio endpoint lifecycle",
+        "Current local Windows evidence includes audio endpoint lifecycle",
         "Do not install Python or `espeak-ng`",
         "Report GREEN only after",
     ]:
@@ -163,8 +163,8 @@ def test_architect_signoff_packet_covers_pending_owner_decisions():
         "tools/server_smoke.ps1",
         "tools/cors_origin_matrix.ps1",
         "hosted package-smoke evidence",
-        "28073664040",
-        "P3-A1 still needs macOS menu-bar/tray",
+        "28074903385",
+        "P3-A1 macOS package validation is complete",
         "P3-A2 Windows package validation is complete",
     ]:
         assert artifact in text
