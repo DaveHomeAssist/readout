@@ -298,6 +298,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "PACKAGING_VALIDATION.md",
         "MANUAL_SMOKE_VALIDATION.md",
         "NEXT_EXECUTOR_PROMPT.md",
+        "MAC_RUNNER_HANDOFF.md",
         "RELEASE_CHECKLIST.md",
         "ROADMAP_STATUS.md",
         "MILESTONE_LOG.md",

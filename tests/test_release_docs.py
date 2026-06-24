@@ -55,6 +55,7 @@ def test_release_checklist_has_security_test_and_packaging_gates():
     assert "PACKAGING_VALIDATION.md" in text
     assert "MANUAL_SMOKE_VALIDATION.md" in text
     assert "UPSTREAM_RECONCILIATION.md" in text
+    assert "MAC_RUNNER_HANDOFF.md" in text
 
 
 def test_roadmap_status_tracks_every_workstream_item():
@@ -102,6 +103,7 @@ def test_readme_links_release_readiness_artifacts():
     assert "PACKAGING_VALIDATION.md" in text
     assert "MANUAL_SMOKE_VALIDATION.md" in text
     assert "NEXT_EXECUTOR_PROMPT.md" in text
+    assert "MAC_RUNNER_HANDOFF.md" in text
     assert "RELEASE_CHECKLIST.md" in text
     assert "ROADMAP_STATUS.md" in text
     assert "UPSTREAM_RECONCILIATION.md" in text
@@ -132,6 +134,7 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
         "roadmap-integration",
         "28074903385",
         "28062313482",
+        "MAC_RUNNER_HANDOFF.md",
         "architect_signoff_check.ps1",
         "packaging_validation_check.ps1",
         "manual_smoke_check.ps1",
@@ -144,6 +147,30 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
         "Current local Windows evidence includes audio endpoint lifecycle",
         "Do not install Python or `espeak-ng`",
         "Report GREEN only after",
+    ]:
+        assert required in text
+
+
+def test_mac_runner_handoff_covers_runner_commands_and_evidence():
+    text = (ROOT / "MAC_RUNNER_HANDOFF.md").read_text(encoding="utf-8")
+    for required in [
+        "roadmap-integration",
+        "329095b",
+        "28076273743",
+        "28074903385",
+        "83117008362",
+        "7840118532",
+        "build_mac.sh",
+        "tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui --evidence-dir macos-tray-evidence",
+        "brew install espeak-ng",
+        "ReadOut-macOS.tar.gz",
+        "macos-package-smoke.md",
+        "macos-tray-evidence/browser-control-url.txt",
+        "Menu-bar/tray icon visible",
+        "Tray `Open Control Panel` opens `/control`",
+        "App quits cleanly",
+        "Do Not Reopen These As Blockers",
+        "Status Report Template",
     ]:
         assert required in text
 

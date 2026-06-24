@@ -230,6 +230,8 @@ These checks explain the issue before the first model warmup fails.
 - `NEXT_EXECUTOR_PROMPT.md` is the current handoff prompt for finishing the
   remaining package validation gates without repeating already completed hosted
   packaging or manual smoke work.
+- `MAC_RUNNER_HANDOFF.md` is the focused handoff for hosted or local macOS
+  package-smoke refreshes.
 - `.\tools\architect_signoff_check.ps1` verifies required Architect rows in
   `ARCHITECT_SIGNOFF.md` are accepted before release.
 - `.\tools\packaging_validation_check.ps1` verifies target macOS/Windows

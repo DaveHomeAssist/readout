@@ -5,6 +5,8 @@ Last updated: 2026-06-24
 Use this prompt for the next executor assigned to verify or release the ReadOut
 roadmap branch.
 
+For macOS hosted/local package refreshes, also read `MAC_RUNNER_HANDOFF.md`.
+
 ```text
 You are continuing ReadOut roadmap release validation on branch
 `roadmap-integration` in repo `DaveHomeAssist/readout`.

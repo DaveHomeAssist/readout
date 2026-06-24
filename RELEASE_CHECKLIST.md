@@ -6,6 +6,7 @@ Use this checklist for every release candidate.
 - [ ] Confirm the release branch is up to date with `origin/main`, or document and accept any reviewed remote delta in `UPSTREAM_RECONCILIATION.md`.
 - [ ] Run roadmap audit: `.\tools\roadmap_audit.ps1`.
 - [ ] Read the current handoff packet: `NEXT_EXECUTOR_PROMPT.md`.
+- [ ] For macOS package refreshes, read `MAC_RUNNER_HANDOFF.md`.
 - [ ] Run upstream reconciliation report: `.\tools\upstream_reconciliation.ps1`.
 - [ ] Run Architect sign-off check: `.\tools\architect_signoff_check.ps1`.
 - [ ] Run packaging validation check after target smoke evidence is filled: `.\tools\packaging_validation_check.ps1`.
