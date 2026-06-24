@@ -226,11 +226,17 @@ function Invoke-GitText {
 function Invoke-PreflightCommand {
     param([scriptblock]$Command)
 
-    $global:LASTEXITCODE = 0
-    & $Command
+    $global:LASTEXITCODE = $null
+    $commandOutput = & $Command 2>&1
     $commandSucceeded = $?
-    if ($LASTEXITCODE -is [int]) {
-        return $LASTEXITCODE
+    $externalExitCode = $global:LASTEXITCODE
+
+    if ($commandOutput) {
+        $commandOutput | ForEach-Object { Write-Host $_ }
+    }
+
+    if ($externalExitCode -is [int]) {
+        return $externalExitCode
     }
 
     if ($commandSucceeded) {

@@ -364,6 +364,15 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
     assert "exit 1" in text
 
 
+def test_release_preflight_run_source_smoke_reports_pass():
+    result = _run_ps_script("release_preflight.ps1", "-RunSourceSmoke")
+    output = _combined_output(result)
+
+    assert "Source live HTTP smoke | PASS" in output
+    assert "Source live HTTP smoke | FAIL" not in output
+    assert "7 passed" in output
+
+
 def test_windows_packaging_prereq_report_is_non_mutating_and_actionable():
     text = (ROOT / "tools" / "windows_packaging_prereqs.ps1").read_text(encoding="utf-8")
 
