@@ -18,6 +18,7 @@ Use this checklist for every release candidate.
 - [ ] Run secret scan: `.\tools\secret_scan.ps1`.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.
 - [ ] Run Chrome extension static smoke: `.\tools\extension_static_smoke.ps1`.
+- [ ] Run Chrome extension runtime non-audio smoke: `.\tools\extension_runtime_smoke.ps1`.
 - [ ] Run Tk desktop static smoke: `.\tools\tk_desktop_static_smoke.ps1`.
 - [ ] Run Tk desktop runtime non-audio smoke on a desktop-capable target: `.\tools\tk_desktop_runtime_smoke.ps1`.
 - [ ] Confirm no provider API keys or private values are committed or pasted into logs.
@@ -38,6 +39,7 @@ Use this checklist for every release candidate.
 - [ ] With ReadOut running, run non-audio control workflow smoke: `.\tools\control_workflow_smoke.ps1`.
 - [ ] Run browser-rendered status smoke: `.\tools\control_browser_runtime_smoke.ps1`.
 - [ ] Run browser-rendered action smoke: `.\tools\control_browser_action_smoke.ps1`.
+- [ ] Run Chrome extension runtime non-audio smoke: `.\tools\extension_runtime_smoke.ps1`.
 - [ ] Run a manual `/control` smoke test:
   - [ ] Open `http://127.0.0.1:7778/control`.
   - [ ] Check status display.
@@ -48,11 +50,11 @@ Use this checklist for every release candidate.
   - [ ] Toggle history on/off and clear history.
   - [ ] Record results in `MANUAL_SMOKE_VALIDATION.md`.
 - [ ] Run a Chrome extension smoke test:
-  - [ ] Confirm extension origin is allowlisted.
-  - [ ] Check popup READY/LOADING/OFFLINE/error text.
+  - [ ] Confirm extension origin is allowlisted, or cite `.\tools\extension_runtime_smoke.ps1`.
+  - [ ] Check popup READY/LOADING/OFFLINE/error text, or cite `.\tools\extension_runtime_smoke.ps1` for READY/OFFLINE.
   - [ ] Preview a voice.
   - [ ] Read selected text.
-  - [ ] Stop playback.
+  - [ ] Stop playback, or cite `.\tools\extension_runtime_smoke.ps1` for non-audio stop command plumbing.
   - [ ] Record results in `MANUAL_SMOKE_VALIDATION.md`.
 
 ## 4. macOS Build Gate

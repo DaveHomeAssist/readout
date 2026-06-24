@@ -169,6 +169,33 @@ def test_extension_static_smoke_covers_manifest_and_endpoint_contracts():
         assert required in text
 
 
+def test_extension_runtime_smoke_loads_popup_and_restores_local_files():
+    text = (ROOT / "tools" / "extension_runtime_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "Start-Process",
+        "-WindowStyle Hidden",
+        "uvicorn",
+        "server:app",
+        "Chrome or Edge was not found",
+        "--remote-debugging-port",
+        "Extensions.loadUnpacked",
+        "Extensions.triggerAction",
+        "Load unpacked extension",
+        "Popup OFFLINE state",
+        "Popup READY state",
+        "Popup Stop action",
+        "stopPlayback",
+        "Extension origin allowlisted",
+        "ReadAllBytes",
+        "WriteAllBytes",
+        "Restore local config/history",
+        "A server is already responding",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_tk_desktop_static_smoke_covers_desktop_controls_and_endpoint_contracts():
     text = (ROOT / "tools" / "tk_desktop_static_smoke.ps1").read_text(encoding="utf-8")
 
@@ -270,6 +297,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\control_browser_runtime_smoke.ps1",
         "tools\\control_browser_action_smoke.ps1",
         "tools\\extension_static_smoke.ps1",
+        "tools\\extension_runtime_smoke.ps1",
         "tools\\tk_desktop_static_smoke.ps1",
         "tools\\tk_desktop_runtime_smoke.ps1",
         "tools\\windows_packaging_prereqs.ps1",

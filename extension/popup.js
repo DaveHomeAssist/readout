@@ -27,9 +27,27 @@ const els = {
   btnStop: document.getElementById("btn-stop"),
 };
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 2000) {
+  const controller = new AbortController();
+  let timer;
+  try {
+    return await Promise.race([
+      fetch(url, { ...options, signal: controller.signal }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error("Request timed out"));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function loadVoices() {
   try {
-    const res = await fetch(`${READOUT_URL}/voices`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetchWithTimeout(`${READOUT_URL}/voices`);
     if (!res.ok) throw new Error(`Voices ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data.engines)) {
@@ -68,7 +86,7 @@ function updateVoices(engine) {
 // Check server status
 async function checkStatus() {
   try {
-    const res = await fetch(`${READOUT_URL}/status`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetchWithTimeout(`${READOUT_URL}/status`);
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     const dependencyIssue = (data.dependency_issues || [])[0];
@@ -178,8 +196,7 @@ els.btnPreview.addEventListener("click", async () => {
   }
 });
 
-// Stop
-els.btnStop.addEventListener("click", async () => {
+async function stopPlayback() {
   try {
     const res = await fetch(`${READOUT_URL}/stop`, { method: "POST" });
     if (!res.ok) throw new Error(`Stop ${res.status}`);
@@ -187,6 +204,11 @@ els.btnStop.addEventListener("click", async () => {
   } catch {
     setStatus("offline", "OFFLINE", "Could not stop playback. Start the ReadOut desktop app, then try again.");
   }
+}
+
+// Stop
+els.btnStop.addEventListener("click", () => {
+  stopPlayback();
 });
 
 // Engine change → update voices + save to server
@@ -233,4 +255,9 @@ tabGuide.addEventListener("click", () => {
 
 // Init
 updateVoices("kokoro");
-loadVoices().then(() => checkStatus());
+checkStatus();
+setTimeout(() => checkStatus(), 250);
+loadVoices().then(() => {
+  updateVoices(els.engine.value || "kokoro");
+  checkStatus();
+});

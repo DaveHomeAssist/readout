@@ -1,6 +1,6 @@
 # ReadOut Manual Smoke Validation
 
-Last updated: 2026-06-23 21:14 -04:00
+Last updated: 2026-06-23 21:44 -04:00
 
 Use this worksheet for release checks that require an interactive desktop,
 browser, extension, or audible playback path. Fill it on the intended release
@@ -24,6 +24,7 @@ confirmation.
 | Tk desktop runtime non-audio workflow | PASS | 2026-06-23 19:40 -04:00: `.\tools\tk_desktop_runtime_smoke.ps1` opened the Tk window on a 1920x1080 Windows desktop, found engine/voice/preview/save/play controls, persisted engine `openai`, voice `nova`, and speed `1.7` through the backend, stopped the temporary source server, and restored local config/history. This does not replace desktop audible playback rows. |
 | Source `/control` browser status runtime | PASS | 2026-06-23 21:14 -04:00: `.\tools\control_browser_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` started a temporary source server on `127.0.0.1:7778`, opened `/control` in headless Chrome, and verified rendered status `ready`, label `Ready`, feedback `Ready · kokoro · af_heart · 1.0×`, and `dependency_issues=0`. This does not replace audible source control rows. |
 | Source `/control` browser Save WAV/Stop action runtime | PASS | 2026-06-23 20:56 -04:00: `.\tools\control_browser_action_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` used headless Chrome DevTools to click the real `/control` Save WAV and Stop buttons; server reported `dependency_issues=0`; Save WAV created `readout_1782262606.wav` at 231,644 bytes; the smoke removed the WAV and restored local config/history. This proves synthesis/save and stop command plumbing, but not human-audible speaker output. |
+| Chrome extension runtime non-audio workflow | PASS | 2026-06-23 21:44 -04:00: `.\tools\extension_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` loaded the unpacked extension through Chromium DevTools `Extensions.loadUnpacked`, verified popup OFFLINE text with no server, started a temporary source server with `dependency_issues=0`, allowlisted the real `chrome-extension://...` origin, verified popup READY text, ran the shared `stopPlayback()` extension command path, then restored local config/history. Chrome did not expose tab targets for `Extensions.triggerAction`, so the helper used a DevTools-loaded popup page fallback; this does not replace Preview Voice audio or context-menu selected-text smoke. |
 
 ## Source Control Panel Smoke
 
@@ -50,12 +51,12 @@ confirmation.
 
 | Check | Result | Evidence |
 |---|---|---|
-| Extension origin added to `allowed_origins` | TBD | |
-| Popup shows READY when server is up | TBD | |
-| Popup shows OFFLINE or next action when server is down | TBD | |
+| Extension origin added to `allowed_origins` | PASS | 2026-06-23 21:44 -04:00: extension runtime smoke allowlisted the real unpacked-extension origin returned by `Extensions.loadUnpacked` and restored local config/history afterward. |
+| Popup shows READY when server is up | PASS | 2026-06-23 21:44 -04:00: extension runtime smoke verified popup READY detail `Server connected. Engine: kokoro / Voice: af_heart / Speed: 1x` against a temporary source server with `dependency_issues=0`. |
+| Popup shows OFFLINE or next action when server is down | PASS | 2026-06-23 21:44 -04:00: extension runtime smoke verified popup OFFLINE detail `Server offline. Start the ReadOut desktop app, then reopen this popup.` before starting the temporary server. |
 | Popup Preview Voice works | TBD | |
 | Context menu Read aloud works on selected page text | TBD | |
-| Extension Stop playback works | TBD | |
+| Extension Stop playback works | PASS | 2026-06-23 21:44 -04:00: extension runtime smoke ran the popup's shared `stopPlayback()` command path and observed `Stop sent to ReadOut.` This proves the extension stop command path, not audible stop during active playback. |
 
 ## Manual Smoke Summary
 
@@ -63,4 +64,4 @@ confirmation.
 |---|---|---|
 | Source `/control` manual smoke | Pending | Remaining rows are audible Preview Voice and audible Speak text. Save WAV and Stop command plumbing now have browser action evidence. |
 | Tk desktop manual smoke | Pending | |
-| Chrome extension manual smoke | Pending | |
+| Chrome extension manual smoke | Pending | Remaining rows are Popup Preview Voice audio and context-menu Read aloud on selected page text. Origin allowlist, READY/OFFLINE popup text, and Stop command plumbing have extension runtime evidence. |

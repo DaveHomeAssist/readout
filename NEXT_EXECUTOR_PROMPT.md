@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 21:07 -04:00
+Last updated: 2026-06-23 21:44 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -28,6 +28,14 @@ build, and non-audio package smoke:
   on 2026-06-23 with Python 3.12.10 and bundled `espeakng_loader`, producing
   `dist\ReadOut\ReadOut.exe`; `.\tools\windows_package_smoke.ps1 -ExePath
   dist\ReadOut\ReadOut.exe -TimeoutSec 120` passed with `dependency_issues=0`.
+- Current Chrome extension runtime evidence also exists:
+  `.\tools\extension_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe`
+  loaded the unpacked extension through Chromium DevTools, verified popup
+  OFFLINE and READY text, allowlisted the real extension origin, ran the shared
+  Stop command path, and restored local config/history. Chrome did not expose a
+  tab target for `Extensions.triggerAction`, so the helper used its
+  DevTools-loaded popup fallback; Preview Voice audio and context-menu selected
+  text still require manual smoke.
 
 Later documentation-only commits may advance the branch head without
 invalidating that package evidence. Rerun package-smoke only if package/runtime
@@ -74,7 +82,11 @@ Finish these open rows:
      opens and engine/voice/speed controls persist through backend config.
    - Fill remaining Tk desktop smoke rows: Preview Voice audio and
      Speak/Save WAV/Stop audio behavior.
-   - Fill Chrome extension smoke rows.
+   - Chrome extension runtime rows already backed by non-audio evidence:
+     extension origin allowlist, popup READY, popup OFFLINE, and Stop command
+     plumbing.
+   - Fill remaining Chrome extension rows: Popup Preview Voice audio and
+     context-menu Read aloud on selected page text.
    - Run `.\tools\manual_smoke_check.ps1`.
 
 3. Final release gate
@@ -85,6 +97,7 @@ Finish these open rows:
    - With ReadOut running, run `.\tools\control_workflow_smoke.ps1`.
    - Run `.\tools\control_browser_runtime_smoke.ps1`.
    - Run `.\tools\control_browser_action_smoke.ps1`.
+   - Run `.\tools\extension_runtime_smoke.ps1`.
    - Run `.\tools\release_preflight.ps1`.
    - Run `git diff --check`.
    - Update `MILESTONE_LOG.md`, `ROADMAP_STATUS.md`, and any worksheet rows with

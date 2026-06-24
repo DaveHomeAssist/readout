@@ -259,6 +259,11 @@ These checks explain the issue before the first model warmup fails.
 - `.\tools\extension_static_smoke.ps1` checks the Chrome extension manifest,
   least-privilege permissions, popup controls, endpoint wiring, context-menu
   IDs, and toast contract without launching Chrome.
+- `.\tools\extension_runtime_smoke.ps1` starts a temporary source server, loads
+  the unpacked extension through Chromium DevTools, verifies popup OFFLINE and
+  READY text, allowlists the real extension origin, runs the shared Stop command
+  path, and restores local config/history. It does not prove Preview Voice audio
+  or context-menu selected-text playback.
 - `.\tools\tk_desktop_static_smoke.ps1` checks the Tk desktop source contract,
   including supported engine tabs, Preview Voice, Save WAV, stop/speak endpoint
   wiring, and config persistence without launching a GUI.
