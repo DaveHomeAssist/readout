@@ -209,6 +209,7 @@ def test_package_smoke_workflow_builds_and_smokes_both_targets():
         "-TimeoutSec 90",
         "./build_mac.sh",
         "./tools/mac_package_smoke.sh --app dist/ReadOut.app",
+        "--include-audio",
         "actions/upload-artifact@v4",
         "readout-windows-package-smoke",
         "readout-macos-package-smoke",

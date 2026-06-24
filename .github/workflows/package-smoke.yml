@@ -111,7 +111,7 @@ jobs:
         run: |
           set -eo pipefail
           chmod +x tools/mac_package_smoke.sh
-          ./tools/mac_package_smoke.sh --app dist/ReadOut.app 2>&1 | tee macos-package-smoke.md
+          ./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio 2>&1 | tee macos-package-smoke.md
 
       - name: Archive macOS app bundle
         if: always()

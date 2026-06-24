@@ -191,11 +191,44 @@ if [ "$INCLUDE_AUDIO" -eq 1 ]; then
     -d '{"voice":"af_heart","speed":1.0}' \
     "$BASE_URL/preview" 2>/dev/null || true)"
   case "$preview_json" in
-    *'"preview":true'*)
-      add_result "POST /preview" "PASS" "preview=true"
+    *'"preview":true'*'"status":"playing"'*|*'"status":"playing"'*'"preview":true'*)
+      add_result "POST /preview" "PASS" "status=playing; preview=true"
       ;;
     *)
-      add_result "POST /preview" "FAIL" "preview did not return preview=true"
+      add_result "POST /preview" "FAIL" "preview did not return preview=true and status=playing"
+      ;;
+  esac
+
+  stop_preview_json="$(curl -fsS -X POST "$BASE_URL/stop" 2>/dev/null || true)"
+  case "$stop_preview_json" in
+    *'"status":"stopped"'*)
+      add_result "POST /stop after preview" "PASS" "status=stopped"
+      ;;
+    *)
+      add_result "POST /stop after preview" "FAIL" "stop did not return status=stopped"
+      ;;
+  esac
+
+  speak_json="$(curl -fsS \
+    -H 'Content-Type: application/json' \
+    -d '{"text":"ReadOut packaged macOS audio smoke.","voice":"af_heart","speed":1.0,"save":false}' \
+    "$BASE_URL/speak" 2>/dev/null || true)"
+  case "$speak_json" in
+    *'"status":"playing"'*)
+      add_result "POST /speak" "PASS" "status=playing"
+      ;;
+    *)
+      add_result "POST /speak" "FAIL" "speak did not return status=playing"
+      ;;
+  esac
+
+  stop_speak_json="$(curl -fsS -X POST "$BASE_URL/stop" 2>/dev/null || true)"
+  case "$stop_speak_json" in
+    *'"status":"stopped"'*)
+      add_result "POST /stop after speak" "PASS" "status=stopped"
+      ;;
+    *)
+      add_result "POST /stop after speak" "FAIL" "stop did not return status=stopped"
       ;;
   esac
 fi

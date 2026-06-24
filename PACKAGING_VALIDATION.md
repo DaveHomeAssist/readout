@@ -1,6 +1,6 @@
 # ReadOut Packaging Validation Worksheet
 
-Last updated: 2026-06-23 22:59 -04:00
+Last updated: 2026-06-23 23:42 -04:00
 
 Use this worksheet on the target packaging machines. Paste completed tables into
 `MILESTONE_LOG.md` under the matching P3-A1 or P3-A2 entry.
@@ -33,13 +33,14 @@ Run on macOS:
 ```bash
 ./build_mac.sh
 chmod +x tools/mac_package_smoke.sh
-./tools/mac_package_smoke.sh --app dist/ReadOut.app
+./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio
 ```
 
-Optional audio preview smoke:
+Non-audio fallback smoke, only when the target cannot produce audio output and
+the gap is explicitly accepted:
 
 ```bash
-./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio
+./tools/mac_package_smoke.sh --app dist/ReadOut.app
 ```
 
 Record:
@@ -51,7 +52,7 @@ Record:
 | `tools/mac_package_smoke.sh` passed | PASS | macOS package smoke passed app launch, server ready, `/status`, `/voices`, `/history`, `/control`, blocked-origin, and clean-quit checks in run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500). |
 | Menu-bar/tray icon visible | Pending manual | CI launched the packaged app but did not verify visible menu-bar/tray UI. |
 | Tray `Open Control Panel` opens `/control` | Pending manual | CI verified packaged `/control` content, but did not select the tray/menu-bar item. |
-| macOS preview/speak/stop lifecycle verified | Pending manual | CI smoke was non-audio; audible preview/speak/stop still needs manual evidence or accepted gap. |
+| macOS preview/speak/stop lifecycle verified | Pending manual | Current recorded CI smoke was non-audio; rerun the package-smoke workflow or target helper with `--include-audio` and attach the transcript, or record an accepted gap. |
 | App quits cleanly | PASS | macOS package smoke reported `App quits cleanly PASS` with no app process or server response after quit in run [28062313500](https://github.com/DaveHomeAssist/readout/actions/runs/28062313500). |
 
 ## P3-A2 - Windows App Validation

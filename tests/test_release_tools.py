@@ -724,6 +724,11 @@ def test_mac_package_smoke_validates_packaged_app_lifecycle():
     assert "primary macOS control surface" in text
     assert "Speak + Save WAV" in text
     assert "/preview" in text
+    assert "/speak" in text
+    assert "/stop" in text
+    assert "POST /stop after preview" in text
+    assert "POST /stop after speak" in text
+    assert "status=playing" in text
     assert "INCLUDE_AUDIO" in text
     assert "SKIP_CORS" in text
     assert "https://evil.com" in text

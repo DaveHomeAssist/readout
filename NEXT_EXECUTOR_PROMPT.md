@@ -73,7 +73,7 @@ Finish these open rows:
 1. `PACKAGING_VALIDATION.md`
    - macOS: verify `Menu-bar/tray icon visible`.
    - macOS: verify tray `Open Control Panel` opens `/control`.
-   - macOS: verify audible preview/speak/stop lifecycle.
+   - macOS: rerun package smoke with `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio` and verify preview/speak/stop lifecycle, or record an accepted gap if the target has no audio output.
    - Run `.\tools\packaging_validation_check.ps1`.
 
 2. `MANUAL_SMOKE_VALIDATION.md`
