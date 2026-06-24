@@ -284,7 +284,8 @@ These checks explain the issue before the first model warmup fails.
   quits the app.
 - After a Windows build, `.\tools\windows_package_smoke.ps1 -ExePath
   dist\ReadOut\ReadOut.exe` launches the packaged exe, verifies the server, runs
-  non-audio smoke checks, and stops the launched process.
+  smoke checks, and stops the launched process. Add `-IncludeAudio` to verify
+  packaged preview, speak, and stop endpoint lifecycle.
 
 ---
 

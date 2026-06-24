@@ -38,7 +38,14 @@ def test_pyinstaller_spec_includes_engine_modules():
     text = (ROOT / "ReadOut.spec").read_text(encoding="utf-8")
 
     assert "entry_script = 'main_app.py' if sys.platform == 'darwin' else 'main.py'" in text
+    assert "collect_data_files('kokoro', include_py_files=True)" in text
+    assert "collect_data_files('en_core_web_sm', include_py_files=True)" in text
+    assert "copy_metadata('en_core_web_sm')" in text
     assert "(\"tkinter\" if sys.platform == 'darwin'" in text or '(["tkinter"] if sys.platform == \'darwin\'' in text
+    assert "runtime_overrides" in text
+    assert "msvcp140.dll" in text
+    assert "vcruntime140.dll" in text
+    assert "ucrtbase.dll" in text
 
     for module in [
         "engines.registry",
@@ -47,3 +54,12 @@ def test_pyinstaller_spec_includes_engine_modules():
         "engines.elevenlabs",
     ]:
         assert module in text
+
+
+def test_main_primes_torch_on_frozen_windows_before_threads():
+    text = (ROOT / "main.py").read_text(encoding="utf-8")
+
+    assert "def _prime_frozen_windows_torch" in text
+    assert 'getattr(sys, "frozen", False)' in text
+    assert "import torch" in text
+    assert "_prime_frozen_windows_torch()\n    _check_startup_dependencies()" in text

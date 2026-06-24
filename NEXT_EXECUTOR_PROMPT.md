@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 21:44 -04:00
+Last updated: 2026-06-23 22:59 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -24,10 +24,14 @@ build, and non-audio package smoke:
   `readout-macos-package-smoke` id `7835539633`.
 - Tests workflow run `28062313482` passed Python 3.10, 3.11, and 3.12 jobs on
   the same package-producing commit.
-- Current local Windows evidence also exists: `.\build_windows.ps1` completed
-  on 2026-06-23 with Python 3.12.10 and bundled `espeakng_loader`, producing
-  `dist\ReadOut\ReadOut.exe`; `.\tools\windows_package_smoke.ps1 -ExePath
-  dist\ReadOut\ReadOut.exe -TimeoutSec 120` passed with `dependency_issues=0`.
+- Current local Windows evidence now includes audio endpoint lifecycle:
+  `.\build_windows.ps1` completed on 2026-06-23 with Python 3.12.10, bundled
+  `espeakng_loader`, bundled Kokoro source files, bundled `en_core_web_sm`,
+  Torch pinned below the frozen-runtime regression, and core VC runtime DLLs
+  forced from `System32`, producing `dist\ReadOut\ReadOut.exe`.
+  `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe
+  -TimeoutSec 240 -IncludeAudio` passed with `dependency_issues=0`, including
+  `/preview status=playing`, `/speak status=playing`, and `/stop status=stopped`.
 - Current Chrome extension runtime evidence also exists:
   `.\tools\extension_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe`
   loaded the unpacked extension through Chromium DevTools, verified popup
@@ -64,8 +68,6 @@ Finish these open rows:
    - macOS: verify `Menu-bar/tray icon visible`.
    - macOS: verify tray `Open Control Panel` opens `/control`.
    - macOS: verify audible preview/speak/stop lifecycle.
-   - Windows: verify audible preview/speak/stop lifecycle, or record an
-     accepted gap.
    - Run `.\tools\packaging_validation_check.ps1`.
 
 2. `MANUAL_SMOKE_VALIDATION.md`

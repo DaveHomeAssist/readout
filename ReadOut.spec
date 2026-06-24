@@ -11,13 +11,16 @@
 #   - macOS .app bundle with correct plist entries
 #   - Windows windowed exe (no console)
 
-import sys
 import os
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+import sys
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, copy_metadata
 
 block_cipher = None
 entry_script = 'main_app.py' if sys.platform == 'darwin' else 'main.py'
 extra_datas = [
+    *collect_data_files('kokoro', include_py_files=True),
+    *collect_data_files('en_core_web_sm', include_py_files=True),
+    *copy_metadata('en_core_web_sm'),
     *collect_data_files('misaki'),
     *collect_data_files('espeakng_loader'),
     *collect_data_files('language_tags'),
@@ -48,6 +51,7 @@ a = Analysis(
         'kokoro',
         'misaki',
         'misaki.en',
+        'en_core_web_sm',
         'espeakng_loader',
         'language_tags',
         'phonemizer',
@@ -125,6 +129,22 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
+if sys.platform == 'win32':
+    system32 = os.path.join(os.environ.get('SystemRoot', r'C:\Windows'), 'System32')
+    runtime_overrides = {
+        name: os.path.join(system32, name)
+        for name in ('msvcp140.dll', 'ucrtbase.dll', 'vcruntime140.dll')
+    }
+
+    def _override_windows_runtime(entry):
+        dest_name, source_name, typecode = entry
+        source_override = runtime_overrides.get(os.path.basename(dest_name).lower())
+        if source_override and os.path.exists(source_override):
+            return dest_name, source_override, typecode
+        return entry
+
+    a.binaries = [_override_windows_runtime(entry) for entry in a.binaries]
 
 # ── PYZ ───────────────────────────────────────────────────────────────────────
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)

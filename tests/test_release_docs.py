@@ -89,7 +89,7 @@ def test_roadmap_status_tracks_every_workstream_item():
         "Hosted macOS package build, non-audio smoke, and clean-quit evidence exists"
         in text
     )
-    assert "Current local Windows package build and headless non-audio smoke evidence exists" in text
+    assert "Current local Windows package build and package audio endpoint smoke evidence passes" in text
 
 
 def test_readme_links_release_readiness_artifacts():
@@ -140,7 +140,7 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
         "control_browser_action_smoke.ps1",
         "extension_runtime_smoke.ps1",
         "Menu-bar/tray icon visible",
-        "Windows: verify audible preview/speak/stop lifecycle",
+        "Current local Windows evidence now includes audio endpoint lifecycle",
         "Do not install Python or `espeak-ng`",
         "Report GREEN only after",
     ]:

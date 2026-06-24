@@ -240,3 +240,17 @@ def test_live_source_server_reports_dependency_issue_shape(live_server, monkeypa
             "fix": "Install espeak-ng.",
         }
     ]
+
+
+def test_live_source_server_reports_model_load_error_as_dependency_issue(live_server, monkeypatch):
+    monkeypatch.setattr(server.tts_engine, "get_load_error", lambda: "torch dll failed")
+
+    _status_code, _headers, status = _request_json(live_server, "/status")
+
+    assert status["load_error"] == "torch dll failed"
+    assert {
+        "id": "model-load",
+        "severity": "error",
+        "message": "The local Kokoro model failed to load.",
+        "fix": "Resolve the runtime error, then restart ReadOut. Detail: torch dll failed",
+    } in status["dependency_issues"]

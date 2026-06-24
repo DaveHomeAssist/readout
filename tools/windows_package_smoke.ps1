@@ -33,9 +33,11 @@ function Add-Result {
 function Test-ServerReady {
     try {
         $status = Invoke-RestMethod -Uri "$BaseUrl/status" -Method Get -TimeoutSec 2
+        $issueCount = if ($status.dependency_issues) { $status.dependency_issues.Count } else { 0 }
+        $loadError = if ($status.load_error) { "; load_error=$($status.load_error)" } else { "" }
         return [pscustomobject]@{
             Ready = $true
-            Detail = "status=$($status.status); engine=$($status.engine)"
+            Detail = "status=$($status.status); engine=$($status.engine); dependency_issues=$issueCount$loadError"
         }
     } catch {
         return [pscustomobject]@{
@@ -128,7 +130,7 @@ try {
 
     $smokeArgs = @("-BaseUrl", $BaseUrl)
     if ($IncludeAudio) {
-        $smokeArgs += "-IncludeAudio"
+        $smokeArgs += @("-IncludeAudio", "-AudioTimeoutSec", "$TimeoutSec")
     }
     $smoke = Invoke-Helper -ScriptPath ".\tools\server_smoke.ps1" -Arguments $smokeArgs
     Add-Result -Check "Non-audio server smoke" -Result ($(if ($smoke.ExitCode -eq 0) { "PASS" } else { "FAIL" })) -Detail "exit=$($smoke.ExitCode); $($smoke.Detail)"

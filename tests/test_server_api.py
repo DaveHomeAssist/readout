@@ -70,6 +70,14 @@ def test_status_reports_load_error(client, monkeypatch):
     assert data["status"] == "ready"
     assert data["model_ready"] is False
     assert data["load_error"] == "model download failed"
+    assert data["dependency_issues"] == [
+        {
+            "id": "model-load",
+            "severity": "error",
+            "message": "The local Kokoro model failed to load.",
+            "fix": "Resolve the runtime error, then restart ReadOut. Detail: model download failed",
+        }
+    ]
 
 
 def test_status_reports_dependency_issues(client, monkeypatch):

@@ -74,7 +74,7 @@ Use this checklist for every release candidate.
 - [ ] Run `.\build_windows.ps1` on Windows with Python 3.10-3.12.
 - [ ] Confirm the script reports the selected Python source and `espeak-ng: OK` before packaging.
 - [ ] Confirm `dist\ReadOut\ReadOut.exe` exists.
-- [ ] Run packaged lifecycle smoke: `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe`.
+- [ ] Run packaged lifecycle smoke: `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe -IncludeAudio`.
 - [ ] Confirm `/control` workflows work.
 - [ ] Confirm lifecycle: start, preview, speak, stop, quit.
 - [ ] Fill P3-A2 section in `PACKAGING_VALIDATION.md`.

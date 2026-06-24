@@ -58,10 +58,14 @@ def test_server_smoke_script_is_non_audio_and_non_mutating_by_default():
     assert "primary macOS control surface" in text
     assert "Speak + Save WAV" in text
     assert "POST /preview" in text
+    assert '$preview.status -eq "playing"' in text
+    assert "POST /speak" in text
+    assert '$speak.status -eq "playing"' in text
+    assert "POST /stop after speak" in text
+    assert "AudioTimeoutSec" in text
     assert "if ($IncludeAudio)" in text
     assert "PATCH" not in text
     assert "DELETE" not in text
-    assert "/speak" not in text
     assert "exit 1" in text
 
 
@@ -675,12 +679,15 @@ def test_windows_package_smoke_validates_packaged_exe_lifecycle():
     assert "RedirectStandardOutput" in text
     assert "Get-LogTail" in text
     assert "ExitCode" in text
+    assert "dependency_issues" in text
+    assert "load_error" in text
     assert "GET /status" not in text  # implementation probes the URL, output stays operator-oriented
     assert "/status" in text
     assert "server_smoke.ps1" in text
     assert "cors_origin_matrix.ps1" in text
     assert "A server is already responding" in text
     assert "IncludeAudio" in text
+    assert "AudioTimeoutSec" in text
     assert "SkipCors" in text
     assert "exit 1" in text
 
@@ -719,3 +726,11 @@ def test_secret_scan_targets_provider_key_literals():
     assert "Secret scan | PASS" in text
     assert "Quiet" in text
     assert "exit 1" in text
+
+
+def test_requirements_pin_torch_below_frozen_runtime_regression():
+    text = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+
+    assert "torch>=2.10,<2.12" in text
+    assert "c10.dll" in text
+    assert "en_core_web_sm-3.8.0-py3-none-any.whl" in text

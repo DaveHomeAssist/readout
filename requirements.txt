@@ -3,6 +3,11 @@
 
 kokoro>=0.9.4
 espeakng-loader>=0.2.4
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+# Torch 2.12.1+cpu starts in source mode but fails inside the Windows
+# PyInstaller bundle while loading torch\lib\c10.dll. Keep packaging on the
+# latest pre-2.12 line until the frozen-runtime issue is cleared upstream.
+torch>=2.10,<2.12
 sounddevice
 soundfile
 fastapi

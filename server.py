@@ -18,7 +18,7 @@ from pydantic import BaseModel
 import tts_engine
 import config as cfg_module
 import history_store
-from dependency_check import check_dependencies, issues_to_dicts
+from dependency_check import DependencyIssue, check_dependencies, issues_to_dicts
 from engines import registry
 
 app = FastAPI(
@@ -1313,9 +1313,24 @@ def stop():
     return {"status": "stopped"}
 
 
+def _status_dependency_issues(load_error: str | None) -> list[dict]:
+    issues = check_dependencies()
+    if load_error:
+        issues.append(
+            DependencyIssue(
+                id="model-load",
+                severity="error",
+                message="The local Kokoro model failed to load.",
+                fix=f"Resolve the runtime error, then restart ReadOut. Detail: {load_error}",
+            )
+        )
+    return issues_to_dicts(issues)
+
+
 @app.get("/status")
 def status():
     cfg = cfg_module.get_config()
+    load_error = tts_engine.get_load_error()
     return {
         "status":        "loading" if tts_engine.is_loading() else "ready",
         "engine":        cfg.get("engine"),
@@ -1327,8 +1342,8 @@ def status():
         "openai_api_key":     bool(cfg.get("openai_api_key")),
         "elevenlabs_api_key": bool(cfg.get("elevenlabs_api_key")),
         "model_ready":   not tts_engine.is_first_run(),
-        "load_error":    tts_engine.get_load_error(),
-        "dependency_issues": issues_to_dicts(check_dependencies()),
+        "load_error":    load_error,
+        "dependency_issues": _status_dependency_issues(load_error),
         "max_text_chars": MAX_TEXT_CHARS,
         "version":       "1.0.0",
     }

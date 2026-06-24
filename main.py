@@ -27,6 +27,17 @@ import tts_engine
 _startup_dependency_issues: list[DependencyIssue] = []
 
 
+def _prime_frozen_windows_torch() -> None:
+    """Load Torch DLLs on the main thread before frozen worker threads start."""
+    if sys.platform != "win32" or not getattr(sys, "frozen", False):
+        return
+
+    try:
+        import torch  # noqa: F401
+    except Exception as exc:
+        print(f"ReadOut Torch runtime prime failed: {exc}", file=sys.stderr)
+
+
 # ── Tray icon image (generated if icon.png not found) ────────────────────────
 
 def _make_icon_image():
@@ -317,6 +328,7 @@ def main(argv: list[str] | None = None):
     if sys.platform == "darwin":
         os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
+    _prime_frozen_windows_torch()
     _check_startup_dependencies()
 
     args = _parse_args(argv)

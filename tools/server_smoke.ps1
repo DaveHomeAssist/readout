@@ -3,7 +3,8 @@
 
 param(
     [string]$BaseUrl = "http://127.0.0.1:7778",
-    [switch]$IncludeAudio
+    [switch]$IncludeAudio,
+    [int]$AudioTimeoutSec = 180
 )
 
 $ErrorActionPreference = "Stop"
@@ -107,10 +108,52 @@ if ($IncludeAudio) {
             -Method Post `
             -ContentType "application/json" `
             -Body $body `
-            -TimeoutSec 30
-        Add-Result -Check "POST /preview" -Passed ($preview.preview -eq $true) -Detail "status=$($preview.status)"
+            -TimeoutSec $AudioTimeoutSec
+        $previewPassed = $preview.preview -eq $true -and $preview.status -eq "playing"
+        $previewDetail = "status=$($preview.status)"
+        if ($preview.message) {
+            $previewDetail = "$previewDetail; message=$($preview.message)"
+        }
+        Add-Result -Check "POST /preview" -Passed $previewPassed -Detail $previewDetail
     } catch {
         Add-Result -Check "POST /preview" -Passed $false -Detail $_.Exception.Message
+    }
+
+    try {
+        $stop = Invoke-RestMethod -Uri "$BaseUrl/stop" -Method Post -TimeoutSec 10
+        Add-Result -Check "POST /stop after preview" -Passed ($stop.status -eq "stopped") -Detail "status=$($stop.status)"
+    } catch {
+        Add-Result -Check "POST /stop after preview" -Passed $false -Detail $_.Exception.Message
+    }
+
+    try {
+        $body = @{
+            text = "ReadOut packaged audio smoke."
+            voice = "af_heart"
+            speed = 1.0
+            save = $false
+        } | ConvertTo-Json -Compress
+        $speak = Invoke-RestMethod `
+            -Uri "$BaseUrl/speak" `
+            -Method Post `
+            -ContentType "application/json" `
+            -Body $body `
+            -TimeoutSec $AudioTimeoutSec
+        $speakPassed = $speak.status -eq "playing"
+        $speakDetail = "status=$($speak.status)"
+        if ($speak.message) {
+            $speakDetail = "$speakDetail; message=$($speak.message)"
+        }
+        Add-Result -Check "POST /speak" -Passed $speakPassed -Detail $speakDetail
+    } catch {
+        Add-Result -Check "POST /speak" -Passed $false -Detail $_.Exception.Message
+    }
+
+    try {
+        $stop = Invoke-RestMethod -Uri "$BaseUrl/stop" -Method Post -TimeoutSec 10
+        Add-Result -Check "POST /stop after speak" -Passed ($stop.status -eq "stopped") -Detail "status=$($stop.status)"
+    } catch {
+        Add-Result -Check "POST /stop after speak" -Passed $false -Detail $_.Exception.Message
     }
 }
 
