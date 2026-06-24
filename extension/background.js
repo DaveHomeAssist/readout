@@ -42,7 +42,7 @@ async function showToast(tabId, text, error = false) {
   }
 }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+async function handleContextMenuClick(info, tab = {}) {
   if (info.menuItemId === "readout-stop") {
     await fetch(`${READOUT_URL}/stop`, { method: "POST" }).catch(() => {});
     await showToast(tab.id, "Stopped.");
@@ -67,4 +67,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   } catch {
     await showToast(tab.id, "ReadOut not running. Start the desktop app.", true);
   }
-});
+}
+
+chrome.contextMenus.onClicked.addListener(handleContextMenuClick);

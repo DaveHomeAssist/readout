@@ -18,9 +18,9 @@ Use this checklist for every release candidate.
 - [ ] Run secret scan: `.\tools\secret_scan.ps1`.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.
 - [ ] Run Chrome extension static smoke: `.\tools\extension_static_smoke.ps1`.
-- [ ] Run Chrome extension runtime non-audio smoke: `.\tools\extension_runtime_smoke.ps1`.
+- [ ] Run Chrome extension runtime smoke: `.\tools\extension_runtime_smoke.ps1`.
 - [ ] Run Tk desktop static smoke: `.\tools\tk_desktop_static_smoke.ps1`.
-- [ ] Run Tk desktop runtime non-audio smoke on a desktop-capable target: `.\tools\tk_desktop_runtime_smoke.ps1`.
+- [ ] Run Tk desktop runtime smoke on a desktop-capable target: `.\tools\tk_desktop_runtime_smoke.ps1`.
 - [ ] Confirm no provider API keys or private values are committed or pasted into logs.
 
 ## 2. Security Gate
@@ -35,26 +35,26 @@ Use this checklist for every release candidate.
 - [ ] Run full test suite: `python -m pytest`.
 - [ ] Run source live HTTP smoke: `python -m pytest tests/test_live_http_smoke.py` or `.\tools\release_preflight.ps1 -RunSourceSmoke`.
 - [ ] Record pass/fail output in `MILESTONE_LOG.md`.
-- [ ] With ReadOut running, run non-audio API/control smoke: `.\tools\server_smoke.ps1`.
-- [ ] With ReadOut running, run non-audio control workflow smoke: `.\tools\control_workflow_smoke.ps1`.
+- [ ] With ReadOut running, run API/control smoke: `.\tools\server_smoke.ps1`.
+- [ ] With ReadOut running, run control workflow smoke: `.\tools\control_workflow_smoke.ps1`.
 - [ ] Run browser-rendered status smoke: `.\tools\control_browser_runtime_smoke.ps1`.
 - [ ] Run browser-rendered action smoke: `.\tools\control_browser_action_smoke.ps1`.
-- [ ] Run Chrome extension runtime non-audio smoke: `.\tools\extension_runtime_smoke.ps1`.
+- [ ] Run Chrome extension runtime smoke: `.\tools\extension_runtime_smoke.ps1`.
 - [ ] Run a manual `/control` smoke test:
   - [ ] Open `http://127.0.0.1:7778/control`.
   - [ ] Check status display.
-  - [ ] Preview a voice.
-  - [ ] Speak text.
-  - [ ] Save WAV.
-  - [ ] Stop playback.
+  - [ ] Preview a voice, or cite `.\tools\control_browser_action_smoke.ps1`.
+  - [ ] Speak text, or cite `.\tools\control_browser_action_smoke.ps1`.
+  - [ ] Save WAV, or cite `.\tools\control_browser_action_smoke.ps1`.
+  - [ ] Stop playback, or cite `.\tools\control_browser_action_smoke.ps1`.
   - [ ] Toggle history on/off and clear history.
   - [ ] Record results in `MANUAL_SMOKE_VALIDATION.md`.
 - [ ] Run a Chrome extension smoke test:
   - [ ] Confirm extension origin is allowlisted, or cite `.\tools\extension_runtime_smoke.ps1`.
   - [ ] Check popup READY/LOADING/OFFLINE/error text, or cite `.\tools\extension_runtime_smoke.ps1` for READY/OFFLINE.
-  - [ ] Preview a voice.
-  - [ ] Read selected text.
-  - [ ] Stop playback, or cite `.\tools\extension_runtime_smoke.ps1` for non-audio stop command plumbing.
+  - [ ] Preview a voice, or cite `.\tools\extension_runtime_smoke.ps1`.
+  - [ ] Read selected text, or cite `.\tools\extension_runtime_smoke.ps1`.
+  - [ ] Stop playback, or cite `.\tools\extension_runtime_smoke.ps1`.
   - [ ] Record results in `MANUAL_SMOKE_VALIDATION.md`.
 
 ## 4. macOS Build Gate

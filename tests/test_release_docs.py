@@ -220,7 +220,7 @@ def test_manual_smoke_validation_worksheet_covers_interactive_gates():
     text = (ROOT / "MANUAL_SMOKE_VALIDATION.md").read_text(encoding="utf-8")
     for required in [
         "Source Control Panel Smoke",
-        "Automated Non-Audio Support Evidence",
+        "Automated Runtime Support Evidence",
         r".\tools\control_workflow_smoke.ps1",
         r".\tools\control_browser_runtime_smoke.ps1",
         r".\tools\control_browser_action_smoke.ps1",

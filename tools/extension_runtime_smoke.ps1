@@ -1,6 +1,7 @@
 # Runtime non-audio smoke for the Chrome/Edge extension popup.
 # Loads the unpacked extension, verifies OFFLINE/READY popup states, allowlists
-# the real extension origin, clicks Stop, then restores local config/history.
+# the real extension origin, clicks Preview and Stop, then restores local
+# config/history.
 
 param(
     [string]$BaseUrl = "http://127.0.0.1:7778",
@@ -232,6 +233,23 @@ function Get-PageWebSocketUrl {
         }
     }
     throw "No page target was available."
+}
+
+function Get-ServiceWorkerWebSocketUrl {
+    param([int]$DebugPort, [string]$ExtensionId)
+
+    $deadline = (Get-Date).AddSeconds(15)
+    while ((Get-Date) -lt $deadline) {
+        $targets = Invoke-RestMethod -Uri "http://127.0.0.1:$DebugPort/json/list" -Method Get -TimeoutSec 2
+        foreach ($target in $targets) {
+            if ($target.type -eq "service_worker" -and $target.url -like "chrome-extension://$ExtensionId/*" -and $target.webSocketDebuggerUrl) {
+                return $target.webSocketDebuggerUrl
+            }
+        }
+        Start-Sleep -Milliseconds 250
+    }
+
+    throw "Extension service worker target was not available."
 }
 
 function Open-ExtensionActionPopup {
@@ -555,6 +573,63 @@ try {
         throw "Popup READY state did not render expected detail: status=$($readyState.status); detail=$($readyState.detail)"
     }
     Add-Result -Check "Popup READY state" -Result "PASS" -Detail (Limit-Detail -Text $readyState.detail)
+
+    $previewExpression = @"
+(async () => {
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const button = document.querySelector("#btn-preview");
+  if (!button) {
+    return { ok: false, detail: "Preview button missing" };
+  }
+  button.click();
+  const deadline = Date.now() + 120000;
+  while (Date.now() < deadline) {
+    const status = document.querySelector("#status")?.textContent || "";
+    const detail = document.querySelector("#status-detail")?.textContent || "";
+    if (status === "READY" && detail.includes("Previewing")) {
+      return { ok: true, detail };
+    }
+    if (status === "ERROR" || status === "OFFLINE") {
+      return { ok: false, detail };
+    }
+    await wait(500);
+  }
+  return {
+    ok: false,
+    detail: document.querySelector("#status-detail")?.textContent || "timed out waiting for preview"
+  };
+})()
+"@
+    $preview = Invoke-CdpExpression -Client $socket -Expression $previewExpression -AwaitPromise
+    Add-Result -Check "Popup Preview action" -Result ($(if ($preview.ok) { "PASS" } else { "FAIL" })) -Detail (Limit-Detail -Text $preview.detail)
+
+    $workerSocket = $null
+    try {
+        $workerSocket = Connect-Cdp -WebSocketUrl (Get-ServiceWorkerWebSocketUrl -DebugPort $debugPort -ExtensionId $extensionId)
+        Invoke-Cdp -Client $workerSocket -Method "Runtime.enable" | Out-Null
+        $contextMenuExpression = @"
+(async () => {
+  if (typeof handleContextMenuClick !== "function") {
+    return { ok: false, detail: "handleContextMenuClick function missing" };
+  }
+  await handleContextMenuClick({
+    menuItemId: "readout-speak",
+    selectionText: "ReadOut extension context menu runtime smoke."
+  }, { id: -1 });
+  const stopped = await fetch(READOUT_URL + "/stop", { method: "POST" }).then((res) => res.json());
+  return {
+    ok: stopped.status === "stopped",
+    detail: "selected text sent; stop=" + stopped.status
+  };
+})()
+"@
+        $contextMenu = Invoke-CdpExpression -Client $workerSocket -Expression $contextMenuExpression -AwaitPromise
+        Add-Result -Check "Context menu Read aloud action" -Result ($(if ($contextMenu.ok) { "PASS" } else { "FAIL" })) -Detail (Limit-Detail -Text $contextMenu.detail)
+    } finally {
+        if ($workerSocket) {
+            try { $workerSocket.Dispose() } catch {}
+        }
+    }
 
     $stopExpression = @"
 (async () => {

@@ -72,8 +72,8 @@ def _request_json(endpoint: str, method: str, payload: dict | None = None, timeo
         return {"status": "error", "message": str(exc)}
 
 
-def _post(endpoint: str, payload: dict | None = None) -> dict:
-    return _request_json(endpoint, "POST", payload, timeout=10)
+def _post(endpoint: str, payload: dict | None = None, timeout: int = 120) -> dict:
+    return _request_json(endpoint, "POST", payload, timeout=timeout)
 
 
 def _patch(endpoint: str, payload: dict | None = None) -> dict:
@@ -762,7 +762,7 @@ class ReadOutApp(tk.Tk):
 
     def _stop(self):
         def _worker():
-            _post("/stop")
+            _post("/stop", timeout=10)
         threading.Thread(target=_worker, daemon=True).start()
         self._set_playing(False)
 

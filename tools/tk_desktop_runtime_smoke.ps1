@@ -1,10 +1,11 @@
 # Runtime non-audio smoke for the Tk desktop UI.
 # Starts a temporary source server, opens the real Tk window, verifies
-# engine/voice/speed persistence through the backend, then restores local files.
+# engine/voice/speed persistence and Preview/Speak/Save/Stop wiring through
+# the backend, then restores local files.
 
 param(
     [string]$BaseUrl = "http://127.0.0.1:7778",
-    [int]$TimeoutSec = 45,
+    [int]$TimeoutSec = 120,
     [string]$PythonExe = "python",
     [switch]$Quiet
 )
@@ -92,6 +93,7 @@ import ui
 
 BASE = os.environ["READOUT_TK_SMOKE_BASE_URL"]
 results = []
+pending_callbacks = []
 
 
 def add(check, passed, detail):
@@ -111,6 +113,9 @@ def pump(app, seconds=0.2):
     deadline = time.time() + seconds
     while time.time() < deadline:
         app.update()
+        while pending_callbacks:
+            callback, args = pending_callbacks.pop(0)
+            callback(*args)
         time.sleep(0.02)
 
 
@@ -125,11 +130,43 @@ def wait_status(predicate, detail, app, timeout=5):
     raise AssertionError(f"Timed out waiting for {detail}; last={last}")
 
 
+def wait_ui(predicate, detail, app, timeout=60):
+    deadline = time.time() + timeout
+    last = None
+    while time.time() < deadline:
+        pump(app, 0.1)
+        last = predicate()
+        if last:
+            return last
+    raise AssertionError(f"Timed out waiting for {detail}; last={last}")
+
+
+def patch_config(payload):
+    data = json.dumps(payload).encode()
+    request = urllib.request.Request(
+        BASE + "/config",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="PATCH",
+    )
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return json.loads(response.read())
+
+
 app = None
 try:
     ui.BASE_URL = BASE
     ui.ReadOutApp._poll_status = lambda self: None
     app = ui.ReadOutApp()
+    original_after = app.after
+
+    def smoke_after(delay_ms, callback=None, *args):
+        if delay_ms == 0 and callback is not None:
+            pending_callbacks.append((callback, args))
+            return "smoke-after"
+        return original_after(delay_ms, callback, *args)
+
+    app.after = smoke_after
     pump(app, 0.8)
 
     add(
@@ -155,6 +192,62 @@ try:
     app._on_speed_change()
     status = wait_status(lambda data: abs(float(data.get("speed", 0)) - 1.7) < 0.01, "speed=1.7", app)
     add("Desktop speed persists", True, f"speed={status.get('speed')}")
+
+    patch_config({
+        "engine": "kokoro",
+        "voice": "af_heart",
+        "speed": 1.0,
+    })
+    status = wait_status(
+        lambda data: data.get("engine") == "kokoro" and data.get("voice") == "af_heart",
+        "engine=kokoro voice=af_heart",
+        app,
+        timeout=10,
+    )
+    app._select_engine("kokoro", persist=False, selected_voice="af_heart")
+    app._speed.set(1.0)
+    app._on_speed_change(persist=False)
+
+    app._preview_voice()
+    wait_ui(lambda: app._preview_btn.cget("text") == "Preview Voice", "preview completion", app)
+    add(
+        "Desktop Preview Voice action",
+        app._status_text.get() != "ERROR",
+        f"engine={status.get('engine')}; voice={status.get('voice')}; button={app._preview_btn.cget('text')}",
+    )
+
+    app._text_input.delete("1.0", "end")
+    app._text_input.insert("1.0", "ReadOut Tk runtime smoke. Speak this through the desktop UI.")
+    app._text_input.configure(fg=ui.C_TEXT)
+    app._play()
+    wait_ui(lambda: app._playing, "desktop speak playback state", app)
+    pump(app, 1.0)
+    add("Desktop Speak action", app._status_text.get() != "ERROR" and app._playing, f"playing={app._playing}")
+
+    save_dir = os.path.expanduser(str(get_status().get("save_dir") or "~/Desktop/ReadOut"))
+    os.makedirs(save_dir, exist_ok=True)
+    before = set(os.listdir(save_dir))
+    app._save_audio()
+    wait_ui(lambda: app._save_btn.cget("text").startswith("✓"), "desktop save completion", app, timeout=90)
+    after = set(os.listdir(save_dir))
+    created = sorted(after - before)
+    saved = created[0] if created else ""
+    saved_path = os.path.join(save_dir, saved) if saved else ""
+    saved_size = os.path.getsize(saved_path) if saved_path else 0
+    add(
+        "Desktop Save WAV action",
+        bool(saved_path and saved_size > 44),
+        f"{saved_path}; bytes={saved_size}",
+    )
+    if saved_path:
+        try:
+            os.remove(saved_path)
+        except OSError:
+            pass
+
+    app._stop()
+    wait_ui(lambda: not app._playing, "desktop stop playback state", app, timeout=10)
+    add("Desktop Stop action", not app._playing, f"playing={app._playing}")
 except Exception as exc:
     add("Tk desktop runtime smoke", False, str(exc))
 finally:

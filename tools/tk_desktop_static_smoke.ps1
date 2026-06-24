@@ -83,7 +83,7 @@ try {
         '_get("/status")',
         '_post("/preview"',
         '_post("/speak"',
-        '_post("/stop")'
+        '_post("/stop", timeout=10)'
     )) {
         Add-Assert -Check "Endpoint wiring: $needle" -Passed ($ui.Contains($needle)) -PassDetail "present" -FailDetail "missing"
     }

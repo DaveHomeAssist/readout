@@ -228,8 +228,8 @@ These checks explain the issue before the first model warmup fails.
 - `.\tools\release_preflight.ps1 -RunSourceSmoke` also runs the in-process
   source HTTP smoke test without requiring a manually started app.
 - `NEXT_EXECUTOR_PROMPT.md` is the current handoff prompt for finishing the
-  remaining manual smoke and Architect sign-off gates without repeating already
-  completed hosted packaging work.
+  remaining package validation gates without repeating already completed hosted
+  packaging or manual smoke work.
 - `.\tools\architect_signoff_check.ps1` verifies required Architect rows in
   `ARCHITECT_SIGNOFF.md` are accepted before release.
 - `.\tools\packaging_validation_check.ps1` verifies target macOS/Windows
@@ -251,25 +251,26 @@ These checks explain the issue before the first model warmup fails.
   `~/.readout/config.json` and `history.json`.
 - `.\tools\control_browser_runtime_smoke.ps1` starts a temporary source server
   and validates the JavaScript-rendered `/control` status display in headless
-  Chrome or Edge. It does not prove audible playback.
+  Chrome or Edge.
 - `.\tools\control_browser_action_smoke.ps1` starts a temporary source server,
-  opens `/control` in headless Chrome or Edge, clicks Save WAV and Stop through
-  the real page JavaScript, verifies the created WAV exists, removes the smoke
-  WAV, and restores local config/history.
+  opens `/control` in headless Chrome or Edge, clicks Preview, Speak, Save WAV,
+  and Stop through the real page JavaScript, verifies the created WAV exists,
+  removes the smoke WAV, and restores local config/history.
 - `.\tools\extension_static_smoke.ps1` checks the Chrome extension manifest,
   least-privilege permissions, popup controls, endpoint wiring, context-menu
   IDs, and toast contract without launching Chrome.
 - `.\tools\extension_runtime_smoke.ps1` starts a temporary source server, loads
   the unpacked extension through Chromium DevTools, verifies popup OFFLINE and
-  READY text, allowlists the real extension origin, runs the shared Stop command
-  path, and restores local config/history. It does not prove Preview Voice audio
-  or context-menu selected-text playback.
+  READY text, allowlists the real extension origin, clicks popup Preview,
+  invokes the service-worker context-menu selected-text handler, runs the shared
+  Stop command path, and restores local config/history.
 - `.\tools\tk_desktop_static_smoke.ps1` checks the Tk desktop source contract,
   including supported engine tabs, Preview Voice, Save WAV, stop/speak endpoint
   wiring, and config persistence without launching a GUI.
 - `.\tools\tk_desktop_runtime_smoke.ps1` opens the real Tk desktop UI against a
-  temporary source server, verifies non-audio engine/voice/speed persistence,
-  then restores local config/history. It does not prove audible playback.
+  temporary source server, verifies engine/voice/speed persistence, exercises
+  Preview, Speak, Save WAV, and Stop through the desktop UI methods, removes
+  the smoke WAV, then restores local config/history.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
   supported Python, eSpeak NG runtime, and existing package-artifact state
   without installing dependencies or launching PyInstaller.

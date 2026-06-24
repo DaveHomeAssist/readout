@@ -72,6 +72,35 @@ def test_patch_helper_uses_patch_method_and_json(monkeypatch):
     assert captured["timeout"] == 5
 
 
+def test_desktop_post_helper_allows_local_synthesis_time(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return b'{"status":"playing"}'
+
+    def fake_urlopen(req, timeout):
+        captured["url"] = req.full_url
+        captured["method"] = req.get_method()
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(ui.urllib.request, "urlopen", fake_urlopen)
+
+    result = ui._post("/preview", {"voice": "af_heart"})
+
+    assert result == {"status": "playing"}
+    assert captured["url"].endswith("/preview")
+    assert captured["method"] == "POST"
+    assert captured["timeout"] == 120
+
+
 def test_desktop_preview_posts_to_preview_endpoint():
     source = (ROOT / "ui.py").read_text(encoding="utf-8")
     assert 'text="Preview Voice"' in source

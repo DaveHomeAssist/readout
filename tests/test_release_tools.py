@@ -116,7 +116,7 @@ def test_control_browser_runtime_smoke_renders_control_status_without_audio():
         assert required in text
 
 
-def test_control_browser_action_smoke_clicks_save_and_stop_with_restore():
+def test_control_browser_action_smoke_clicks_playback_actions_with_restore():
     text = (ROOT / "tools" / "control_browser_action_smoke.ps1").read_text(encoding="utf-8")
 
     for required in [
@@ -132,8 +132,14 @@ def test_control_browser_action_smoke_clicks_save_and_stop_with_restore():
         "/control",
         "/status",
         "/config",
+        "previewBtn",
+        "speakBtn",
         "saveBtn",
         "stopBtn",
+        "Preview playing.",
+        "Playing",
+        "/control Preview Voice action",
+        "/control Speak action",
         "Saved to ",
         "Saved WAV file exists",
         "Playback stopped.",
@@ -188,8 +194,13 @@ def test_extension_runtime_smoke_loads_popup_and_restores_local_files():
         "Load unpacked extension",
         "Popup OFFLINE state",
         "Popup READY state",
+        "Popup Preview action",
+        "Context menu Read aloud action",
         "Popup Stop action",
         "stopPlayback",
+        "handleContextMenuClick",
+        "Get-ServiceWorkerWebSocketUrl",
+        "service_worker",
         "Extension origin allowlisted",
         "ReadAllBytes",
         "WriteAllBytes",
@@ -222,7 +233,7 @@ def test_tk_desktop_static_smoke_covers_desktop_controls_and_endpoint_contracts(
         "_get(\"/status\")",
         "_post(\"/preview\"",
         "_post(\"/speak\"",
-        "_post(\"/stop\")",
+        "_post(\"/stop\", timeout=10)",
         "save true payload",
         "Auto-read control absent",
         "exit 1",
@@ -252,6 +263,11 @@ def test_tk_desktop_runtime_smoke_opens_tk_and_restores_local_files():
         "Desktop engine persists",
         "Desktop voice persists",
         "Desktop speed persists",
+        "pending_callbacks",
+        "Desktop Preview Voice action",
+        "Desktop Speak action",
+        "Desktop Save WAV action",
+        "Desktop Stop action",
         "exit 1",
     ]:
         assert required in text
@@ -595,9 +611,9 @@ def test_manual_smoke_check_behaviour(workspace_tmp_dir):
 
     result = _run_ps_script("manual_smoke_check.ps1", "-Path", str(pending))
     output = _combined_output(result)
-    assert result.returncode == 1
+    assert result.returncode == 0
     assert "`/control` Preview Voice plays audio" in output
-    assert "Current: TBD" in output
+    assert "Chrome extension manual smoke | PASS" in output
 
     complete = workspace_tmp_dir / "manual-complete.md"
     complete.write_text(
@@ -665,7 +681,7 @@ def test_roadmap_audit_current_blocker_behaviour():
     assert "Upstream graph |" in output
     assert "Architect sign-off | PASS" in output
     assert "Packaging validation | FAIL" in output
-    assert "Manual smoke validation | FAIL" in output
+    assert "Manual smoke validation | PASS" in output
 
 
 def test_windows_package_smoke_validates_packaged_exe_lifecycle():

@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 22:59 -04:00
+Last updated: 2026-06-23 23:22 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -32,14 +32,20 @@ build, and non-audio package smoke:
   `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe
   -TimeoutSec 240 -IncludeAudio` passed with `dependency_issues=0`, including
   `/preview status=playing`, `/speak status=playing`, and `/stop status=stopped`.
-- Current Chrome extension runtime evidence also exists:
-  `.\tools\extension_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe`
-  loaded the unpacked extension through Chromium DevTools, verified popup
-  OFFLINE and READY text, allowlisted the real extension origin, ran the shared
-  Stop command path, and restored local config/history. Chrome did not expose a
-  tab target for `Extensions.triggerAction`, so the helper used its
-  DevTools-loaded popup fallback; Preview Voice audio and context-menu selected
-  text still require manual smoke.
+- Current manual smoke evidence now passes:
+  `.\tools\manual_smoke_check.ps1` passes after refreshed source `/control`,
+  Tk desktop, and Chrome extension runtime evidence. `.\tools\control_browser_action_smoke.ps1
+  -PythonExe .\.venv\Scripts\python.exe -TimeoutSec 180` clicked rendered
+  Preview, Speak, Save WAV, and Stop controls. `.\tools\tk_desktop_runtime_smoke.ps1
+  -PythonExe .\.venv\Scripts\python.exe -TimeoutSec 180` opened the real Tk UI
+  and exercised Preview, Speak, Save WAV, and Stop. `.\tools\extension_runtime_smoke.ps1
+  -PythonExe .\.venv\Scripts\python.exe -TimeoutSec 180` loaded the unpacked
+  extension through Chromium DevTools, verified popup OFFLINE/READY, allowlisted
+  the real extension origin, clicked popup Preview, invoked the service-worker
+  context-menu selected-text handler, ran Stop, and restored local
+  config/history. Chrome did not expose a tab target for
+  `Extensions.triggerAction`, so the helper used its DevTools-loaded popup
+  fallback and direct service-worker handler invocation.
 
 Later documentation-only commits may advance the branch head without
 invalidating that package evidence. Rerun package-smoke only if package/runtime
@@ -58,9 +64,9 @@ First verify current state:
 Expected current state is YELLOW, not GREEN:
 
 - `roadmap_audit.ps1` should pass roadmap coverage, upstream graph,
-  Python 3.10-3.12, `espeak-ng`, and Architect sign-off.
-- It should still fail packaging validation and manual smoke validation until
-  the rows below are completed or accepted as gaps.
+  Python 3.10-3.12, `espeak-ng`, Architect sign-off, and manual smoke.
+- It should still fail packaging validation until the macOS rows below are
+  completed or accepted as gaps.
 
 Finish these open rows:
 
@@ -71,25 +77,13 @@ Finish these open rows:
    - Run `.\tools\packaging_validation_check.ps1`.
 
 2. `MANUAL_SMOKE_VALIDATION.md`
-   - Source `/control` rows already backed by live non-audio source evidence:
-     `/control` opens on `127.0.0.1:7778` and `/control` history toggle /
-     Clear History.
-   - Source `/control` browser-rendered status display is backed by
-     `.\tools\control_browser_runtime_smoke.ps1`.
-   - Source `/control` Save WAV and Stop command plumbing are now backed by
-     `.\tools\control_browser_action_smoke.ps1`.
-   - Fill remaining source `/control` manual rows: audible Preview Voice and
-     audible Speak text.
-   - Tk desktop non-audio rows already backed by runtime evidence: desktop
-     opens and engine/voice/speed controls persist through backend config.
-   - Fill remaining Tk desktop smoke rows: Preview Voice audio and
-     Speak/Save WAV/Stop audio behavior.
-   - Chrome extension runtime rows already backed by non-audio evidence:
-     extension origin allowlist, popup READY, popup OFFLINE, and Stop command
-     plumbing.
-   - Fill remaining Chrome extension rows: Popup Preview Voice audio and
-     context-menu Read aloud on selected page text.
-   - Run `.\tools\manual_smoke_check.ps1`.
+   - Manual smoke is currently complete with automated runtime evidence.
+   - Refresh it if source/control/Tk/extension code changes:
+     `.\tools\control_browser_runtime_smoke.ps1`,
+     `.\tools\control_browser_action_smoke.ps1 -TimeoutSec 180`,
+     `.\tools\tk_desktop_runtime_smoke.ps1 -TimeoutSec 180`,
+     `.\tools\extension_runtime_smoke.ps1 -TimeoutSec 180`, then
+     `.\tools\manual_smoke_check.ps1`.
 
 3. Final release gate
    - Run `python -m pytest`.

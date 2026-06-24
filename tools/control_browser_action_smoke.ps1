@@ -1,7 +1,7 @@
 # Runtime action smoke for the browser `/control` UI.
 # Starts a temporary source server, opens `/control` in headless Chrome/Edge,
-# clicks Save WAV and Stop through the real page JavaScript, verifies the
-# created WAV file exists, then restores local config/history.
+# clicks Preview, Speak, Save WAV, and Stop through the real page JavaScript,
+# verifies the created WAV file exists, then restores local config/history.
 
 param(
     [string]$BaseUrl = "http://127.0.0.1:7778",
@@ -374,6 +374,59 @@ try {
 "@
     $pageState = Invoke-CdpExpression -Client $socket -Expression $readyExpression
     Add-Result -Check "Browser connected to /control" -Result "PASS" -Detail "status=$($pageState.status); feedback=$(Limit-Detail -Text $pageState.feedback)"
+
+    $previewExpression = @"
+(async () => {
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const preview = document.querySelector("#previewBtn");
+  const feedback = document.querySelector("#feedback");
+  if (!preview || !feedback) return { ok: false, feedback: "preview controls missing" };
+  preview.click();
+  const deadline = Date.now() + 120000;
+  while (Date.now() < deadline) {
+    const message = feedback.textContent || "";
+    if (message.includes("Preview playing.")) return { ok: true, feedback: message };
+    if (message.includes("failed") || message.includes("Dependency issue") || message.includes("Could not reach")) {
+      return { ok: false, feedback: message };
+    }
+    await wait(500);
+  }
+  return { ok: false, feedback: feedback.textContent || "timed out waiting for preview" };
+})()
+"@
+    $previewResult = Invoke-CdpExpression -Client $socket -Expression $previewExpression -AwaitPromise
+    if (-not $previewResult.ok) {
+        throw "Preview Voice action failed: $($previewResult.feedback)"
+    }
+    Add-Result -Check "/control Preview Voice action" -Result "PASS" -Detail (Limit-Detail -Text $previewResult.feedback)
+
+    $speakExpression = @"
+(async () => {
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const text = document.querySelector("#text");
+  const speak = document.querySelector("#speakBtn");
+  const feedback = document.querySelector("#feedback");
+  if (!text || !speak || !feedback) return { ok: false, feedback: "speak controls missing" };
+  text.value = "ReadOut browser action smoke. Speak this through the source control panel.";
+  text.dispatchEvent(new Event("input", { bubbles: true }));
+  speak.click();
+  const deadline = Date.now() + 120000;
+  while (Date.now() < deadline) {
+    const message = feedback.textContent || "";
+    if (message.includes("Playing")) return { ok: true, feedback: message };
+    if (message.includes("failed") || message.includes("Dependency issue") || message.includes("Could not reach")) {
+      return { ok: false, feedback: message };
+    }
+    await wait(500);
+  }
+  return { ok: false, feedback: feedback.textContent || "timed out waiting for speak" };
+})()
+"@
+    $speakResult = Invoke-CdpExpression -Client $socket -Expression $speakExpression -AwaitPromise
+    if (-not $speakResult.ok) {
+        throw "Speak action failed: $($speakResult.feedback)"
+    }
+    Add-Result -Check "/control Speak action" -Result "PASS" -Detail (Limit-Detail -Text $speakResult.feedback)
 
     $saveExpression = @"
 (async () => {
