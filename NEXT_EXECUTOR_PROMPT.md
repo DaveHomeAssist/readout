@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 23:22 -04:00
+Last updated: 2026-06-23 23:52 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -9,12 +9,24 @@ release gates.
 You are continuing ReadOut roadmap release validation on branch
 `roadmap-integration` in repo `DaveHomeAssist/readout`.
 
-Do not restart the old packaging prerequisite loop. Hosted evidence already
-proves Python 3.10-3.12, `espeak-ng`, Windows package build, macOS package
-build, and non-audio package smoke:
+Do not restart the old packaging prerequisite loop. Hosted and local evidence
+already proves Python 3.10-3.12, `espeak-ng`, Windows package build, macOS
+package build, Windows package audio lifecycle, macOS package audio lifecycle,
+and manual smoke:
 
-- GitHub Actions package-smoke run `28062313500` passed on package-producing commit
-  `440cb577875dfd2aad8a359df972471e5c207511`.
+- GitHub Actions package-smoke run `28073664040` passed on commit `999cb7f`.
+- macOS job `83113369649` built `dist/ReadOut.app`, passed packaged app launch,
+  server, `/status`, `/voices`, `/history`, `/control`, blocked-origin, clean
+  quit, and audio lifecycle via `./tools/mac_package_smoke.sh --app
+  dist/ReadOut.app --include-audio`: `/preview status=playing`,
+  `/stop status=stopped`, `/speak status=playing`, `/stop status=stopped`.
+  It uploaded artifact `readout-macos-package-smoke` id `7839652216`.
+- Windows job `83113369684` built `dist\ReadOut\ReadOut.exe`, passed server,
+  `/control`, CORS, and process-stop checks, and uploaded artifact
+  `readout-windows-package-smoke` id `7839666877`.
+- Earlier GitHub Actions package-smoke run `28062313500` passed on package-producing commit
+  `440cb577875dfd2aad8a359df972471e5c207511` and remains supporting
+  prerequisite history.
 - Windows job `83079089531` built `dist\ReadOut\ReadOut.exe`, passed server,
   `/control`, CORS, and process-stop checks, and uploaded artifact
   `readout-windows-package-smoke` id `7835571251`.
@@ -48,7 +60,7 @@ build, and non-audio package smoke:
   fallback and direct service-worker handler invocation.
 
 Later documentation-only commits may advance the branch head without
-invalidating that package evidence. Rerun package-smoke only if package/runtime
+invalidating that package evidence. Rerun package-smoke if package/runtime
 source changes or the release process requires artifacts from the exact final
 commit.
 
@@ -65,7 +77,7 @@ Expected current state is YELLOW, not GREEN:
 
 - `roadmap_audit.ps1` should pass roadmap coverage, upstream graph,
   Python 3.10-3.12, `espeak-ng`, Architect sign-off, and manual smoke.
-- It should still fail packaging validation until the macOS rows below are
+- It should still fail packaging validation until the macOS visual rows below are
   completed or accepted as gaps.
 
 Finish these open rows:
@@ -73,7 +85,6 @@ Finish these open rows:
 1. `PACKAGING_VALIDATION.md`
    - macOS: verify `Menu-bar/tray icon visible`.
    - macOS: verify tray `Open Control Panel` opens `/control`.
-   - macOS: rerun package smoke with `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio` and verify preview/speak/stop lifecycle, or record an accepted gap if the target has no audio output.
    - Run `.\tools\packaging_validation_check.ps1`.
 
 2. `MANUAL_SMOKE_VALIDATION.md`

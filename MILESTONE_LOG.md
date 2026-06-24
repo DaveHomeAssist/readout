@@ -868,3 +868,14 @@
 - **What changed:** `tools/mac_package_smoke.sh --include-audio` now requires `/preview` to return `preview=true` and `status=playing`, then verifies `/stop`, `/speak status=playing`, and a final `/stop`. The package-smoke workflow now runs the macOS package smoke with `--include-audio`. `PACKAGING_VALIDATION.md`, `RELEASE_CHECKLIST.md`, `NEXT_EXECUTOR_PROMPT.md`, and `ROADMAP_STATUS.md` now point at the stricter command.
 - **Evidence:** Local syntax and focused release docs/tool tests passed on Windows. The actual macOS app/audio result must come from the next macOS workflow or target run.
 - **Notes / risks:** This does not prove the tray icon is visible and does not click the tray `Open Control Panel` menu item. Those remain manual/target rows unless explicitly accepted as gaps.
+
+## Status update - 2026-06-23 23:52 -04:00
+- **Now:** macOS packaged audio lifecycle is verified by hosted package-smoke evidence.
+- **Next:** Finish only the macOS visible tray/menu rows in `PACKAGING_VALIDATION.md`, or record explicit accepted gaps for those two rows.
+- **Tests:** GitHub Actions package-smoke run `28073664040` passed both jobs. macOS job `83113369649` built `dist/ReadOut.app`, ran `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio`, and uploaded artifact `7839652216` with digest `sha256:1dbbb42e4bcd81a5ff69fc3c067b8a38f0b2b2afe5ad7d2ab5138c3fab465cfa`.
+- **Blockers:** Packaging validation still remains blocked by macOS menu-bar/tray visibility and tray `Open Control Panel` selection.
+
+### macOS Packaged Audio Lifecycle - Verified
+- **Done when:** The packaged macOS app can launch, serve `/control`, run preview, stop, speak, stop, reject a blocked origin, and quit cleanly.
+- **Evidence:** macOS package smoke reported `Launch packaged app PASS`, `Server ready PASS`, `GET /control PASS`, `POST /preview PASS status=playing; preview=true`, `POST /stop after preview PASS status=stopped`, `POST /speak PASS status=playing`, `POST /stop after speak PASS status=stopped`, `Blocked origin PASS`, and `App quits cleanly PASS`.
+- **Notes / risks:** This is hosted macOS runner endpoint/audio lifecycle evidence, not a human visual check of the menu-bar icon. The two remaining P3-A1 rows are visual tray/menu rows only.

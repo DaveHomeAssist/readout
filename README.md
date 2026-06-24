@@ -275,14 +275,15 @@ These checks explain the issue before the first model warmup fails.
   supported Python, eSpeak NG runtime, and existing package-artifact state
   without installing dependencies or launching PyInstaller.
 - The manual GitHub Actions workflow `.github/workflows/package-smoke.yml`
-  builds Windows and macOS packages on hosted runners, runs the non-audio
-  package smoke helpers, and uploads package/evidence artifacts.
+  builds Windows and macOS packages on hosted runners, runs package smoke
+  helpers, and uploads package/evidence artifacts. The macOS job runs
+  `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio`.
 - For release status on this branch, recorded hosted package-smoke evidence
   satisfies Python 3.10-3.12 and `espeak-ng` prerequisite rows unless
   package/runtime source changes require fresh package artifacts.
-- After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app`
-  launches the packaged app, verifies the local server/control surface, and
-  quits the app.
+- After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio`
+  launches the packaged app, verifies the local server/control surface, runs
+  preview, stop, speak, and stop, then quits the app.
 - After a Windows build, `.\tools\windows_package_smoke.ps1 -ExePath
   dist\ReadOut\ReadOut.exe` launches the packaged exe, verifies the server, runs
   smoke checks, and stops the launched process. Add `-IncludeAudio` to verify
