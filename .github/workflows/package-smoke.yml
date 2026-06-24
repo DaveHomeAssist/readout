@@ -111,7 +111,7 @@ jobs:
         run: |
           set -eo pipefail
           chmod +x tools/mac_package_smoke.sh
-          ./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio 2>&1 | tee macos-package-smoke.md
+          ./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui --evidence-dir macos-tray-evidence 2>&1 | tee macos-package-smoke.md
 
       - name: Archive macOS app bundle
         if: always()
@@ -129,4 +129,5 @@ jobs:
             ReadOut-macOS.tar.gz
             build-macos.log
             macos-package-smoke.md
+            macos-tray-evidence/**
           if-no-files-found: warn

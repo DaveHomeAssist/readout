@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 23:52 -04:00
+Last updated: 2026-06-24
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -64,6 +64,13 @@ invalidating that package evidence. Rerun package-smoke if package/runtime
 source changes or the release process requires artifacts from the exact final
 commit.
 
+Current branch work after `8ae9c48` adds a stronger macOS package-smoke mode:
+`./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio
+--include-tray-ui --evidence-dir macos-tray-evidence`. The workflow should run
+that command and upload `macos-tray-evidence/**`. Use that artifact first for
+the two visual tray rows. Fall back to a human macOS target check or explicit
+accepted gaps only if the runner cannot drive System Events/menu-bar UI.
+
 First verify current state:
 
 1. Run `git status --short --branch`.
@@ -83,8 +90,10 @@ Expected current state is YELLOW, not GREEN:
 Finish these open rows:
 
 1. `PACKAGING_VALIDATION.md`
-   - macOS: verify `Menu-bar/tray icon visible`.
-   - macOS: verify tray `Open Control Panel` opens `/control`.
+   - macOS: verify `Menu-bar/tray icon visible`; prefer
+     `--include-tray-ui` evidence from the latest package-smoke run.
+   - macOS: verify tray `Open Control Panel` opens `/control`; prefer the
+     `READOUT_CONTROL_OPEN_PROBE` log from `macos-tray-evidence`.
    - Run `.\tools\packaging_validation_check.ps1`.
 
 2. `MANUAL_SMOKE_VALIDATION.md`

@@ -879,3 +879,10 @@
 - **Done when:** The packaged macOS app can launch, serve `/control`, run preview, stop, speak, stop, reject a blocked origin, and quit cleanly.
 - **Evidence:** macOS package smoke reported `Launch packaged app PASS`, `Server ready PASS`, `GET /control PASS`, `POST /preview PASS status=playing; preview=true`, `POST /stop after preview PASS status=stopped`, `POST /speak PASS status=playing`, `POST /stop after speak PASS status=stopped`, `Blocked origin PASS`, and `App quits cleanly PASS`.
 - **Notes / risks:** This is hosted macOS runner endpoint/audio lifecycle evidence, not a human visual check of the menu-bar icon. The two remaining P3-A1 rows are visual tray/menu rows only.
+
+## 2026-06-24 00:10 -04:00 - macOS tray UI smoke support added
+- **Workstream:** P3-A1 macOS packaging.
+- **What changed:** `tools/mac_package_smoke.sh` now supports `--include-tray-ui` and `--evidence-dir`. In that mode it configures `READOUT_CONTROL_OPEN_PROBE` for the packaged app, captures menu-bar evidence, uses System Events to locate the ReadOut status menu, clicks tray `Open Control Panel`, and verifies the probe recorded `/control`. The package-smoke workflow now runs macOS with `--include-audio --include-tray-ui` and uploads `macos-tray-evidence/**`.
+- **Evidence:** Pending the next GitHub Actions package-smoke run on this commit. Local Windows can syntax/test the script, but cannot execute the macOS menu-bar UI path.
+- **Next:** Push the update, inspect the package-smoke macOS job and `macos-tray-evidence` artifact. If the hosted runner proves both tray rows, update `PACKAGING_VALIDATION.md` and rerun `tools/packaging_validation_check.ps1`; otherwise use human macOS target evidence or explicit accepted gaps.
+- **Blockers:** P3-A1 remains yellow until `Menu-bar/tray icon visible` and tray `Open Control Panel` rows are passed or accepted as gaps.

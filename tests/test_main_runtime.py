@@ -56,3 +56,26 @@ def test_packaged_macos_entry_forces_tray_control_panel_flow(monkeypatch):
     assert calls == [[]]
     assert main_app.os.environ["READOUT_DISABLE_UI"] == "1"
     assert main_app.os.environ["READOUT_AUTO_OPEN_CONTROL"] == "0"
+
+
+def test_control_panel_open_probe_records_url(monkeypatch, tmp_path):
+    opened = []
+
+    class ImmediateThread:
+        def __init__(self, target, daemon=False):
+            self._target = target
+            self.daemon = daemon
+
+        def start(self):
+            self._target()
+
+    probe_path = tmp_path / "control-open.log"
+    monkeypatch.setenv("READOUT_CONTROL_OPEN_PROBE", str(probe_path))
+    monkeypatch.setattr(main, "get_config", lambda: {"port": 9999})
+    monkeypatch.setattr(main.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr(main.webbrowser, "open", lambda url: opened.append(url))
+
+    main._open_control_panel()
+
+    assert opened == ["http://127.0.0.1:9999/control"]
+    assert "http://127.0.0.1:9999/control" in probe_path.read_text(encoding="utf-8")

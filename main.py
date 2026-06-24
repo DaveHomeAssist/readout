@@ -122,7 +122,15 @@ def _open_control_panel(delay: float = 0.0) -> None:
     def _open():
         if delay > 0:
             time.sleep(delay)
-        webbrowser.open(_get_control_url())
+        url = _get_control_url()
+        probe_path = os.getenv("READOUT_CONTROL_OPEN_PROBE")
+        if probe_path:
+            try:
+                with open(probe_path, "a", encoding="utf-8") as handle:
+                    handle.write(f"{time.time():.3f} {url}\n")
+            except OSError as exc:
+                print(f"ReadOut control-open probe failed: {exc}", file=sys.stderr)
+        webbrowser.open(url)
 
     threading.Thread(target=_open, daemon=True).start()
 

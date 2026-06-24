@@ -164,7 +164,7 @@ def test_architect_signoff_packet_covers_pending_owner_decisions():
         "tools/cors_origin_matrix.ps1",
         "hosted package-smoke evidence",
         "28073664040",
-        "P3-A1 still needs manual macOS",
+        "P3-A1 still needs macOS menu-bar/tray",
         "P3-A2 Windows package validation is complete",
     ]:
         assert artifact in text
@@ -211,6 +211,8 @@ def test_package_smoke_workflow_builds_and_smokes_both_targets():
         "./build_mac.sh",
         "./tools/mac_package_smoke.sh --app dist/ReadOut.app",
         "--include-audio",
+        "--include-tray-ui",
+        "macos-tray-evidence",
         "actions/upload-artifact@v4",
         "readout-windows-package-smoke",
         "readout-macos-package-smoke",

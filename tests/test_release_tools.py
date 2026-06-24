@@ -730,6 +730,11 @@ def test_mac_package_smoke_validates_packaged_app_lifecycle():
     assert "POST /stop after speak" in text
     assert "status=playing" in text
     assert "INCLUDE_AUDIO" in text
+    assert "INCLUDE_TRAY_UI" in text
+    assert "READOUT_CONTROL_OPEN_PROBE" in text
+    assert "readout-tray-menu-expanded.png" in text
+    assert "Menu-bar/tray icon visible" in text
+    assert "Tray \\`Open Control Panel\\` opens \\`/control\\`" in text
     assert "SKIP_CORS" in text
     assert "https://evil.com" in text
     assert "exit \"$FAILED\"" in text

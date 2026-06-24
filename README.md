@@ -277,13 +277,16 @@ These checks explain the issue before the first model warmup fails.
 - The manual GitHub Actions workflow `.github/workflows/package-smoke.yml`
   builds Windows and macOS packages on hosted runners, runs package smoke
   helpers, and uploads package/evidence artifacts. The macOS job runs
-  `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio`.
+  `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui`
+  and uploads `macos-tray-evidence` screenshots/probe logs when the runner can
+  drive the menu-bar UI.
 - For release status on this branch, recorded hosted package-smoke evidence
   satisfies Python 3.10-3.12 and `espeak-ng` prerequisite rows unless
   package/runtime source changes require fresh package artifacts.
-- After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio`
-  launches the packaged app, verifies the local server/control surface, runs
-  preview, stop, speak, and stop, then quits the app.
+- After a macOS build, `./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui`
+  launches the packaged app, verifies the local server/control surface, tries
+  to locate/click the menu-bar `Open Control Panel` item with System Events,
+  runs preview, stop, speak, and stop, then quits the app.
 - After a Windows build, `.\tools\windows_package_smoke.ps1 -ExePath
   dist\ReadOut\ReadOut.exe` launches the packaged exe, verifies the server, runs
   smoke checks, and stops the launched process. Add `-IncludeAudio` to verify

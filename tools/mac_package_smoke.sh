@@ -8,10 +8,13 @@ APP_PATH="dist/ReadOut.app"
 BASE_URL="http://127.0.0.1:7778"
 TIMEOUT_SEC=45
 INCLUDE_AUDIO=0
+INCLUDE_TRAY_UI=0
 SKIP_CORS=0
 FAILED=0
 APP_LAUNCHED=0
 APP_EXECUTABLE=""
+EVIDENCE_DIR="macos-package-evidence"
+TRAY_PROBE_PATH=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -30,6 +33,14 @@ while [ "$#" -gt 0 ]; do
     --include-audio)
       INCLUDE_AUDIO=1
       shift
+      ;;
+    --include-tray-ui)
+      INCLUDE_TRAY_UI=1
+      shift
+      ;;
+    --evidence-dir)
+      EVIDENCE_DIR="$2"
+      shift 2
       ;;
     --skip-cors)
       SKIP_CORS=1
@@ -89,12 +100,99 @@ wait_for_app_shutdown() {
 
 cleanup() {
   rm -f /tmp/readout_status_$$.json
+  if [ -n "$TRAY_PROBE_PATH" ] && command -v launchctl >/dev/null 2>&1; then
+    launchctl unsetenv READOUT_CONTROL_OPEN_PROBE >/dev/null 2>&1 || true
+  fi
   if [ "$APP_LAUNCHED" -eq 1 ]; then
     osascript -e 'tell application "ReadOut" to quit' >/dev/null 2>&1 || true
   fi
 }
 
 trap cleanup EXIT
+
+wait_for_control_open_probe() {
+  local timeout="$1"
+  local deadline
+  deadline=$(( $(date +%s) + timeout ))
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    if [ -f "$TRAY_PROBE_PATH" ] && grep -Fq "$BASE_URL/control" "$TRAY_PROBE_PATH"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+run_tray_ui_smoke() {
+  local script_path
+  local result_path
+  local screenshot_path
+
+  if [ "$(uname -s)" != "Darwin" ]; then
+    add_result "Menu-bar/tray icon visible" "FAIL" "tray UI smoke requires macOS"
+    add_result "Tray \`Open Control Panel\` opens \`/control\`" "FAIL" "tray UI smoke requires macOS"
+    return
+  fi
+
+  mkdir -p "$EVIDENCE_DIR"
+  screenshot_path="$EVIDENCE_DIR/readout-menu-bar-before.png"
+  result_path="$EVIDENCE_DIR/readout-tray-ui-smoke.txt"
+  script_path="$EVIDENCE_DIR/readout-tray-ui-smoke.applescript"
+
+  screencapture -x "$screenshot_path" >/dev/null 2>&1 || true
+
+  cat > "$script_path" <<'APPLESCRIPT'
+on run argv
+  set evidenceDir to item 1 of argv
+  tell application "System Events"
+    repeat with attempt from 1 to 20
+      if exists process "ReadOut" then exit repeat
+      delay 0.5
+    end repeat
+    if not (exists process "ReadOut") then error "ReadOut process not found"
+
+    tell process "ReadOut"
+      repeat with attempt from 1 to 20
+        repeat with barIndex from 1 to count of menu bars
+          repeat with itemIndex from 1 to count of menu bar items of menu bar barIndex
+            try
+              set candidate to menu bar item itemIndex of menu bar barIndex
+              click candidate
+              delay 0.5
+              if exists menu 1 of candidate then
+                if exists menu item "Open Control Panel" of menu 1 of candidate then
+                  do shell script "screencapture -x " & quoted form of (evidenceDir & "/readout-tray-menu-expanded.png")
+                  click menu item "Open Control Panel" of menu 1 of candidate
+                  return "ReadOut tray menu located at menu bar " & barIndex & ", item " & itemIndex
+                end if
+              end if
+            end try
+            try
+              key code 53
+            end try
+          end repeat
+        end repeat
+        delay 1
+      end repeat
+    end tell
+  end tell
+  error "ReadOut tray menu with Open Control Panel was not found"
+end run
+APPLESCRIPT
+
+  if osascript "$script_path" "$EVIDENCE_DIR" >"$result_path" 2>&1; then
+    add_result "Menu-bar/tray icon visible" "PASS" "System Events located ReadOut status menu; evidence in $EVIDENCE_DIR"
+    if wait_for_control_open_probe 20; then
+      add_result "Tray \`Open Control Panel\` opens \`/control\`" "PASS" "probe recorded $BASE_URL/control after tray menu click"
+    else
+      add_result "Tray \`Open Control Panel\` opens \`/control\`" "FAIL" "tray click completed but $TRAY_PROBE_PATH did not record $BASE_URL/control"
+    fi
+  else
+    detail="$(tr '\n' ' ' < "$result_path" | sed 's/  */ /g' | cut -c1-180)"
+    add_result "Menu-bar/tray icon visible" "FAIL" "$detail"
+    add_result "Tray \`Open Control Panel\` opens \`/control\`" "FAIL" "tray menu could not be selected"
+  fi
+}
 
 echo "| Check | Result | Detail |"
 echo "|---|---|---|"
@@ -111,6 +209,17 @@ if server_ready; then
   exit 1
 fi
 add_result "Port available" "PASS" "$BASE_URL"
+
+if [ "$INCLUDE_TRAY_UI" -eq 1 ]; then
+  mkdir -p "$EVIDENCE_DIR"
+  TRAY_PROBE_PATH="$EVIDENCE_DIR/control-open-probe.log"
+  : > "$TRAY_PROBE_PATH"
+  if command -v launchctl >/dev/null 2>&1 && launchctl setenv READOUT_CONTROL_OPEN_PROBE "$TRAY_PROBE_PATH" >/dev/null 2>&1; then
+    add_result "Control-open probe configured" "PASS" "$TRAY_PROBE_PATH"
+  else
+    add_result "Control-open probe configured" "FAIL" "launchctl setenv READOUT_CONTROL_OPEN_PROBE failed"
+  fi
+fi
 
 if open -n "$APP_PATH" >/dev/null 2>&1; then
   APP_LAUNCHED=1
@@ -183,6 +292,10 @@ do
 done
 if [ "$FAILED" -eq 0 ]; then
   add_result "GET /control" "PASS" "required controls present"
+fi
+
+if [ "$INCLUDE_TRAY_UI" -eq 1 ]; then
+  run_tray_ui_smoke
 fi
 
 if [ "$INCLUDE_AUDIO" -eq 1 ]; then

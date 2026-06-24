@@ -1,6 +1,6 @@
 # ReadOut Packaging Validation Worksheet
 
-Last updated: 2026-06-23 23:52 -04:00
+Last updated: 2026-06-24 00:10 -04:00
 
 Use this worksheet on the target packaging machines. Paste completed tables into
 `MILESTONE_LOG.md` under the matching P3-A1 or P3-A2 entry.
@@ -33,7 +33,7 @@ Run on macOS:
 ```bash
 ./build_mac.sh
 chmod +x tools/mac_package_smoke.sh
-./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio
+./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui
 ```
 
 Non-audio fallback smoke, only when the target cannot produce audio output and
@@ -42,6 +42,11 @@ the gap is explicitly accepted:
 ```bash
 ./tools/mac_package_smoke.sh --app dist/ReadOut.app
 ```
+
+The `--include-tray-ui` mode attempts a macOS menu-bar UI smoke with System
+Events, captures `macos-package-evidence` screenshots, clicks the tray `Open
+Control Panel` item, and verifies the packaged app recorded a `/control` open
+through `READOUT_CONTROL_OPEN_PROBE`.
 
 Record:
 

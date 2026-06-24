@@ -61,7 +61,7 @@ Use this checklist for every release candidate.
 - [ ] Run `./build_mac.sh` on macOS with Python 3.10-3.12.
 - [ ] Confirm the script reports `Python:` and `espeak-ng: OK` before packaging.
 - [ ] Confirm `dist/ReadOut.app` exists.
-- [ ] Run packaged lifecycle smoke: `chmod +x tools/mac_package_smoke.sh && ./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio`.
+- [ ] Run packaged lifecycle smoke: `chmod +x tools/mac_package_smoke.sh && ./tools/mac_package_smoke.sh --app dist/ReadOut.app --include-audio --include-tray-ui`.
 - [ ] Confirm tray icon appears.
 - [ ] Confirm tray `Open Control Panel` opens `/control`.
 - [ ] Confirm lifecycle: start, preview, speak, stop, quit.
