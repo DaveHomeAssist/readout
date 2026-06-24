@@ -896,7 +896,7 @@
 
 ## 2026-06-24 00:52 -04:00 - Release Preflight Source Smoke Reporting Fixed
 - **Workstream:** P3-A4 release checklist and final verification gate.
-- **What changed:** `tools/release_preflight.ps1` now captures nested command output separately from the command exit code, writes the nested output for operator visibility, and returns only the numeric exit code to the preflight row. This prevents `-RunSourceSmoke` from misreporting a passing nested pytest run as FAIL because pytest progress text was mixed into the exit-code value.
+- **What changed:** `tools/release_preflight.ps1` now captures nested command output separately from the command exit code, writes the nested output for operator visibility, and returns only the numeric exit code to the preflight row. This prevents `-RunSourceSmoke` from misreporting a passing nested pytest run as FAIL because pytest progress text was mixed into the exit-code value. `requirements-dev.txt` now includes `uvicorn` so the source live HTTP smoke gate runs in the standard CI test environment instead of being skipped.
 - **Evidence:** `.\tools\release_preflight.ps1 -RunSourceSmoke` now reports `Source live HTTP smoke | PASS | tests/test_live_http_smoke.py exit=0` after the nested live HTTP smoke reports `7 passed`.
 - **Next:** Commit/push the preflight fix, then rerun full suite, roadmap audit, release preflight, and final GitHub tests at the new head.
 - **Blockers:** None for the roadmap validation gate; the pre-commit preflight can still fail upstream reconciliation while these files are intentionally dirty.
