@@ -3,6 +3,9 @@ and the Kokoro speak() flow (heavy deps mocked)."""
 from __future__ import annotations
 
 import os
+import sys
+import types
+import builtins
 
 import tts_engine
 
@@ -62,6 +65,37 @@ def test_stop_audio_is_noop_when_audio_never_loaded(monkeypatch):
 def test_stop_audio_stops_active_device(fake_audio):
     tts_engine.stop_audio()
     assert fake_audio.sd.stops == 1
+
+
+def test_espeak_loader_is_made_available_before_kokoro_import(monkeypatch):
+    calls = {"n": 0}
+    fake_loader = types.SimpleNamespace(
+        make_library_available=lambda: calls.__setitem__("n", calls["n"] + 1)
+    )
+    monkeypatch.setitem(sys.modules, "espeakng_loader", fake_loader)
+    monkeypatch.setattr(tts_engine, "_espeak_runtime_ready", False)
+
+    tts_engine._ensure_espeak_runtime()
+    tts_engine._ensure_espeak_runtime()
+
+    assert calls == {"n": 1}
+
+
+def test_espeak_loader_absence_falls_back_to_system_runtime(monkeypatch):
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "espeakng_loader":
+            raise ImportError("missing loader")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.delitem(sys.modules, "espeakng_loader", raising=False)
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    monkeypatch.setattr(tts_engine, "_espeak_runtime_ready", False)
+
+    tts_engine._ensure_espeak_runtime()
+
+    assert tts_engine._espeak_runtime_ready is True
 
 
 # ── speak() ───────────────────────────────────────────────────────────────────

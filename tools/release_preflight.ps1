@@ -158,6 +158,50 @@ function Resolve-SupportedPython {
     return $null
 }
 
+function Test-EspeakRuntime {
+    param($Python)
+
+    $espeak = Get-Command espeak-ng -ErrorAction SilentlyContinue
+    if ($espeak) {
+        return [pscustomobject]@{
+            Ok = $true
+            Detail = "system espeak-ng on PATH: $($espeak.Source)"
+        }
+    }
+
+    if (-not $Python) {
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = "No supported Python available for bundled espeakng_loader check."
+        }
+    }
+
+    $check = @"
+import espeakng_loader
+espeakng_loader.make_library_available()
+print("bundled espeakng_loader")
+"@
+    try {
+        $argv = @($Python.Args + @("-c", $check))
+        $output = @(& $Python.Exe @argv 2>&1)
+        if ($LASTEXITCODE -eq 0) {
+            return [pscustomobject]@{
+                Ok = $true
+                Detail = "bundled espeakng_loader via $($Python.Label)"
+            }
+        }
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = (($output -join " ") -replace "\s+", " ").Trim()
+        }
+    } catch {
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = $_.Exception.Message
+        }
+    }
+}
+
 function Test-PowerShellSyntax {
     param([string]$Path)
 
@@ -224,6 +268,7 @@ $requiredFiles = @(
     "tools\server_smoke.ps1",
     "tools\control_workflow_smoke.ps1",
     "tools\control_browser_runtime_smoke.ps1",
+    "tools\control_browser_action_smoke.ps1",
     "tools\extension_static_smoke.ps1",
     "tools\tk_desktop_static_smoke.ps1",
     "tools\tk_desktop_runtime_smoke.ps1",
@@ -235,7 +280,7 @@ foreach ($file in $requiredFiles) {
     Add-Check -Check "Required file: $file" -Result ($(if (Test-Path $file) { "PASS" } else { "FAIL" })) -Detail $file
 }
 
-foreach ($script in @("tools\secret_scan.ps1", "tools\architect_signoff_check.ps1", "tools\packaging_validation_check.ps1", "tools\manual_smoke_check.ps1", "tools\roadmap_audit.ps1", "tools\upstream_reconciliation.ps1", "tools\cors_origin_matrix.ps1", "tools\server_smoke.ps1", "tools\control_workflow_smoke.ps1", "tools\control_browser_runtime_smoke.ps1", "tools\extension_static_smoke.ps1", "tools\tk_desktop_static_smoke.ps1", "tools\tk_desktop_runtime_smoke.ps1", "tools\windows_packaging_prereqs.ps1", "tools\windows_package_smoke.ps1", "tools\release_preflight.ps1", "build_windows.ps1")) {
+foreach ($script in @("tools\secret_scan.ps1", "tools\architect_signoff_check.ps1", "tools\packaging_validation_check.ps1", "tools\manual_smoke_check.ps1", "tools\roadmap_audit.ps1", "tools\upstream_reconciliation.ps1", "tools\cors_origin_matrix.ps1", "tools\server_smoke.ps1", "tools\control_workflow_smoke.ps1", "tools\control_browser_runtime_smoke.ps1", "tools\control_browser_action_smoke.ps1", "tools\extension_static_smoke.ps1", "tools\tk_desktop_static_smoke.ps1", "tools\tk_desktop_runtime_smoke.ps1", "tools\windows_packaging_prereqs.ps1", "tools\windows_package_smoke.ps1", "tools\release_preflight.ps1", "build_windows.ps1")) {
     try {
         Test-PowerShellSyntax -Path $script
         Add-Check -Check "PowerShell syntax: $script" -Result "PASS" -Detail "parsed"
@@ -294,12 +339,13 @@ if ($python) {
 }
 
 $espeakEvidence = Get-PackagingEvidence -Check '`espeak-ng` confirmed on PATH'
-if (Get-Command espeak-ng -ErrorAction SilentlyContinue) {
-    Add-Check -Check "espeak-ng on PATH" -Result "PASS" -Detail "found"
+$espeakRuntime = Test-EspeakRuntime -Python $python
+if ($espeakRuntime.Ok) {
+    Add-Check -Check "eSpeak NG runtime" -Result "PASS" -Detail $espeakRuntime.Detail
 } elseif ($espeakEvidence) {
-    Add-Check -Check "espeak-ng on PATH" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $espeakEvidence))
+    Add-Check -Check "eSpeak NG runtime" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $espeakEvidence))
 } else {
-    Add-Check -Check "espeak-ng on PATH" -Result "FAIL" -Detail "Install espeak-ng and add it to PATH before packaging."
+    Add-Check -Check "eSpeak NG runtime" -Result "FAIL" -Detail "Install requirements.txt for bundled espeakng_loader, or install espeak-ng and add it to PATH."
 }
 
 try {

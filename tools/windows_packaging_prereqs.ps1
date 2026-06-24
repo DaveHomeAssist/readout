@@ -91,6 +91,55 @@ function Resolve-SupportedPython {
     return $null
 }
 
+function Test-EspeakRuntime {
+    param($Python)
+
+    $espeak = Get-Command espeak-ng -ErrorAction SilentlyContinue
+    if ($espeak) {
+        return [pscustomobject]@{
+            Ok = $true
+            Detail = "system espeak-ng on PATH: $($espeak.Source)"
+            NextAction = "Keep the runtime available before packaging."
+        }
+    }
+
+    if (-not $Python) {
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = "No supported Python is available to check bundled espeakng_loader."
+            NextAction = "Install Python 3.12, then run .\build_windows.ps1."
+        }
+    }
+
+    $check = @"
+import espeakng_loader
+espeakng_loader.make_library_available()
+print("bundled espeakng_loader")
+"@
+    try {
+        $argv = @($Python.Args + @("-c", $check))
+        $output = @(& $Python.Exe @argv 2>&1)
+        if ($LASTEXITCODE -eq 0) {
+            return [pscustomobject]@{
+                Ok = $true
+                Detail = "bundled espeakng_loader via $($Python.Label)"
+                NextAction = "Use .\build_windows.ps1 for the package build."
+            }
+        }
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = (($output -join " ") -replace "\s+", " ").Trim()
+            NextAction = "Run .\build_windows.ps1 so requirements.txt installs espeakng-loader, or install the espeak-ng MSI."
+        }
+    } catch {
+        return [pscustomobject]@{
+            Ok = $false
+            Detail = $_.Exception.Message
+            NextAction = "Run .\build_windows.ps1 so requirements.txt installs espeakng-loader, or install the espeak-ng MSI."
+        }
+    }
+}
+
 Write-Host "ReadOut Windows packaging prerequisite report"
 Write-Host "Working directory: $(Get-Location)"
 
@@ -119,19 +168,19 @@ if ($python) {
         -NextAction "Install Python 3.12, 3.11, or 3.10. Suggested winget ID: Python.Python.3.12"
 }
 
-$espeak = Get-Command espeak-ng -ErrorAction SilentlyContinue
-if ($espeak) {
+$espeakRuntime = Test-EspeakRuntime -Python $python
+if ($espeakRuntime.Ok) {
     Add-Result `
-        -Check "espeak-ng on PATH" `
+        -Check "eSpeak NG runtime" `
         -Result "PASS" `
-        -Detail $espeak.Source `
-        -NextAction "Keep espeak-ng available before packaging."
+        -Detail $espeakRuntime.Detail `
+        -NextAction $espeakRuntime.NextAction
 } else {
     Add-Result `
-        -Check "espeak-ng on PATH" `
+        -Check "eSpeak NG runtime" `
         -Result "FAIL" `
-        -Detail "espeak-ng was not found on PATH." `
-        -NextAction "Install the espeak-ng MSI and add it to PATH before packaging."
+        -Detail $espeakRuntime.Detail `
+        -NextAction $espeakRuntime.NextAction
 }
 
 if (Test-Path "dist\ReadOut\ReadOut.exe") {
@@ -145,7 +194,7 @@ if (Test-Path "dist\ReadOut\ReadOut.exe") {
         -Check "Existing Windows package" `
         -Result "FAIL" `
         -Detail "dist\ReadOut\ReadOut.exe not found" `
-        -NextAction "Run .\build_windows.ps1 after Python and espeak-ng are available."
+        -NextAction "Run .\build_windows.ps1 after Python and an eSpeak NG runtime are available."
 }
 
 if (-not $Quiet) {

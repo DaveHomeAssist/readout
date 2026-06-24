@@ -18,9 +18,10 @@ python3 --version
 ### Windows (Duncan)
 1. Install Python 3.10, 3.11, or 3.12. Kokoro is not supported on Python 3.13.
 2. Verify a supported interpreter is registered: `py -3.12 --version` or `py -3.11 --version`
-3. Download `espeak-ng-*.msi` from https://github.com/espeak-ng/espeak-ng/releases
-4. Run installer — make sure "Add to PATH" is checked
-5. Verify: `espeak-ng --version` in PowerShell
+3. Install dependencies in the project venv: `python -m pip install -r requirements.txt`
+4. The venv-provided `espeakng-loader` satisfies Kokoro's eSpeak runtime. A
+   system `espeak-ng` MSI on PATH is still supported, but it is not required
+   when `espeakng-loader` is importable.
 
 ---
 
@@ -72,8 +73,9 @@ chmod +x build_mac.sh
 open dist/ReadOut.app
 ```
 
-The build script fails before installing dependencies unless Python 3.10-3.12
-and `espeak-ng` are available.
+The build script fails before packaging unless Python 3.10-3.12 and an eSpeak
+NG runtime are available. The runtime can be system `espeak-ng` or the bundled
+`espeakng-loader` installed from `requirements.txt`.
 
 The packaged macOS app runs as a menu-bar app and does not use the Tk desktop
 window. Open the control panel from the tray icon via `Open Control Panel`.
@@ -93,6 +95,8 @@ cp -r dist/ReadOut.app /Applications/
 
 The build script prefers `py -3.12`, then `py -3.11`, then `py -3.10`, and
 rejects unsupported or broken `python` shims before creating the virtualenv.
+It installs `requirements.txt`, then accepts either system `espeak-ng` on PATH
+or bundled `espeakng-loader` from the venv before running PyInstaller.
 
 To add to Windows startup:
 ```powershell
@@ -198,7 +202,8 @@ fix message:
 
 - Python must be 3.10-3.12 for Kokoro compatibility.
 - `kokoro` must be installed from `requirements.txt`.
-- `espeak-ng` must be installed and available on `PATH`.
+- Kokoro must have an eSpeak NG runtime: either system `espeak-ng` on `PATH` or
+  the bundled `espeakng-loader` package from `requirements.txt`.
 
 These checks explain the issue before the first model warmup fails.
 
@@ -247,6 +252,10 @@ These checks explain the issue before the first model warmup fails.
 - `.\tools\control_browser_runtime_smoke.ps1` starts a temporary source server
   and validates the JavaScript-rendered `/control` status display in headless
   Chrome or Edge. It does not prove audible playback.
+- `.\tools\control_browser_action_smoke.ps1` starts a temporary source server,
+  opens `/control` in headless Chrome or Edge, clicks Save WAV and Stop through
+  the real page JavaScript, verifies the created WAV exists, removes the smoke
+  WAV, and restores local config/history.
 - `.\tools\extension_static_smoke.ps1` checks the Chrome extension manifest,
   least-privilege permissions, popup controls, endpoint wiring, context-menu
   IDs, and toast contract without launching Chrome.
@@ -257,8 +266,8 @@ These checks explain the issue before the first model warmup fails.
   temporary source server, verifies non-audio engine/voice/speed persistence,
   then restores local config/history. It does not prove audible playback.
 - Before a Windows build, `.\tools\windows_packaging_prereqs.ps1` reports the
-  supported Python, `espeak-ng`, and existing package-artifact state without
-  installing dependencies or launching PyInstaller.
+  supported Python, eSpeak NG runtime, and existing package-artifact state
+  without installing dependencies or launching PyInstaller.
 - The manual GitHub Actions workflow `.github/workflows/package-smoke.yml`
   builds Windows and macOS packages on hosted runners, runs the non-audio
   package smoke helpers, and uploads package/evidence artifacts.

@@ -1,6 +1,6 @@
 # ReadOut Manual Smoke Validation
 
-Last updated: 2026-06-23 19:53 -04:00
+Last updated: 2026-06-23 21:14 -04:00
 
 Use this worksheet for release checks that require an interactive desktop,
 browser, extension, or audible playback path. Fill it on the intended release
@@ -22,18 +22,19 @@ confirmation.
 | Chrome extension static contract | PASS | 2026-06-23 17:58 -04:00: `.\tools\extension_static_smoke.ps1` passed Manifest V3, permissions, exact localhost host permission, service worker, default popup, icons, popup controls, popup endpoint wiring, context-menu IDs, `/speak` and `/stop` background wiring, and content toast contract. This does not replace Chrome runtime popup/audio/manual smoke rows. |
 | Tk desktop static contract | PASS | 2026-06-23 18:21 -04:00: `.\tools\tk_desktop_static_smoke.ps1` passed Tk app class, localhost server target, supported engine tabs, no Browser engine tab, Preview Voice, Save WAV, play/stop controls, config persistence wiring, `/voices`, `/status`, `/preview`, `/speak`, and `/stop` endpoint wiring. This does not replace desktop launch/audio/manual smoke rows. |
 | Tk desktop runtime non-audio workflow | PASS | 2026-06-23 19:40 -04:00: `.\tools\tk_desktop_runtime_smoke.ps1` opened the Tk window on a 1920x1080 Windows desktop, found engine/voice/preview/save/play controls, persisted engine `openai`, voice `nova`, and speed `1.7` through the backend, stopped the temporary source server, and restored local config/history. This does not replace desktop audible playback rows. |
-| Source `/control` browser status runtime | PASS | 2026-06-23 19:53 -04:00: `.\tools\control_browser_runtime_smoke.ps1` started a temporary source server on `127.0.0.1:7778`, opened `/control` in headless Chrome, and verified the rendered DOM updated from the initial waiting/offline state to backend status `ready` with label `Ready` and dependency feedback visible. This does not replace audible source control rows. |
+| Source `/control` browser status runtime | PASS | 2026-06-23 21:14 -04:00: `.\tools\control_browser_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` started a temporary source server on `127.0.0.1:7778`, opened `/control` in headless Chrome, and verified rendered status `ready`, label `Ready`, feedback `Ready · kokoro · af_heart · 1.0×`, and `dependency_issues=0`. This does not replace audible source control rows. |
+| Source `/control` browser Save WAV/Stop action runtime | PASS | 2026-06-23 20:56 -04:00: `.\tools\control_browser_action_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` used headless Chrome DevTools to click the real `/control` Save WAV and Stop buttons; server reported `dependency_issues=0`; Save WAV created `readout_1782262606.wav` at 231,644 bytes; the smoke removed the WAV and restored local config/history. This proves synthesis/save and stop command plumbing, but not human-audible speaker output. |
 
 ## Source Control Panel Smoke
 
 | Check | Result | Evidence |
 |---|---|---|
 | `/control` opens on `127.0.0.1:7778` | PASS | 2026-06-23 19:30 -04:00: live source server at `http://127.0.0.1:7778`; `server_smoke.ps1` reported `GET /control PASS` with required controls present; server stdout recorded `GET /control HTTP/1.1 200 OK`. |
-| `/control` status display updates | PASS | 2026-06-23 19:53 -04:00: `.\tools\control_browser_runtime_smoke.ps1` reported `/control status display updates PASS` with DOM `state=ready`, `label=Ready`, and feedback updated from `/status`; server detail was `status=ready; engine=kokoro; dependency_issues=3`. |
+| `/control` status display updates | PASS | 2026-06-23 21:14 -04:00: `.\tools\control_browser_runtime_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` reported `/control status display updates PASS` with DOM `state=ready`, label `Ready`, feedback `Ready · kokoro · af_heart · 1.0×`, and server detail `status=ready; engine=kokoro; dependency_issues=0`. |
 | `/control` Preview Voice plays audio | TBD | |
 | `/control` Speak text works | TBD | |
-| `/control` Speak + Save WAV creates WAV | TBD | |
-| `/control` Stop playback works | TBD | |
+| `/control` Speak + Save WAV creates WAV | PASS | 2026-06-23 20:56 -04:00: `.\tools\control_browser_action_smoke.ps1 -PythonExe .\.venv\Scripts\python.exe` clicked Save WAV through the rendered `/control` page; feedback returned `Saved to C:\Users\digit/Desktop/ReadOut\readout_1782262606.wav`; the file existed at 231,644 bytes before the smoke removed it. |
+| `/control` Stop playback works | PASS | 2026-06-23 20:56 -04:00: same browser action smoke clicked Stop through `/control` after the Save WAV synthesis path and observed `Playback stopped.` feedback from the real page/backend. |
 | `/control` history toggle and Clear History work | PASS | 2026-06-23 19:30 -04:00: non-audio source backend evidence; `control_workflow_smoke.ps1` passed `History toggle via config`, `History status refresh`, `Clear History backend`, and `Restore local config/history`. |
 
 ## Tk Desktop Smoke
@@ -60,6 +61,6 @@ confirmation.
 
 | Item | Status | Notes |
 |---|---|---|
-| Source `/control` manual smoke | Pending | |
+| Source `/control` manual smoke | Pending | Remaining rows are audible Preview Voice and audible Speak text. Save WAV and Stop command plumbing now have browser action evidence. |
 | Tk desktop manual smoke | Pending | |
 | Chrome extension manual smoke | Pending | |

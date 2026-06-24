@@ -2,6 +2,7 @@
 # Python 3.10–3.12 required (kokoro requires <3.13)
 
 kokoro>=0.9.4
+espeakng-loader>=0.2.4
 sounddevice
 soundfile
 fastapi

@@ -15,6 +15,22 @@ _np = None
 _sd = None
 _sf = None
 _KPipeline = None
+_espeak_runtime_ready = False
+
+
+def _ensure_espeak_runtime():
+    """Expose bundled eSpeak NG libraries before Kokoro imports phonemizer."""
+    global _espeak_runtime_ready
+    if _espeak_runtime_ready:
+        return
+
+    try:
+        import espeakng_loader
+        espeakng_loader.make_library_available()
+    except Exception:
+        # Fall back to a system espeak-ng installation if the loader is absent.
+        pass
+    _espeak_runtime_ready = True
 
 
 def _ensure_audio():
@@ -37,6 +53,7 @@ def _ensure_imports():
     global _KPipeline
     _ensure_audio()
     if _KPipeline is None:
+        _ensure_espeak_runtime()
         from kokoro import KPipeline as KP
         _KPipeline = KP
 

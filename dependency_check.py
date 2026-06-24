@@ -32,6 +32,19 @@ def _version_tuple(version_info) -> tuple[int, int]:
     return int(version_info[0]), int(version_info[1])
 
 
+def _has_espeak_runtime(
+    *,
+    find_spec: Callable[[str], object | None],
+    which: Callable[[str], str | None],
+) -> bool:
+    """Return true when Kokoro can reach eSpeak NG.
+
+    Kokoro can use a system `espeak-ng` executable or the Python
+    `espeakng_loader` package bundled into the PyInstaller app.
+    """
+    return which("espeak-ng") is not None or find_spec("espeakng_loader") is not None
+
+
 def check_dependencies(
     *,
     version_info=None,
@@ -69,13 +82,16 @@ def check_dependencies(
             )
         )
 
-    if which("espeak-ng") is None:
+    if not _has_espeak_runtime(find_spec=find_spec, which=which):
         issues.append(
             DependencyIssue(
                 id="espeak-ng",
                 severity="error",
-                message="The espeak-ng executable was not found on PATH.",
-                fix="macOS: `brew install espeak-ng`. Windows: install the espeak-ng MSI and add it to PATH.",
+                message="No eSpeak NG runtime was found for Kokoro.",
+                fix=(
+                    "Install requirements.txt so `espeakng_loader` is available, "
+                    "or install system espeak-ng (`brew install espeak-ng` / Windows MSI)."
+                ),
             )
         )
 

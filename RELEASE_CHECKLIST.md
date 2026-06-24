@@ -13,7 +13,7 @@ Use this checklist for every release candidate.
 - [ ] Run local release preflight: `.\tools\release_preflight.ps1` (includes upstream reconciliation, secret scan, extension static smoke, and Tk desktop static smoke).
 - [ ] If target hardware is unavailable locally, use the manual GitHub Actions package-smoke workflow and attach its uploaded evidence artifacts.
 - [ ] Confirm Python 3.10-3.12 on the target machine or cite recorded hosted package-smoke evidence.
-- [ ] Confirm `espeak-ng --version` works on the target machine or cite recorded hosted package-smoke evidence.
+- [ ] Confirm an eSpeak NG runtime works on the target machine: system `espeak-ng --version`, bundled `espeakng-loader`, or recorded hosted package-smoke evidence.
 - [ ] Confirm `python -m pip install -r requirements.txt` completes in the release environment.
 - [ ] Run secret scan: `.\tools\secret_scan.ps1`.
 - [ ] Run source-server preflight smoke: `.\tools\release_preflight.ps1 -RunSourceSmoke`.
@@ -37,6 +37,7 @@ Use this checklist for every release candidate.
 - [ ] With ReadOut running, run non-audio API/control smoke: `.\tools\server_smoke.ps1`.
 - [ ] With ReadOut running, run non-audio control workflow smoke: `.\tools\control_workflow_smoke.ps1`.
 - [ ] Run browser-rendered status smoke: `.\tools\control_browser_runtime_smoke.ps1`.
+- [ ] Run browser-rendered action smoke: `.\tools\control_browser_action_smoke.ps1`.
 - [ ] Run a manual `/control` smoke test:
   - [ ] Open `http://127.0.0.1:7778/control`.
   - [ ] Check status display.
@@ -56,7 +57,7 @@ Use this checklist for every release candidate.
 
 ## 4. macOS Build Gate
 - [ ] Run `./build_mac.sh` on macOS with Python 3.10-3.12.
-- [ ] Confirm the script reports `Python:` and `espeak-ng: OK` before dependency install.
+- [ ] Confirm the script reports `Python:` and `espeak-ng: OK` before packaging.
 - [ ] Confirm `dist/ReadOut.app` exists.
 - [ ] Run packaged lifecycle smoke: `chmod +x tools/mac_package_smoke.sh && ./tools/mac_package_smoke.sh --app dist/ReadOut.app`.
 - [ ] Confirm tray icon appears.
@@ -69,7 +70,7 @@ Use this checklist for every release candidate.
 ## 5. Windows Build Gate
 - [ ] Run prerequisite report: `.\tools\windows_packaging_prereqs.ps1`.
 - [ ] Run `.\build_windows.ps1` on Windows with Python 3.10-3.12.
-- [ ] Confirm the script reports the selected Python source and `espeak-ng: OK` before dependency install.
+- [ ] Confirm the script reports the selected Python source and `espeak-ng: OK` before packaging.
 - [ ] Confirm `dist\ReadOut\ReadOut.exe` exists.
 - [ ] Run packaged lifecycle smoke: `.\tools\windows_package_smoke.ps1 -ExePath dist\ReadOut\ReadOut.exe`.
 - [ ] Confirm `/control` workflows work.

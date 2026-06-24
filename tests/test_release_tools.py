@@ -112,6 +112,36 @@ def test_control_browser_runtime_smoke_renders_control_status_without_audio():
         assert required in text
 
 
+def test_control_browser_action_smoke_clicks_save_and_stop_with_restore():
+    text = (ROOT / "tools" / "control_browser_action_smoke.ps1").read_text(encoding="utf-8")
+
+    for required in [
+        "Start-Process",
+        "-WindowStyle Hidden",
+        "uvicorn",
+        "server:app",
+        "Chrome or Edge was not found",
+        "--headless=new",
+        "--remote-debugging-port",
+        "ClientWebSocket",
+        "Runtime.evaluate",
+        "/control",
+        "/status",
+        "/config",
+        "saveBtn",
+        "stopBtn",
+        "Saved to ",
+        "Saved WAV file exists",
+        "Playback stopped.",
+        "ReadAllBytes",
+        "WriteAllBytes",
+        "Restore local config/history",
+        "Remove-Item",
+        "exit 1",
+    ]:
+        assert required in text
+
+
 def test_extension_static_smoke_covers_manifest_and_endpoint_contracts():
     text = (ROOT / "tools" / "extension_static_smoke.ps1").read_text(encoding="utf-8")
 
@@ -238,6 +268,7 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         "tools\\server_smoke.ps1",
         "tools\\control_workflow_smoke.ps1",
         "tools\\control_browser_runtime_smoke.ps1",
+        "tools\\control_browser_action_smoke.ps1",
         "tools\\extension_static_smoke.ps1",
         "tools\\tk_desktop_static_smoke.ps1",
         "tools\\tk_desktop_runtime_smoke.ps1",
@@ -247,7 +278,8 @@ def test_release_preflight_summarizes_artifacts_prereqs_and_optional_checks():
         assert required in text
 
     assert "Python 3.10-3.12" in text
-    assert "espeak-ng on PATH" in text
+    assert "eSpeak NG runtime" in text
+    assert "espeakng_loader" in text
     assert "Get-PackagingEvidence" in text
     assert "Hosted/target evidence recorded" in text
     assert "Git upstream currency" in text
@@ -291,7 +323,8 @@ def test_windows_packaging_prereq_report_is_non_mutating_and_actionable():
         "ReadOut Windows packaging prerequisite report",
         "Python 3.10-3.12",
         "Python.Python.3.12",
-        "espeak-ng on PATH",
+        "eSpeak NG runtime",
+        "espeakng-loader",
         "dist\\ReadOut\\ReadOut.exe",
         "windows_package_smoke.ps1",
         "Quiet",
@@ -339,7 +372,8 @@ def test_roadmap_audit_helper_rolls_up_release_gates_without_mutation():
         "packaging_validation_check.ps1",
         "manual_smoke_check.ps1",
         "Python 3.10-3.12",
-        "espeak-ng",
+        "eSpeak NG runtime",
+        "espeakng_loader",
         "Upstream graph",
         "safe.directory=$script:GitSafeDirectory",
         "Next Action",

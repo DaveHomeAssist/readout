@@ -41,6 +41,7 @@ def test_release_checklist_has_security_test_and_packaging_gates():
     assert r".\tools\server_smoke.ps1" in text
     assert r".\tools\control_workflow_smoke.ps1" in text
     assert r".\tools\control_browser_runtime_smoke.ps1" in text
+    assert r".\tools\control_browser_action_smoke.ps1" in text
     assert r".\tools\windows_packaging_prereqs.ps1" in text
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
@@ -87,7 +88,7 @@ def test_roadmap_status_tracks_every_workstream_item():
         "Hosted macOS package build, non-audio smoke, and clean-quit evidence exists"
         in text
     )
-    assert "Hosted Windows package build and headless non-audio smoke evidence exists" in text
+    assert "Current local Windows package build and headless non-audio smoke evidence exists" in text
 
 
 def test_readme_links_release_readiness_artifacts():
@@ -116,6 +117,7 @@ def test_readme_links_release_readiness_artifacts():
     assert r".\tools\server_smoke.ps1" in text
     assert r".\tools\control_workflow_smoke.ps1" in text
     assert r".\tools\control_browser_runtime_smoke.ps1" in text
+    assert r".\tools\control_browser_action_smoke.ps1" in text
     assert r".\tools\windows_packaging_prereqs.ps1" in text
     assert "./tools/mac_package_smoke.sh" in text
     assert r".\tools\windows_package_smoke.ps1" in text
@@ -133,6 +135,7 @@ def test_next_executor_prompt_tracks_remaining_release_gates():
         "manual_smoke_check.ps1",
         "Tk desktop static smoke",
         "control_browser_runtime_smoke.ps1",
+        "control_browser_action_smoke.ps1",
         "Menu-bar/tray icon visible",
         "Windows: verify audible preview/speak/stop lifecycle",
         "Do not install Python or `espeak-ng`",
@@ -217,6 +220,7 @@ def test_manual_smoke_validation_worksheet_covers_interactive_gates():
         "Automated Non-Audio Support Evidence",
         r".\tools\control_workflow_smoke.ps1",
         r".\tools\control_browser_runtime_smoke.ps1",
+        r".\tools\control_browser_action_smoke.ps1",
         r".\tools\tk_desktop_static_smoke.ps1",
         r".\tools\tk_desktop_runtime_smoke.ps1",
         "Tk Desktop Smoke",

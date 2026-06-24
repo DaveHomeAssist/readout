@@ -1,6 +1,6 @@
 # ReadOut Next Executor Prompt
 
-Last updated: 2026-06-23 19:53 -04:00
+Last updated: 2026-06-23 21:07 -04:00
 
 Use this prompt for the next executor assigned to finish the ReadOut roadmap
 release gates.
@@ -24,6 +24,10 @@ build, and non-audio package smoke:
   `readout-macos-package-smoke` id `7835539633`.
 - Tests workflow run `28062313482` passed Python 3.10, 3.11, and 3.12 jobs on
   the same package-producing commit.
+- Current local Windows evidence also exists: `.\build_windows.ps1` completed
+  on 2026-06-23 with Python 3.12.10 and bundled `espeakng_loader`, producing
+  `dist\ReadOut\ReadOut.exe`; `.\tools\windows_package_smoke.ps1 -ExePath
+  dist\ReadOut\ReadOut.exe -TimeoutSec 120` passed with `dependency_issues=0`.
 
 Later documentation-only commits may advance the branch head without
 invalidating that package evidence. Rerun package-smoke only if package/runtime
@@ -62,8 +66,10 @@ Finish these open rows:
      Clear History.
    - Source `/control` browser-rendered status display is backed by
      `.\tools\control_browser_runtime_smoke.ps1`.
-   - Fill remaining source `/control` manual rows: audible Preview Voice, Speak
-     text, Speak + Save WAV, and Stop during playback.
+   - Source `/control` Save WAV and Stop command plumbing are now backed by
+     `.\tools\control_browser_action_smoke.ps1`.
+   - Fill remaining source `/control` manual rows: audible Preview Voice and
+     audible Speak text.
    - Tk desktop non-audio rows already backed by runtime evidence: desktop
      opens and engine/voice/speed controls persist through backend config.
    - Fill remaining Tk desktop smoke rows: Preview Voice audio and
@@ -78,6 +84,7 @@ Finish these open rows:
      `Extension static smoke`, and `Tk desktop static smoke` as PASS.
    - With ReadOut running, run `.\tools\control_workflow_smoke.ps1`.
    - Run `.\tools\control_browser_runtime_smoke.ps1`.
+   - Run `.\tools\control_browser_action_smoke.ps1`.
    - Run `.\tools\release_preflight.ps1`.
    - Run `git diff --check`.
    - Update `MILESTONE_LOG.md`, `ROADMAP_STATUS.md`, and any worksheet rows with

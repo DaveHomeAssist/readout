@@ -149,6 +149,57 @@ function Resolve-SupportedPythonLabel {
     return $null
 }
 
+function Resolve-EspeakRuntime {
+    $espeak = Get-Command espeak-ng -ErrorAction SilentlyContinue
+    if ($espeak) {
+        return [pscustomobject]@{
+            Found = $true
+            Detail = "system espeak-ng on PATH: $($espeak.Source)"
+            NextAction = "Keep available for package validation."
+        }
+    }
+
+    $candidates = @(
+        @{ Label = "existing .venv"; Exe = ".\.venv\Scripts\python.exe"; Args = @() },
+        @{ Label = "Python Launcher 3.12"; Exe = "py"; Args = @("-3.12") },
+        @{ Label = "Python Launcher 3.11"; Exe = "py"; Args = @("-3.11") },
+        @{ Label = "Python Launcher 3.10"; Exe = "py"; Args = @("-3.10") },
+        @{ Label = "python on PATH"; Exe = "python"; Args = @() }
+    )
+
+    $check = @"
+import espeakng_loader
+espeakng_loader.make_library_available()
+"@
+
+    foreach ($candidate in $candidates) {
+        if (-not (Test-CommandAvailable $candidate.Exe)) {
+            continue
+        }
+        if (-not (Test-SupportedPython -Exe $candidate.Exe -BaseArgs $candidate.Args)) {
+            continue
+        }
+
+        try {
+            $argv = @($candidate.Args + @("-c", $check))
+            & $candidate.Exe @argv *> $null
+            if ($LASTEXITCODE -eq 0) {
+                return [pscustomobject]@{
+                    Found = $true
+                    Detail = "bundled espeakng_loader via $($candidate.Label)"
+                    NextAction = "Use this runtime for source and Windows package validation."
+                }
+            }
+        } catch {}
+    }
+
+    return [pscustomobject]@{
+        Found = $false
+        Detail = "No system espeak-ng or bundled espeakng_loader runtime found."
+        NextAction = "Install requirements.txt for bundled espeakng_loader, or install espeak-ng."
+    }
+}
+
 function Test-RoadmapRows {
     $requiredIds = @(
         "P0-A1", "P0-A2", "P0-A3", "P0-A4",
@@ -226,12 +277,13 @@ if ($pythonLabel) {
 }
 
 $espeakEvidence = Get-PackagingEvidence -Check '`espeak-ng` confirmed on PATH'
-if (Get-Command espeak-ng -ErrorAction SilentlyContinue) {
-    Add-Result -Area "espeak-ng" -Result "PASS" -Detail "Found on PATH." -NextAction "Keep available for package validation."
+$espeakRuntime = Resolve-EspeakRuntime
+if ($espeakRuntime.Found) {
+    Add-Result -Area "eSpeak NG runtime" -Result "PASS" -Detail $espeakRuntime.Detail -NextAction $espeakRuntime.NextAction
 } elseif ($espeakEvidence) {
-    Add-Result -Area "espeak-ng" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $espeakEvidence)) -NextAction "No local install needed unless building packages on this host."
+    Add-Result -Area "eSpeak NG runtime" -Result "PASS" -Detail ("Hosted/target evidence recorded: " + (Limit-Detail -Text $espeakEvidence)) -NextAction "No local install needed unless building packages on this host."
 } else {
-    Add-Result -Area "espeak-ng" -Result "FAIL" -Detail "Not found on PATH." -NextAction "Install espeak-ng and verify espeak-ng --version."
+    Add-Result -Area "eSpeak NG runtime" -Result "FAIL" -Detail $espeakRuntime.Detail -NextAction $espeakRuntime.NextAction
 }
 
 $signoffExit = Invoke-QuietScript -Path ".\tools\architect_signoff_check.ps1"

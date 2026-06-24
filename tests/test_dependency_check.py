@@ -26,13 +26,22 @@ def test_main_startup_dependency_check_prints_report(monkeypatch, capsys):
 def test_dependency_check_passes_when_runtime_is_supported():
     issues = dependency_check.check_dependencies(
         version_info=(3, 12, 0),
-        find_spec=lambda name: object(),
+        find_spec=lambda name: object() if name == "kokoro" else None,
         which=lambda name: "C:/tools/espeak-ng.exe",
     )
     assert issues == []
 
 
-def test_dependency_check_reports_python_kokoro_and_espeak():
+def test_dependency_check_passes_with_bundled_espeak_loader():
+    issues = dependency_check.check_dependencies(
+        version_info=(3, 12, 0),
+        find_spec=lambda name: object() if name in {"kokoro", "espeakng_loader"} else None,
+        which=lambda name: None,
+    )
+    assert issues == []
+
+
+def test_dependency_check_reports_python_kokoro_and_espeak_runtime():
     issues = dependency_check.check_dependencies(
         version_info=(3, 13, 0),
         find_spec=lambda name: None,
@@ -43,7 +52,7 @@ def test_dependency_check_reports_python_kokoro_and_espeak():
     assert ids == {"python-version", "kokoro-module", "espeak-ng"}
     assert any("Python 3.13 is not supported" in issue.message for issue in issues)
     assert any("requirements.txt" in issue.fix for issue in issues)
-    assert any("brew install espeak-ng" in issue.fix for issue in issues)
+    assert any("espeakng_loader" in issue.fix for issue in issues)
 
 
 def test_format_dependency_report_is_actionable():

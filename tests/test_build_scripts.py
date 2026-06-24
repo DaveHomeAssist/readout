@@ -17,6 +17,7 @@ def test_windows_build_resolves_supported_python_before_build():
     assert "python --version 2>&1" not in text
     assert "Python 3.10-3.12 is required for Kokoro" in text
     assert "Get-Command espeak-ng" in text
+    assert "espeakng_loader" in text
     assert "-m PyInstaller" in text
 
 
