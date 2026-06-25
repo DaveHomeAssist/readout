@@ -1,6 +1,23 @@
 # ReadOut Packaging Validation Worksheet
 
-Last updated: 2026-06-24 00:30 -04:00
+Last updated: 2026-06-25
+
+> **Refreshed exact-head macOS evidence (2026-06-25).** Hosted `package-smoke`
+> run [`28148598051`](https://github.com/DaveHomeAssist/readout/actions/runs/28148598051)
+> (`workflow_dispatch` on `main`, head `2386989`) finished **success**. macOS
+> job `83360979642` ran `./tools/mac_package_smoke.sh --app dist/ReadOut.app
+> --include-audio --include-tray-ui --evidence-dir macos-tray-evidence` and
+> reported **all 17 rows PASS** (app launch, server ready, `/status` `/voices`
+> `/history` `/control`, preview/stop/speak/stop audio lifecycle, menu-bar/tray
+> visible, tray `Open Control Panel` → `/control`, blocked origin, clean quit).
+> Windows job `83360979626` also **success**. Artifacts:
+> `readout-macos-package-smoke` id `7869504199`
+> digest `sha256:5d5580c00afd2d08eee463b686aff6ddd17c65b1b54559516a7db2277ef9aa70`;
+> `readout-windows-package-smoke` id `7869453876`
+> digest `sha256:a7e4134da59c9adb856c07b5162ce7529b263c8f5b5de0dc45b2fe90b2973142`.
+> (A local M4 build attempt the same day failed at PyInstaller analysis with an
+> environment `Errno 60 ETIMEDOUT` reading a hook file — an I/O issue on that
+> box, not a packaging defect — so hosted-runner evidence is the gate of record.)
 
 Use this worksheet on the target packaging machines. Paste completed tables into
 `MILESTONE_LOG.md` under the matching P3-A1 or P3-A2 entry.
@@ -90,7 +107,7 @@ Record:
 
 | Item | Status | Notes |
 |---|---|---|
-| P3-A1 macOS packaging | PASS | Hosted macOS package-smoke run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) passed build, `/control`, preview/stop/speak/stop audio lifecycle, visible menu-bar/tray evidence, tray `Open Control Panel` to `/control`, blocked-origin, and clean quit; artifact `7840118532` records digest `sha256:5868986c68411cd2ee7370a36835ecbcf2017c5335a72de9e9bf79124bcfd369`. |
+| P3-A1 macOS packaging | PASS | Refreshed exact-head (`main` @ `2386989`) hosted macOS package-smoke run [28148598051](https://github.com/DaveHomeAssist/readout/actions/runs/28148598051), job `83360979642`: all 17 rows PASS (build, `/control`, preview/stop/speak/stop audio lifecycle, menu-bar/tray visible, tray `Open Control Panel` → `/control`, blocked-origin, clean quit); artifact `7869504199` digest `sha256:5d5580c00afd2d08eee463b686aff6ddd17c65b1b54559516a7db2277ef9aa70`. Prior evidence: run [28074903385](https://github.com/DaveHomeAssist/readout/actions/runs/28074903385) (head `10d7550`), artifact `7840118532`. |
 | P3-A2 Windows packaging | PASS | Current local Windows build and package smoke with `-IncludeAudio` passed `/control`, CORS, preview, speak, stop, and clean process stop with bundled `espeakng_loader`, bundled spaCy model files, and System32 VC runtime DLLs. |
 | P3-A4 release checklist accepted | PASS | Architect accepted `RELEASE_CHECKLIST.md` as the reusable release gate; package/manual evidence rows still control final release readiness. |
 
