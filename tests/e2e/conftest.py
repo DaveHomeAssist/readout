@@ -28,6 +28,13 @@ pytest.importorskip("uvicorn")
 
 pytestmark = pytest.mark.e2e
 
+# Extension origins are only CORS-allowed when explicitly configured
+# (server.py consults `allowed_origins` config / READOUT_ALLOWED_ORIGINS on
+# every request). The live server allows this test extension ID so
+# tests/e2e/test_live_cors.py can assert the echo over the wire — the same
+# origin tests/test_server_cors.py configures for the in-process suite.
+EXT_ORIGIN = "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+
 
 def _free_port() -> int:
     """Grab an OS-assigned free TCP port on the loopback interface."""
@@ -129,6 +136,8 @@ def live_server(tmp_path_factory):
         },
     )
     mp.setattr(tts_engine, "stop_audio", lambda: None)
+    # Allow the test extension origin (see EXT_ORIGIN above); read per request.
+    mp.setenv("READOUT_ALLOWED_ORIGINS", EXT_ORIGIN)
 
     port = _free_port()
     uconf = uvicorn.Config(server.app, host="127.0.0.1", port=port, log_level="warning")
