@@ -41,11 +41,31 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 
 ## Testing
 
-- **Install dev deps**: `pip install -r requirements-dev.txt` (pytest + fastapi + httpx; no torch/kokoro needed)
-- **Run**: `python -m pytest` from the repo root
-- The suite mocks the heavy ML/audio stack (numpy, sounddevice, soundfile, kokoro) via fixtures in `tests/conftest.py`, so it runs on any Python 3.10-3.12 without a model download or audio hardware.
-- Coverage: config load/merge/corruption, the Kokoro `speak()` flow, audio helpers, every REST endpoint, the CORS policy (regression guard for issue 002), API-key redaction, and the OpenAI/ElevenLabs fallbacks.
-- CI runs the suite on push/PR across Python 3.10-3.12 (`.github/workflows/tests.yml`).
+Three layers, fastest first:
+
+1. **Unit / integration** (`tests/test_*.py`) — in-process via Starlette
+   `TestClient`. Mocks the heavy ML/audio stack (numpy, sounddevice, soundfile,
+   kokoro) via fixtures in `tests/conftest.py`. Covers config
+   load/merge/corruption, the Kokoro `speak()` flow, audio helpers, every REST
+   endpoint, the CORS policy (regression guard for issue 002), API-key
+   redaction, and the OpenAI/ElevenLabs fallbacks.
+2. **Live end-to-end** (`tests/e2e/`) — boots the real ASGI app under uvicorn on
+   an ephemeral port and drives it over a real socket (stdlib HTTP client).
+   Proves routing/redirects, CORS behaviour over the wire, and that
+   `PATCH /config` round-trips secrets to a real file while redacting the
+   response. Audio/model leaf calls are stubbed, so it still needs no torch/kokoro.
+3. **Manual / dev QA** (`docs/QA.md` + `scripts/qa_probe.py`) — for what CI
+   can't do: real audio, the model download, live API keys, and the Chrome
+   extension. `qa_probe.py` drives a *running* daemon (`python main.py`).
+
+Commands:
+
+- **Install dev deps**: `pip install -r requirements-dev.txt` (pytest, fastapi, httpx, uvicorn; no torch/kokoro)
+- **Everything**: `python -m pytest`
+- **Fast unit only**: `python -m pytest -m "not e2e"`
+- **Live e2e only**: `python -m pytest tests/e2e`
+- **Subprocess liveness smoke**: `scripts/smoke.sh`
+- CI runs the full suite (layers 1 + 2) on push/PR across Python 3.10-3.12 (`.github/workflows/tests.yml`).
 
 ## Deployment
 
