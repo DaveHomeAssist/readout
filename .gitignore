@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 dist/
 build/
+build-macos.log
 *.egg-info/
 .DS_Store
 .pytest_cache/
