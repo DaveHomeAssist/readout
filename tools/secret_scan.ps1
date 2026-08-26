@@ -57,6 +57,22 @@ function Is-ExcludedPath {
 }
 
 $rootPath = (Resolve-Path $Root).Path
+
+function Get-RelativePathText {
+    # [System.IO.Path]::GetRelativePath is .NET Core only; Windows PowerShell 5.1
+    # runs on .NET Framework, so compute the relative path with plain strings.
+    param(
+        [string]$BasePath,
+        [string]$FullPath
+    )
+
+    $base = $BasePath.TrimEnd("\", "/") + [System.IO.Path]::DirectorySeparatorChar
+    if ($FullPath.StartsWith($base, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $FullPath.Substring($base.Length)
+    }
+
+    return $FullPath
+}
 $findings = New-Object System.Collections.Generic.List[object]
 
 Get-ChildItem -Path $rootPath -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
@@ -69,7 +85,7 @@ Get-ChildItem -Path $rootPath -Recurse -File -ErrorAction SilentlyContinue | For
         return
     }
 
-    $relative = [System.IO.Path]::GetRelativePath($rootPath, $path)
+    $relative = Get-RelativePathText -BasePath $rootPath -FullPath $path
     $lineNo = 0
     Get-Content -LiteralPath $path | ForEach-Object {
         $lineNo += 1
