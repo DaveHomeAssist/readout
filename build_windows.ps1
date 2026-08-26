@@ -1,10 +1,10 @@
-# build_windows.ps1 — Build ReadOut.exe for Windows
+# build_windows.ps1 - Build ReadOut.exe for Windows
 # Run from the readout\ project root in PowerShell.
 # Requires: Python 3.10-3.12 and an eSpeak NG runtime.
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "── ReadOut Windows Build ──────────────────────────────────" -ForegroundColor Cyan
+Write-Host "-- ReadOut Windows Build ----------------------------------" -ForegroundColor Cyan
 
 # 1. Resolve a supported Python interpreter without trusting the WindowsApps shim
 function Test-CommandAvailable {
@@ -202,6 +202,6 @@ if (Test-Path "dist\ReadOut\ReadOut.exe") {
     Write-Host '  $reg = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"'
     Write-Host '  Set-ItemProperty -Path $reg -Name "ReadOut" -Value $exe'
 } else {
-    Write-Host "Build failed — check output above." -ForegroundColor Red
+    Write-Host "Build failed - check output above." -ForegroundColor Red
     exit 1
 }
