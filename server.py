@@ -300,6 +300,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
     }
     .status[data-state="ready"]   { color: var(--accent); border-color: var(--accent-line); }
     .status[data-state="loading"] { color: var(--warn);   border-color: rgba(255,170,82,0.4); }
+    .status[data-state="degraded"] { color: var(--danger); border-color: rgba(255,82,82,0.4); }
     .status[data-state="offline"] { color: var(--danger); border-color: rgba(255,82,82,0.4); }
     .status[data-state="loading"] .dot { animation: pulse 1.1s ease-in-out infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
@@ -895,7 +896,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
     }
 
     function setStatus(state) {
-      const label = state === "ready" ? "Ready" : state === "loading" ? "Loading" : "Offline";
+      const label = state === "ready" ? "Ready" : state === "loading" ? "Loading" : state === "degraded" ? "Degraded" : "Offline";
       els.status.dataset.state = state;
       els.statusLabel.textContent = label;
       online = state !== "offline";
@@ -1242,6 +1243,7 @@ def _speak_with_config(req: SpeakRequest, cfg: dict, *, allow_always_save: bool 
         return {
             "status": "error",
             "message": f"Text too long ({len(req.text)} chars; max {MAX_TEXT_CHARS}).",
+            "http_status": 400,
         }
 
     if not allow_always_save:
@@ -1265,6 +1267,18 @@ def _speak_with_config(req: SpeakRequest, cfg: dict, *, allow_always_save: bool 
     return tts_engine.speak(**kwargs)
 
 
+def _synthesis_response(result: dict) -> JSONResponse | dict:
+    """
+    Map synthesis failures onto non-2xx responses so HTTP status alone is
+    trustworthy: 400 for rejected input, 503 when the engine cannot speak.
+    The body shape (status/message) is unchanged for existing callers.
+    """
+    http_status = result.pop("http_status", None)
+    if result.get("status") == "error":
+        return JSONResponse(status_code=http_status or 503, content=result)
+    return result
+
+
 @app.post("/speak")
 def speak(req: SpeakRequest):
     """
@@ -1280,7 +1294,7 @@ def speak(req: SpeakRequest):
             voice=req.voice or cfg.get("voice"),
             speed=req.speed or cfg.get("speed"),
         )
-    return result
+    return _synthesis_response(result)
 
 
 @app.post("/preview")
@@ -1304,7 +1318,7 @@ def preview(req: PreviewRequest):
         allow_always_save=False,
     )
     result["preview"] = True
-    return result
+    return _synthesis_response(result)
 
 
 @app.post("/stop")
@@ -1331,8 +1345,17 @@ def _status_dependency_issues(load_error: str | None) -> list[dict]:
 def status():
     cfg = cfg_module.get_config()
     load_error = tts_engine.get_load_error()
+    dependency_issues = _status_dependency_issues(load_error)
+    if tts_engine.is_loading():
+        state = "loading"
+    elif any(issue.get("severity") == "error" for issue in dependency_issues):
+        # A fatal dependency or model-load problem means synthesis cannot be
+        # trusted to work; never report top-level "ready" alongside it.
+        state = "degraded"
+    else:
+        state = "ready"
     return {
-        "status":        "loading" if tts_engine.is_loading() else "ready",
+        "status":        state,
         "engine":        cfg.get("engine"),
         "voice":         cfg.get("voice"),
         "speed":         cfg.get("speed"),
@@ -1343,7 +1366,7 @@ def status():
         "elevenlabs_api_key": bool(cfg.get("elevenlabs_api_key")),
         "model_ready":   not tts_engine.is_first_run(),
         "load_error":    load_error,
-        "dependency_issues": _status_dependency_issues(load_error),
+        "dependency_issues": dependency_issues,
         "max_text_chars": MAX_TEXT_CHARS,
         "version":       "1.0.0",
     }

@@ -46,6 +46,7 @@ def test_status_ready(client, monkeypatch):
     monkeypatch.setattr(tts_engine, "is_loading", lambda: False)
     monkeypatch.setattr(tts_engine, "is_first_run", lambda: False)
     monkeypatch.setattr(tts_engine, "get_load_error", lambda: None)
+    monkeypatch.setattr(server, "check_dependencies", lambda: [])
     data = client.get("/status").json()
     assert data["status"] == "ready"
     assert data["model_ready"] is True
@@ -68,7 +69,8 @@ def test_status_reports_load_error(client, monkeypatch):
     monkeypatch.setattr(tts_engine, "get_load_error", lambda: "model download failed")
     monkeypatch.setattr(server, "check_dependencies", lambda: [])
     data = client.get("/status").json()
-    assert data["status"] == "ready"
+    # A fatal issue must not report top-level "ready" (audit M-1).
+    assert data["status"] == "degraded"
     assert data["model_ready"] is False
     assert data["load_error"] == "model download failed"
     assert data["dependency_issues"] == [
@@ -94,7 +96,10 @@ def test_status_reports_dependency_issues(client, monkeypatch):
             )
         ],
     )
+    monkeypatch.setattr(tts_engine, "is_loading", lambda: False)
+    monkeypatch.setattr(tts_engine, "get_load_error", lambda: None)
     data = client.get("/status").json()
+    assert data["status"] == "degraded"
     assert data["dependency_issues"] == [
         {
             "id": "espeak-ng",
@@ -152,6 +157,26 @@ def test_speak_routes_to_elevenlabs_when_configured(client, monkeypatch):
 def test_speak_requires_text_field(client):
     r = client.post("/speak", json={"voice": "af_heart"})
     assert r.status_code == 422  # pydantic validation: text is required
+
+
+def test_speak_engine_error_returns_503(client, monkeypatch):
+    # Callers must be able to trust HTTP status alone (audit M-1).
+    monkeypatch.setattr(
+        tts_engine, "speak", lambda **_kwargs: {"status": "error", "message": "Kokoro unavailable"}
+    )
+    r = client.post("/speak", json={"text": "hi"})
+    assert r.status_code == 503
+    assert r.json() == {"status": "error", "message": "Kokoro unavailable"}
+
+
+def test_speak_rejects_too_long_text_with_400(client, monkeypatch):
+    monkeypatch.setattr(server, "MAX_TEXT_CHARS", 10)
+    r = client.post("/speak", json={"text": "x" * 11})
+    assert r.status_code == 400
+    body = r.json()
+    assert body["status"] == "error"
+    assert body["message"].startswith("Text too long")
+    assert "http_status" not in body
 
 
 def test_speak_adds_history_only_when_enabled(client, monkeypatch):
@@ -227,6 +252,15 @@ def test_preview_engine_override_is_request_local(client, monkeypatch):
 def test_preview_rejects_unsupported_engine(client):
     r = client.post("/preview", json={"engine": "browser"})
     assert r.status_code == 422
+
+
+def test_preview_engine_error_returns_503(client, monkeypatch):
+    monkeypatch.setattr(
+        tts_engine, "speak", lambda **_kwargs: {"status": "error", "message": "Kokoro unavailable"}
+    )
+    r = client.post("/preview", json={})
+    assert r.status_code == 503
+    assert r.json() == {"status": "error", "message": "Kokoro unavailable", "preview": True}
 
 
 # ── /stop ─────────────────────────────────────────────────────────────────────

@@ -146,11 +146,13 @@ els.btnSpeak.addEventListener("click", async () => {
         speed: parseFloat(els.speed.value),
       }),
     });
-    if (!res.ok) throw new Error(`Speak ${res.status}`);
-    const data = await res.json();
-    if (data.status === "error") {
+    // Synthesis errors now arrive as non-2xx with a JSON body; surface the
+    // engine message instead of treating every non-OK response as "offline".
+    const data = await res.json().catch(() => null);
+    if (data && data.status === "error") {
       throw new Error(data.message || "ReadOut could not speak the selection.");
     }
+    if (!res.ok) throw new Error(`Speak ${res.status}`);
     setStatus("ready", "READY", "Selection sent to ReadOut.");
     els.btnSpeak.textContent = "Read Selection";
   } catch (error) {
@@ -178,11 +180,11 @@ els.btnPreview.addEventListener("click", async () => {
         speed: parseFloat(els.speed.value),
       }),
     });
-    if (!res.ok) throw new Error(`Preview ${res.status}`);
-    const data = await res.json();
-    if (data.status === "error") {
+    const data = await res.json().catch(() => null);
+    if (data && data.status === "error") {
       throw new Error(data.message || "ReadOut could not preview this voice.");
     }
+    if (!res.ok) throw new Error(`Preview ${res.status}`);
     setStatus("ready", "READY", `Previewing ${els.voice.value}.`);
   } catch (error) {
     const message = error?.message || "Could not preview voice.";

@@ -35,7 +35,10 @@ def test_status_reports_version_and_engine(live_server):
     data = live_server.get("/status").json()
     assert data["version"] == "1.0.0"
     assert data["engine"] == "kokoro"
-    assert data["status"] in ("ready", "loading")
+    # "degraded" is legitimate here: the e2e host may lack optional runtime
+    # dependencies (e.g. espeak-ng), and /status now refuses to claim "ready"
+    # alongside a fatal dependency issue.
+    assert data["status"] in ("ready", "loading", "degraded")
     assert data["model_ready"] is False  # temp HOME has no .model_ready flag
 
 

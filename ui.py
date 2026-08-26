@@ -68,6 +68,12 @@ def _request_json(endpoint: str, method: str, payload: dict | None = None, timeo
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())
+    except urllib.error.HTTPError as exc:
+        # Synthesis errors are non-2xx with a JSON body; keep the message.
+        try:
+            return json.loads(exc.read())
+        except Exception:
+            return {"status": "error", "message": str(exc)}
     except Exception as exc:
         return {"status": "error", "message": str(exc)}
 
