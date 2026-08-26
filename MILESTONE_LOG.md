@@ -900,3 +900,9 @@
 - **Evidence:** `.\tools\release_preflight.ps1 -RunSourceSmoke` now reports `Source live HTTP smoke | PASS | tests/test_live_http_smoke.py exit=0` after the nested live HTTP smoke reports `7 passed`.
 - **Next:** Commit/push the preflight fix, then rerun full suite, roadmap audit, release preflight, and final GitHub tests at the new head.
 - **Blockers:** None for the roadmap validation gate; the pre-commit preflight can still fail upstream reconciliation while these files are intentionally dirty.
+
+## 2026-08-26 - Audit Remediation (H-1, M-1, M-2)
+- **Workstream:** Audit remediation.
+- **What changed:** `build_windows.ps1` rewritten ASCII-only so Windows PowerShell 5.1 can parse it (H-1, `38ec296`). Readiness and synthesis endpoints now return trustworthy HTTP statuses — degraded readiness reports 503 and invalid synthesis input reports 400 instead of masking as 200 (M-1, `fb1a7ee`). The secret scan dropped the .NET Core-only `GetRelativePath` call so it runs under PowerShell 5.1 (M-2, `eeaf4f6`).
+- **Evidence:** Fixes committed and pushed on main at `fb1a7ee`.
+- **Next:** None; documentation catch-up only.

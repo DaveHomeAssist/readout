@@ -38,6 +38,9 @@ Local-first text-to-speech desktop app. Kokoro 82M model runs entirely on-device
 | 001 | P2 | resolved | Tk 9.0 crashes on macOS 26 | Python 3.11 (Tk 8.6) also crashes. Root cause: pystray NSApplication + Tk GetRGBA conflict. Fixed by skipping Tk UI on macOS 26+ |
 | 002 | P1 | resolved | Control-panel commit reverted CORS + key redaction | Commit 93f3944 branched off a pre-security server.py and dropped the 0055aa7 hardening (wildcard CORS + unredacted PATCH /config). Restored, with regression tests in tests/test_server_cors.py and tests/test_server_api.py |
 | 003 | P3 | mitigated | /speak and /config unauthenticated; /stop reachable cross-origin | Server now rejects untrusted browser `Origin` headers before endpoint side effects, so remote web pages cannot drive `/stop`, `/speak`, `/status`, `/voices`, or `/config`. Local no-Origin callers remain allowed for desktop UI, curl, and scripts. A shared-secret header is still the stronger future control if the extension protocol is revised. |
+| 004 | P1 | resolved | build_windows.ps1 unparseable on Windows PowerShell 5.1 | Audit H-1 (2026-08-26). Script contained non-ASCII characters PS 5.1 could not parse; rewritten ASCII-only in `38ec296`. |
+| 005 | P2 | resolved | Readiness/synthesis HTTP statuses untrustworthy | Audit M-1 (2026-08-26). Degraded readiness now returns 503 and invalid synthesis input returns 400 instead of a misleading 200. Fixed in `fb1a7ee`. |
+| 006 | P2 | resolved | Secret scan used .NET Core-only GetRelativePath | Audit M-2 (2026-08-26). Dropped the .NET Core-only call so the scan runs under PowerShell 5.1. Fixed in `eeaf4f6`. |
 
 ## Testing
 
