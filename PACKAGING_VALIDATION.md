@@ -1,6 +1,15 @@
 # ReadOut Packaging Validation Worksheet
 
-Last updated: 2026-06-25
+Last updated: 2026-08-26
+
+> **Durable current-head evidence (2026-08-26, audit M-3).** `package-smoke`
+> now also runs automatically on every qualifying push to `main` (not only
+> `roadmap-integration`), and each successful main run republishes the packaged
+> macOS and Windows builds plus their smoke evidence to the rolling
+> [`main-latest`](https://github.com/DaveHomeAssist/readout/releases/tag/main-latest)
+> prerelease. Actions artifacts expire; the `main-latest` release is the
+> retrievable packaged current version. The June evidence below remains as the
+> historical gate of record for commit `2386989`.
 
 > **Refreshed exact-head macOS evidence (2026-06-25).** Hosted `package-smoke`
 > run [`28148598051`](https://github.com/DaveHomeAssist/readout/actions/runs/28148598051)

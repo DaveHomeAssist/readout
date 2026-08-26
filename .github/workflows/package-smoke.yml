@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - roadmap-integration
     paths:
       - ".github/workflows/package-smoke.yml"
@@ -131,3 +132,50 @@ jobs:
             macos-package-smoke.md
             macos-tray-evidence/**
           if-no-files-found: warn
+
+  publish-main-release:
+    # Durable evidence for main (audit M-3): ephemeral Actions artifacts
+    # expire, so every successful package smoke on main republishes the
+    # packaged apps and smoke evidence to the rolling `main-latest`
+    # prerelease. That keeps a retrievable packaged build attached to the
+    # exact current head of main.
+    name: Publish rolling main release
+    needs: [windows-package-smoke, macos-package-smoke]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download package smoke artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage release assets
+        run: |
+          set -eo pipefail
+          mkdir -p release-assets
+          cp artifacts/readout-macos-package-smoke/ReadOut-macOS.tar.gz release-assets/
+          (cd artifacts/readout-windows-package-smoke/dist && zip -qr ReadOut-Windows.zip ReadOut)
+          mv artifacts/readout-windows-package-smoke/dist/ReadOut-Windows.zip release-assets/
+          cp artifacts/readout-macos-package-smoke/macos-package-smoke.md release-assets/
+          cp artifacts/readout-windows-package-smoke/windows-package-smoke.md release-assets/
+          ls -l release-assets
+
+      - name: Create or update main-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+          tag="main-latest"
+          title="ReadOut main @ ${GITHUB_SHA::7}"
+          notes="$(printf 'Rolling packaged build from the latest successful package-smoke run on main.\nCommit: %s\nBuilt: %s\nEvidence run: %s/%s/actions/runs/%s' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          git push --force origin "HEAD:refs/tags/${tag}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --title "$title" --notes "$notes" --prerelease
+          else
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --title "$title" --notes "$notes" --prerelease
+          fi
+          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
