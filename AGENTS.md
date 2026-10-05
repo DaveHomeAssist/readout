@@ -1,5 +1,9 @@
 # Project Instructions
 
+## Workspace contract
+
+Read `~/Code/ops-hub/90-governance/WORKSPACE_OPERATING_RULES.md` before project rules, including COMMS (one entry on the shared Agent Communications Page per session).
+
 ## Project Purpose
 ReadOut is a local-first desktop text-to-speech app for Dave's workstation workflows. It runs a FastAPI server on loopback port 7778, supports local Kokoro playback by default, and can be controlled by a browser extension or local control panel.
 
