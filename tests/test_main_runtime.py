@@ -5,6 +5,23 @@ import main
 import main_app
 
 
+def test_missing_standard_streams_allow_uvicorn_logging(monkeypatch):
+    from uvicorn.logging import DefaultFormatter
+
+    with monkeypatch.context() as streams:
+        streams.setattr(main.sys, "stdout", None)
+        streams.setattr(main.sys, "stderr", None)
+        main._ensure_standard_streams()
+        stdout, stderr = main.sys.stdout, main.sys.stderr
+        try:
+            formatter = DefaultFormatter()
+            assert isinstance(stdout.isatty(), bool)
+            assert formatter.should_use_colors() == stderr.isatty()
+        finally:
+            stdout.close()
+            stderr.close()
+
+
 def _reset_runtime(monkeypatch, platform: str):
     monkeypatch.setattr(main, "_ui_runtime", None)
     monkeypatch.setattr(main.sys, "platform", platform)

@@ -20,6 +20,16 @@ import threading
 import time
 import webbrowser
 
+
+def _ensure_standard_streams() -> None:
+    """Provide streams when a Windows windowed executable has no console."""
+    for name in ("stdout", "stderr"):
+        if getattr(sys, name) is None:
+            setattr(sys, name, open(os.devnull, "w", encoding="utf-8"))
+
+
+_ensure_standard_streams()
+
 from config import get_config, set_config, asset_path
 from dependency_check import DependencyIssue, check_dependencies, format_dependency_report
 import tts_engine
