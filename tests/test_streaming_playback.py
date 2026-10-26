@@ -128,18 +128,52 @@ def test_callback_fills_across_chunks_and_zero_fills_then_stops():
     values, stopped = pump(stream, 4)
     assert values == [1, 2, 3, 4] and not stopped
 
-    # Queue runs dry with the producer still working: zero-fill, count underrun.
+    # Queue runs dry with the producer still working: zero-fill, one gap event.
     values, stopped = pump(stream, 3)
     assert values == [5, 0, 0] and not stopped
-    assert player.underruns == 0            # partial fill is not an underrun
+    assert player.underruns == 1
     values, stopped = pump(stream, 2)
     assert values == [0, 0] and not stopped
-    assert player.underruns == 1
+    assert player.underruns == 1            # same gap, not a new one
+    assert player.starved_frames == 4
+
+    # Data arrives, plays, runs dry again: a second gap.
+    player.push([6])
+    values, _ = pump(stream, 2)
+    assert values == [6, 0]
+    assert player.underruns == 2
 
     player.finish()
     values, stopped = pump(stream, 2)
     assert values == [0, 0] and stopped
-    assert player.chunks_played == 2
+    assert player.chunks_played == 3
+    assert player.underruns == 2            # draining after finish() is not a gap
+
+
+def test_status_flags_count_as_xruns_not_gaps():
+    sd = FakeStreamingSoundDevice()
+    player = tts_engine.StreamPlayer(sd, 24000)
+    player.start()
+    player.push([1, 2])
+    out = FakeOutData(2)
+    sd.streams[0].callback(out, 2, None, "output underflow")
+    assert player.xruns == 1 and player.underruns == 0
+
+
+def test_stream_chunks_merge_short_sentences():
+    text = "Paragraph 1. " + "A" * 60 + ". " + "B" * 60 + ".\n\nParagraph 2. Short. End."
+    chunks = tts_engine.stream_chunks(text, min_chars=100)
+    assert chunks[0].startswith("Paragraph 1. AAAA")
+    assert all(len(c) >= 50 for c in chunks)
+    # No sentence is lost or split.
+    assert " ".join(chunks).replace("  ", " ") == " ".join(
+        s for s in text.replace("\n\n", " ").split(" ") if s
+    )
+
+
+def test_stream_chunks_keeps_short_text_whole():
+    assert tts_engine.stream_chunks("Hi.") == ["Hi."]
+    assert tts_engine.stream_chunks("") == []
 
 
 def test_stop_drains_queue_and_aborts_stream():
@@ -168,7 +202,7 @@ def test_speak_streams_first_chunk_before_synthesis_finishes(streaming_audio, mo
     seen = {}
     _patch_pipeline(monkeypatch, [[0.1], [0.2], [0.3]], gate=gate, seen=seen)
 
-    result = tts_engine.speak("One. Two. Three.")
+    result = tts_engine.speak("One.\nTwo.\nThree.")
 
     # Returned while the producer is still blocked on chunk two.
     assert result["status"] == "playing"
@@ -361,3 +395,16 @@ def test_speak_endpoint_maps_audio_failure_to_503_json(isolated_config, monkeypa
     r = TestClient(server.app).post("/speak", json={"text": "hi"})
     assert r.status_code == 503
     assert r.json()["status"] == "error"
+
+
+def test_speak_streaming_feeds_coalesced_chunks(streaming_audio, monkeypatch):
+    seen = {}
+
+    def capture(text, voice=None, speed=None, split_pattern=None):
+        seen["text"] = text
+        yield ("gs", "ps", [0.1])
+
+    monkeypatch.setattr(tts_engine, "get_pipeline", lambda on_progress=None: capture)
+    tts_engine.speak("Paragraph 1. " + "word " * 30 + ".")
+    first_line = seen["text"].split("\n")[0]
+    assert first_line.startswith("Paragraph 1. word")

@@ -5,6 +5,7 @@ and graceful first-run model download.
 """
 import os
 import queue
+import re
 import threading
 import time
 
@@ -185,7 +186,39 @@ def speak(
 # docs/BRIEF-streaming-playback.md for scope, exclusions and acceptance.
 
 SAMPLE_RATE = 24000                      # Kokoro always outputs at 24 kHz
-STREAM_SPLIT_PATTERN = r"(?<=[.!?])\s+|\n+"   # sentence-aware so the first chunk is short
+STREAM_SPLIT_PATTERN = r"\n+"           # applied to text already re-flowed by stream_chunks()
+MIN_STREAM_CHUNK_CHARS = 100             # see stream_chunks(); measured on Walter 2026-10-26
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def stream_chunks(text: str, min_chars: int = MIN_STREAM_CHUNK_CHARS) -> list[str]:
+    """Split text into whole-sentence chunks of at least ``min_chars``.
+
+    A tiny first chunk ("Paragraph 1.") plays for under a second, and on a
+    slow CPU the next sentence takes longer than that to synthesise, leaving an
+    audible gap (Walter, i7-10875H, 2026-10-26). Chunks of similar length keep
+    each chunk's playback longer than the next chunk's synthesis whenever the
+    machine runs faster than real time.
+    """
+    sentences = [
+        s.strip()
+        for para in re.split(r"\n+", text)
+        for s in _SENTENCE_END.split(para.strip())
+        if s.strip()
+    ]
+    chunks: list[str] = []
+    buf: list[str] = []
+    for sentence in sentences:
+        buf.append(sentence)
+        if len(" ".join(buf)) >= min_chars:
+            chunks.append(" ".join(buf))
+            buf = []
+    if buf:
+        if chunks and len(" ".join(buf)) < min_chars // 2:
+            chunks[-1] = chunks[-1] + " " + " ".join(buf)
+        else:
+            chunks.append(" ".join(buf))
+    return chunks
 
 _stream_player = None
 _stream_lock = threading.Lock()
@@ -219,7 +252,10 @@ class StreamPlayer:
         self._stream = None
         self.chunks_queued = 0
         self.chunks_played = 0
-        self.underruns = 0
+        self.underruns = 0                  # distinct gaps: queue ran dry while synthesis was still running
+        self.starved_frames = 0             # total silent frames inserted during those gaps
+        self.xruns = 0                      # PortAudio status flags reported by the host API
+        self._starved = False
         self.error: str | None = None
 
     # ── producer API ──
@@ -270,7 +306,7 @@ class StreamPlayer:
     # ── PortAudio callback ──
     def _callback(self, outdata, frames, _time, status) -> None:
         if status:
-            self.underruns += 1
+            self.xruns += 1
         filled = 0
         while filled < frames:
             if self._pending is None or self._pos >= len(self._pending):
@@ -278,12 +314,15 @@ class StreamPlayer:
                     self._pending = self._queue.get_nowait()
                     self._pos = 0
                     self.chunks_played += 1
+                    self._starved = False
                 except queue.Empty:
                     outdata[filled:] = 0
                     if self._done.is_set():
                         raise self._sd.CallbackStop
-                    if filled == 0:
+                    if not self._starved:
+                        self._starved = True
                         self.underruns += 1
+                    self.starved_frames += frames - filled
                     return
             n = min(frames - filled, len(self._pending) - self._pos)
             outdata[filled:filled + n, 0] = self._pending[self._pos:self._pos + n]
@@ -319,6 +358,8 @@ def playback_state() -> dict:
         "chunks_queued": player.chunks_queued,
         "chunks_played": player.chunks_played,
         "underruns": player.underruns,
+        "starved_ms": round(player.starved_frames * 1000 / player.samplerate),
+        "xruns": player.xruns,
         "error": player.error,
     }
 
@@ -326,7 +367,8 @@ def playback_state() -> dict:
 def _speak_streaming(pipeline, text: str, voice: str, speed: float, want_save: bool) -> dict:
     global _stream_player
 
-    generator = pipeline(text, voice=voice, speed=speed, split_pattern=STREAM_SPLIT_PATTERN)
+    prepared = "\n".join(stream_chunks(text)) or text
+    generator = pipeline(prepared, voice=voice, speed=speed, split_pattern=STREAM_SPLIT_PATTERN)
 
     # First chunk synchronously: an empty or failing generator must surface an
     # error before any stream is opened or any "playing" result is returned.

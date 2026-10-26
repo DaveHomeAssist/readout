@@ -59,7 +59,7 @@ def wait_ready(url, timeout=600):
             _, s = call(url, "/status", timeout=5)
             if s.get("status") == "ready":
                 return s
-            print(f"  status={s.get('status')} model_ready={s.get('model_ready')} … waiting", flush=True)
+            print(f"  status={s.get('status')} model_ready={s.get('model_ready')} ... waiting", flush=True)
         except Exception as exc:  # daemon not up yet
             print(f"  waiting for daemon: {exc}", flush=True)
         time.sleep(3)
@@ -115,7 +115,7 @@ def check_stop(url) -> float:
     _, s = call(url, "/status")
     t = time.monotonic() - t0
     state = s.get("playback", {}).get("state")
-    print(f"\n[stop] stop → status in {t*1000:.0f} ms, playback.state={state}", flush=True)
+    print(f"\n[stop] stop -> status in {t*1000:.0f} ms, playback.state={state}", flush=True)
     return t
 
 
@@ -137,7 +137,7 @@ def main():
     ap.add_argument("--url", default=DEFAULT_URL)
     a = ap.parse_args()
 
-    print("waiting for daemon ready…", flush=True)
+    print("waiting for daemon ready...", flush=True)
     status = wait_ready(a.url)
     previous = bool(status.get("streaming_playback"))
     print(f"ready. engine={status['engine']} voice={status['voice']} streaming_playback={previous}")
