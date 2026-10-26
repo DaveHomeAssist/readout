@@ -281,8 +281,9 @@ def test_flag_off_keeps_batch_behaviour(isolated_config, fake_audio, monkeypatch
 
 # ── Config default and HTTP surface ───────────────────────────────────────────
 
-def test_streaming_playback_defaults_off(isolated_config):
-    assert config.get_config()["streaming_playback"] is False
+def test_streaming_playback_defaults_on(isolated_config):
+    # SP-1 answered C (on everywhere) on 2026-10-26 after the real-audio run.
+    assert config.get_config()["streaming_playback"] is True
 
 
 def test_status_and_config_expose_streaming_flag(isolated_config, monkeypatch):
@@ -296,13 +297,13 @@ def test_status_and_config_expose_streaming_flag(isolated_config, monkeypatch):
     client = TestClient(server.app)
 
     status = client.get("/status").json()
-    assert status["streaming_playback"] is False
+    assert status["streaming_playback"] is True
     assert status["playback"] == {"state": "idle", "streaming": False}
 
-    r = client.patch("/config", json={"streaming_playback": True})
+    r = client.patch("/config", json={"streaming_playback": False})
     assert r.status_code == 200
-    assert r.json()["config"]["streaming_playback"] is True
-    assert client.get("/status").json()["streaming_playback"] is True
+    assert r.json()["config"]["streaming_playback"] is False
+    assert client.get("/status").json()["streaming_playback"] is False
 
 
 def test_control_panel_has_streaming_switch(isolated_config):

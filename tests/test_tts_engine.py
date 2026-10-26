@@ -99,6 +99,17 @@ def test_espeak_loader_absence_falls_back_to_system_runtime(monkeypatch):
 
 
 # ── speak() ───────────────────────────────────────────────────────────────────
+# These tests cover the batch path. Streaming is on by default (SP-1) and has
+# its own suite in tests/test_streaming_playback.py.
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _batch_mode(monkeypatch):
+    import config
+    monkeypatch.setitem(config.DEFAULTS, "streaming_playback", False)
+
 
 def _patch_pipeline(monkeypatch, chunks):
     """Make get_pipeline() return a fake pipeline yielding the given chunks."""

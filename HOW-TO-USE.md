@@ -97,7 +97,7 @@ All settings live in `~/.readout/config.json`. Edits take effect immediately —
   "speed": 1.0,
   "engine": "kokoro",
   "always_save": false,
-  "streaming_playback": false,
+  "streaming_playback": true,
   "save_dir": "~/Desktop/ReadOut",
   "port": 7778,
   "openai_api_key": "",

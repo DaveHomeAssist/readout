@@ -1,7 +1,7 @@
 # Brief: Streaming synthesis into live playback
 
 - **Project:** ReadOut
-- **Status:** Implemented behind a config flag (default off), unit-tested, real-audio QA passed on one M-series Mac (2026-10-26)
+- **Status:** Shipped on by default (SP-1 = C, Dave, 2026-10-26); unit-tested; real-audio QA passed on one M-series Mac
 - **Source revision:** see git log for `feat: streaming synthesis into live playback`
 - **Evidence date:** 2026-10-26
 - **Owner:** Dave Robertson
@@ -36,7 +36,7 @@ unsynthesised text at once. Saving still produces one complete WAV.
 
 ## Smallest useful slice (this change)
 
-- `streaming_playback` config key, default `false`, patchable via
+- `streaming_playback` config key, default `true` since SP-1, patchable via
   `PATCH /config` and a switch on the control panel Settings tab.
 - `StreamPlayer` in `tts_engine.py` with push, finish, stop, state.
 - Sentence-aware `split_pattern` in streaming mode only
@@ -119,10 +119,9 @@ confirmed by ear.
 - **SP-1 Default state.** (A) Keep off until the real-audio harness
   (assessment item 22) measures underruns on each target machine.
   (B) Flip on now for macOS only. (C) Flip on everywhere.
-  Recommended after the 2026-10-26 measurement: B. One M-series Mac showed
-  0 underruns over 50 chunks and a 94x faster audio start; Windows and
-  Intel CPUs remain unmeasured. Status: Open until Dave confirms.
-  Unlocks: default change in `config.py` plus a README note.
+  Answered 2026-10-26 by Dave: C, on everywhere. Measured on one M-series
+  Mac (0 underruns over 50 chunks, 94x faster audio start); Windows and
+  Intel CPUs remain unmeasured, so the Settings switch stays as the opt-out.
 - **SP-2 Save semantics in streaming mode.** (A) Wait for synthesis so
   `saved_to` stays in the response (implemented). (B) Return at once and
   surface the path later via `/status`. Recommended: A until SSE (item 3)

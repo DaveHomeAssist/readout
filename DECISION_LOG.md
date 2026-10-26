@@ -1,10 +1,12 @@
 # ReadOut Decision Log
 
-## 2026-10-26 - Streaming Playback (Open)
+## 2026-10-26 - Streaming Playback
 
 ### SP-1 - Streaming playback default state
-- **Status:** Open, awaiting Dave. Measured 2026-10-26 on an M-series MacBook Air: audio start 0.29 s streaming vs 27.29 s batch for 3,589 chars, 50/50 chunks, 0 underruns, stop 113 ms, save intact (`docs/BRIEF-streaming-playback.md`, real-audio result). Recommendation updated from A (keep off) to B (default on for macOS only); Windows and Intel CPUs unmeasured.
-- **Revisit when:** Dave answers, or a Windows measurement exists.
+- **Decision:** C, on by default everywhere (Dave, 2026-10-26). The `/control` Settings switch remains the opt-out.
+- **Reason:** Measured 2026-10-26 on an M-series MacBook Air: audio start 0.29 s streaming vs 27.29 s batch for 3,589 chars, 50/50 chunks, 0 underruns, stop 113 ms, save intact (`docs/BRIEF-streaming-playback.md`). Dave saw no reason to limit the default to macOS.
+- **Verification:** `config.DEFAULTS["streaming_playback"]` is `True`; `tests/test_streaming_playback.py` asserts the default and the opt-out via `PATCH /config`.
+- **Revisit when:** A Windows or Intel-CPU run of `scripts/qa_streaming.py` shows underruns.
 
 ### SP-2 - Save semantics while streaming
 - **Status:** Open. Implemented as "wait for synthesis so `saved_to` stays in the `/speak` response"; alternative is return-at-once with the path exposed later via `/status`.
