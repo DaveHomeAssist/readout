@@ -45,7 +45,11 @@ def call(url, path, method="GET", body=None, timeout=300):
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, json.loads(r.read().decode() or "{}")
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode() or "{}")
+        raw = e.read().decode()
+        try:
+            return e.code, json.loads(raw or "{}")
+        except json.JSONDecodeError:
+            return e.code, {"status": "error", "message": raw[:300]}
 
 
 def wait_ready(url, timeout=600):
@@ -87,7 +91,8 @@ def run_mode(url, streaming: bool) -> dict:
     t0 = time.monotonic()
     code, body = call(url, "/speak", "POST", {"text": TEXT})
     t_resp = time.monotonic() - t0
-    assert code == 200 and body.get("status") == "playing", (code, body)
+    if not (code == 200 and body.get("status") == "playing"):
+        raise SystemExit(f"/speak failed: HTTP {code} {body}")
     print(f"  /speak returned in {t_resp:.2f}s  streaming={body.get('streaming', False)}", flush=True)
     if streaming:
         t_drain, pb = wait_idle(url)

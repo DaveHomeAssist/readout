@@ -313,3 +313,51 @@ def test_control_panel_has_streaming_switch(isolated_config):
     html = TestClient(server.app).get("/control").text
     assert 'id="streamingPlayback"' in html
     assert "streaming_playback" in html
+
+
+# ── Audio device failures return a clean error, not a 500 ─────────────────────
+
+class _NoDeviceError(Exception):
+    pass
+
+
+def test_streaming_start_failure_returns_error_and_leaves_no_player(streaming_audio, monkeypatch):
+    def boom(**_kwargs):
+        raise _NoDeviceError("Error querying device -1")
+
+    monkeypatch.setattr(streaming_audio, "OutputStream", boom)
+    _patch_pipeline(monkeypatch, [[0.1], [0.2]])
+
+    result = tts_engine.speak("text")
+
+    assert result["status"] == "error"
+    assert "Audio output unavailable" in result["message"]
+    assert "device -1" in result["message"]
+    assert tts_engine.playback_state() == {"state": "idle", "streaming": False}
+
+
+def test_batch_play_failure_returns_error(isolated_config, fake_audio, monkeypatch):
+    config.set_config({"streaming_playback": False})
+    _patch_pipeline(monkeypatch, [[0.1]])
+    monkeypatch.setattr(tts_engine, "_ensure_imports", lambda: None)
+
+    def boom(data, samplerate=None):
+        raise _NoDeviceError("Error querying device -1")
+
+    monkeypatch.setattr(fake_audio.sd, "play", boom)
+    result = tts_engine.speak("text")
+    assert result["status"] == "error"
+    assert "Audio output unavailable" in result["message"]
+
+
+def test_speak_endpoint_maps_audio_failure_to_503_json(isolated_config, monkeypatch):
+    from fastapi.testclient import TestClient
+    import server
+
+    monkeypatch.setattr(
+        tts_engine, "speak",
+        lambda **_kw: {"status": "error", "message": tts_engine.audio_error_message(_NoDeviceError("x"))},
+    )
+    r = TestClient(server.app).post("/speak", json={"text": "hi"})
+    assert r.status_code == 503
+    assert r.json()["status"] == "error"

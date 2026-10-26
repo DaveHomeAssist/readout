@@ -165,7 +165,10 @@ def speak(
     full_audio  = _np.concatenate(all_audio)
     sample_rate = 24000   # Kokoro always outputs at 24 kHz
 
-    play_audio(full_audio, sample_rate)
+    try:
+        play_audio(full_audio, sample_rate)
+    except Exception as exc:        # e.g. PortAudioError: no output device / no permission
+        return {"status": "error", "message": audio_error_message(exc)}
 
     result: dict = {"status": "playing", "voice": voice, "speed": speed}
 
@@ -288,6 +291,15 @@ class StreamPlayer:
             filled += n
 
 
+def audio_error_message(exc: Exception) -> str:
+    """Turn a PortAudio failure into an actionable message for /speak callers."""
+    return (
+        f"Audio output unavailable: {exc}. Check that an output device exists and "
+        "that this user can open it (on Linux: membership of the 'audio' group or a "
+        "running PipeWire/PulseAudio session)."
+    )
+
+
 def _stop_stream_player() -> None:
     global _stream_player
     with _stream_lock:
@@ -330,10 +342,13 @@ def _speak_streaming(pipeline, text: str, voice: str, speed: float, want_save: b
     _sd.stop()                      # halt any buffered sd.play() from a cloud engine
 
     player = StreamPlayer(_sd, SAMPLE_RATE)
+    player.push(first)
+    try:
+        player.start()
+    except Exception as exc:        # e.g. PortAudioError: no output device / no permission
+        return {"status": "error", "message": audio_error_message(exc)}
     with _stream_lock:
         _stream_player = player
-    player.push(first)
-    player.start()
 
     collected = [first] if want_save else None
     synthesis_done = threading.Event()
