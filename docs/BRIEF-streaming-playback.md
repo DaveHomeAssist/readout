@@ -1,7 +1,7 @@
 # Brief: Streaming synthesis into live playback
 
 - **Project:** ReadOut
-- **Status:** Implemented behind a config flag (default off), unit-tested; real-audio proof pending
+- **Status:** Implemented behind a config flag (default off), unit-tested, real-audio QA passed on one M-series Mac (2026-10-26)
 - **Source revision:** see git log for `feat: streaming synthesis into live playback`
 - **Evidence date:** 2026-10-26
 - **Owner:** Dave Robertson
@@ -94,12 +94,35 @@ unsynthesised text at once. Saving still produces one complete WAV.
   full text; `/status.playback.underruns` stays at 0 on an idle machine.
 - Decision SP-1 answered before the default flips.
 
+### Real-audio result, 2026-10-26 (MacBook Air, Apple M4, built-in speakers)
+
+Run with `scripts/qa_streaming.py` against `python main.py --headless --no-browser`
+(kokoro 0.9.4, torch 2.11.0, CPU inference; MPS available but not selected, see
+assessment item 10). Ten paragraphs, 3,589 characters, voice af_bella, speed 1.0.
+
+| Check | Batch (flag off) | Streaming (flag on) |
+| --- | --- | --- |
+| `/speak` returned (audio start) | 27.29 s | 0.29 s |
+| Chunks queued / played | n/a | 50 / 50 |
+| `playback.underruns` after full drain | n/a | 0 |
+| Full playback drained after | n/a | 252.5 s |
+| Stop to `playback.state == idle` | n/a | 113 ms |
+| Save (6 sentences) | n/a | returned in 2.25 s, WAV 24 kHz mono 15.1 s, 724,844 bytes |
+
+Daemon log contained no errors. No human listened during the run; the stream
+counters and the saved WAV are the evidence, so "audible" is inferred from
+50 chunks consumed by the PortAudio callback with zero underruns rather than
+confirmed by ear.
+
 ## Decisions for Dave (NEXT-5)
 
 - **SP-1 Default state.** (A) Keep off until the real-audio harness
   (assessment item 22) measures underruns on each target machine.
   (B) Flip on now for macOS only. (C) Flip on everywhere.
-  Recommended: A. Unlocks: safe default change with evidence.
+  Recommended after the 2026-10-26 measurement: B. One M-series Mac showed
+  0 underruns over 50 chunks and a 94x faster audio start; Windows and
+  Intel CPUs remain unmeasured. Status: Open until Dave confirms.
+  Unlocks: default change in `config.py` plus a README note.
 - **SP-2 Save semantics in streaming mode.** (A) Wait for synthesis so
   `saved_to` stays in the response (implemented). (B) Return at once and
   surface the path later via `/status`. Recommended: A until SSE (item 3)

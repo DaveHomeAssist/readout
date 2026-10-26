@@ -3,8 +3,8 @@
 ## 2026-10-26 - Streaming Playback (Open)
 
 ### SP-1 - Streaming playback default state
-- **Status:** Open. Recommended: keep `streaming_playback` off until a real-audio harness measures underruns per target machine. Options and trade-offs in `docs/BRIEF-streaming-playback.md`.
-- **Revisit when:** Dave answers, or the audio regression harness exists.
+- **Status:** Open, awaiting Dave. Measured 2026-10-26 on an M-series MacBook Air: audio start 0.29 s streaming vs 27.29 s batch for 3,589 chars, 50/50 chunks, 0 underruns, stop 113 ms, save intact (`docs/BRIEF-streaming-playback.md`, real-audio result). Recommendation updated from A (keep off) to B (default on for macOS only); Windows and Intel CPUs unmeasured.
+- **Revisit when:** Dave answers, or a Windows measurement exists.
 
 ### SP-2 - Save semantics while streaming
 - **Status:** Open. Implemented as "wait for synthesis so `saved_to` stays in the `/speak` response"; alternative is return-at-once with the path exposed later via `/status`.

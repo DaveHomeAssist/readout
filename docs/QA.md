@@ -34,7 +34,7 @@ in CI. The `scripts/qa_probe.py` driver talks to the running daemon for you.
 
 ## 2b. Streaming playback (Kokoro, opt-in)
 
-Brief: `docs/BRIEF-streaming-playback.md`. Flag defaults off.
+Brief: `docs/BRIEF-streaming-playback.md`. Flag defaults off. `python scripts/qa_streaming.py` runs this whole section against a running daemon and prints the numbers; last pass 2026-10-26 (see the brief).
 
 - [ ] Enable: `PATCH /config {"streaming_playback": true}` (or the Settings switch on `/control`) → `qa_probe.py status` shows `"streaming_playback": true`
 - [ ] `qa_probe.py speak` with ten paragraphs → audio starts within ~1 s on an M-series Mac, well before synthesis finishes; response includes `"streaming": true`

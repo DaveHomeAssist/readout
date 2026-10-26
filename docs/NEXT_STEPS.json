@@ -5,10 +5,10 @@
   "repos": [
     "DaveHomeAssist/readout"
   ],
-  "head": "Streaming synthesis into live playback implemented behind an off-by-default flag; real-audio proof pending",
+  "head": "Streaming playback passed real-audio QA on one M-series Mac (0 underruns, 0.29 s to audio vs 27 s batch); SP-1 default decision awaits Dave",
   "lastActivity": "2026-10-26",
   "status": "amber",
-  "statusReason": "A 25-item engineering and audio-pipeline assessment was completed on 2026-10-26. Item 1 (streaming playback) is implemented in tts_engine.StreamPlayer behind config streaming_playback (default off), exposed on /status, PATCH /config and the /control Settings tab, with 15 new unit tests passing alongside the existing suite. No real-audio run has been performed yet, so underrun behaviour on target machines is unmeasured and the default stays off.",
+  "statusReason": "Streaming playback (assessment item 1) is implemented behind streaming_playback (default off) and on 2026-10-26 passed docs/QA.md 2b on a MacBook Air: /speak returned in 0.29 s vs 27.29 s batch for 3,589 chars, 50 chunks played with 0 underruns, stop in 113 ms, save intact. No human listened; counters and the WAV are the evidence. Windows and Intel CPUs are unmeasured, so the default stays off until Dave answers SP-1.",
   "evidence": {
     "checkedOn": "2026-10-26",
     "sourceRevision": "33df36778720505e8c604719345691063e0aae40",
@@ -17,17 +17,17 @@
       "checkedOn": "2026-10-26",
       "source": "docs/BRIEF-streaming-playback.md",
       "scope": "Kokoro chunks play through a sounddevice OutputStream as the generator produces them; sentence-aware split in streaming mode; stop and cloud playback abort the live stream; save waits for synthesis so saved_to stays in the response.",
-      "verification": "python -m pytest passes locally on Python 3.12 (unit plus e2e; PowerShell release-tool tests skipped on macOS). Real audio, model download and underrun measurement are not covered by CI (docs/QA.md section 2b).",
+      "verification": "Local pytest green; GitHub tests workflow green. Real-audio run 2026-10-26 via scripts/qa_streaming.py on an M-series MacBook Air: 0.29 s to audio start (batch 27.29 s), 50/50 chunks, 0 underruns, stop 113 ms, 15.1 s WAV saved. Not listened to by a human.",
       "notDone": "No pause/resume/seek, no server-sent events, no job queue, no cloud-engine streaming, no loudness normalisation.",
-      "nextAction": "Run docs/QA.md section 2b against a real daemon on an M-series Mac and record underruns before answering SP-1."
+      "nextAction": "Dave answers SP-1 (recommended B: default on for macOS); measure once on Windows (Duncan) before C."
     }
   },
   "nextStep": {
-    "title": "Prove streaming playback on real audio and answer SP-1",
-    "why": "The flag is implemented and unit-tested with fakes only; underrun behaviour and time to first audio on real hardware are unmeasured, so the default must stay off until measured.",
-    "doneWhen": "docs/QA.md section 2b passes on an M-series Mac with a ten-paragraph text: audible start within about one second, stop within one sentence, full-text WAV when saving, and /status.playback.underruns stays at 0; the result is appended to the brief and SP-1 is recorded in DECISION_LOG.md.",
+    "title": "Answer SP-1 and, if B, flip the macOS default",
+    "why": "The Mac measurement shows no underruns and a 94x faster audio start, but Windows is unmeasured and the decision is Dave's.",
+    "doneWhen": "SP-1 recorded in DECISION_LOG.md with a date; if B or C, config default changed with a test and README note; if C, a Windows run of scripts/qa_streaming.py recorded.",
     "effort": "S",
-    "owner": "dave-or-claude",
+    "owner": "dave",
     "blockedBy": []
   },
   "findings": [
@@ -35,15 +35,15 @@
       "id": "RO-01",
       "type": "feature",
       "sev": "P2",
-      "title": "Streaming playback implemented behind a flag; real audio unproven",
-      "detail": "StreamPlayer and _speak_streaming in tts_engine.py play Kokoro chunks as produced; 15 tests in tests/test_streaming_playback.py use a fake OutputStream and no numpy. No real daemon run yet.",
+      "title": "Streaming playback implemented and proven on one Mac; default still off",
+      "detail": "StreamPlayer in tts_engine.py; 15 unit tests; real-audio 2b pass 2026-10-26 (0 underruns, 0.29 s vs 27.29 s). scripts/qa_streaming.py reproduces it.",
       "files": [
         "tts_engine.py",
         "server.py",
         "tests/test_streaming_playback.py",
         "docs/BRIEF-streaming-playback.md"
       ],
-      "evidence": "pytest",
+      "evidence": "real-audio run",
       "phase": 1,
       "status": "implemented"
     },
@@ -94,7 +94,7 @@
         "StreamPlayer and sentence-aware split",
         "/status and /config exposure, /control switch",
         "Unit tests with fake stream",
-        "Real-audio QA (pending)"
+        "Real-audio QA (passed on one Mac 2026-10-26)"
       ],
       "gate": "docs/QA.md 2b passes on real hardware; SP-1 answered"
     },
@@ -111,7 +111,7 @@
     }
   ],
   "decisionsForDave": [
-    "SP-1 [Open, 2026-10-26]: streaming playback default. A keep off until the real-audio harness measures underruns (recommended); B on for macOS only; C on everywhere. Unlocks a safe default flip.",
+    "SP-1 [Open, 2026-10-26]: streaming playback default. Measured on one M-series Mac: 0 underruns, 0.29 s to audio. A keep off; B on for macOS only (recommended after measurement); C on everywhere (needs a Windows run). Unlocks the default flip.",
     "SP-2 [Open, 2026-10-26]: save semantics while streaming. A wait for synthesis so saved_to stays in the /speak response (implemented, recommended); B return at once and expose the path via /status. Unlocks whether /control needs a second poll.",
     "RO-NEXT [Open, 2026-10-26]: next assessment item. A item 2 pause/resume/position (recommended; builds on 1, unlocks 3 and 5); B item 19 cloud streaming and the ElevenLabs voice-id fix; C item 18 shared-secret auth. Unlocks the next brief."
   ],
@@ -122,11 +122,12 @@
     "tests/test_streaming_playback.py",
     "docs/BRIEF-streaming-playback.md",
     "docs/QA.md",
-    "DECISION_LOG.md"
+    "DECISION_LOG.md",
+    "scripts/qa_streaming.py"
   ],
   "verify": [
     "python -m pytest",
-    "docs/QA.md section 2b on a real daemon"
+    "python scripts/qa_streaming.py against a running daemon"
   ],
   "context": [
     "Local-first desktop TTS (Kokoro on-device, OpenAI and ElevenLabs optional). FastAPI on 127.0.0.1:7778, Chrome extension, /control browser panel as the macOS UI."
@@ -141,10 +142,10 @@
       "url": "https://github.com/DaveHomeAssist/readout/actions/workflows/tests.yml"
     }
   ],
-  "kickoffPrompt": "Run docs/QA.md section 2b against a running ReadOut daemon with streaming_playback enabled on an M-series Mac, record time to first audio and /status.playback.underruns for a ten-paragraph text, and append the result to docs/BRIEF-streaming-playback.md under Observable acceptance.",
+  "kickoffPrompt": "Record Dave's SP-1 answer in DECISION_LOG.md; if B, set streaming_playback default true on macOS in config.py with a test and README note, run python -m pytest, commit and push.",
   "confidence": "medium",
   "unknowns": [
-    "Underrun rate on CPU-only machines when a sentence synthesises slower than the previous one plays",
+    "Underrun rate on Windows and Intel CPUs (only one Apple Silicon run so far)",
     "Whether Kokoro chunk tensors land on an accelerator on any target (conversion handles cpu transfer but is untested there)"
   ]
 }
