@@ -2,12 +2,17 @@
   "id": "readout",
   "name": "ReadOut (local TTS)",
   "short": "ReadOut",
-  "repos": ["DaveHomeAssist/readout"],
+  "repos": [
+    "DaveHomeAssist/readout"
+  ],
   "head": "Streaming synthesis into live playback implemented behind an off-by-default flag; real-audio proof pending",
   "lastActivity": "2026-10-26",
   "status": "amber",
   "statusReason": "A 25-item engineering and audio-pipeline assessment was completed on 2026-10-26. Item 1 (streaming playback) is implemented in tts_engine.StreamPlayer behind config streaming_playback (default off), exposed on /status, PATCH /config and the /control Settings tab, with 15 new unit tests passing alongside the existing suite. No real-audio run has been performed yet, so underrun behaviour on target machines is unmeasured and the default stays off.",
   "evidence": {
+    "checkedOn": "2026-10-26",
+    "sourceRevision": "33df36778720505e8c604719345691063e0aae40",
+    "note": "Local pytest pass on Python 3.12 (unit + e2e; PowerShell tool tests skipped on macOS). GitHub Actions tests and package-smoke runs were in progress at record time.",
     "streamingPlayback": {
       "checkedOn": "2026-10-26",
       "source": "docs/BRIEF-streaming-playback.md",
@@ -17,51 +22,98 @@
       "nextAction": "Run docs/QA.md section 2b against a real daemon on an M-series Mac and record underruns before answering SP-1."
     }
   },
-  "nextStep": "Run the manual streaming QA (docs/QA.md 2b) on real audio, then decide SP-1 (default state).",
+  "nextStep": {
+    "title": "Prove streaming playback on real audio and answer SP-1",
+    "why": "The flag is implemented and unit-tested with fakes only; underrun behaviour and time to first audio on real hardware are unmeasured, so the default must stay off until measured.",
+    "doneWhen": "docs/QA.md section 2b passes on an M-series Mac with a ten-paragraph text: audible start within about one second, stop within one sentence, full-text WAV when saving, and /status.playback.underruns stays at 0; the result is appended to the brief and SP-1 is recorded in DECISION_LOG.md.",
+    "effort": "S",
+    "owner": "dave-or-claude",
+    "blockedBy": []
+  },
   "findings": [
     {
       "id": "RO-01",
-      "title": "Streaming playback flag implemented, unproven on real audio",
-      "status": "implemented",
-      "evidenceDate": "2026-10-26",
-      "detail": "StreamPlayer and _speak_streaming in tts_engine.py; tests/test_streaming_playback.py."
+      "type": "feature",
+      "sev": "P2",
+      "title": "Streaming playback implemented behind a flag; real audio unproven",
+      "detail": "StreamPlayer and _speak_streaming in tts_engine.py play Kokoro chunks as produced; 15 tests in tests/test_streaming_playback.py use a fake OutputStream and no numpy. No real daemon run yet.",
+      "files": [
+        "tts_engine.py",
+        "server.py",
+        "tests/test_streaming_playback.py",
+        "docs/BRIEF-streaming-playback.md"
+      ],
+      "evidence": "pytest",
+      "phase": 1,
+      "status": "implemented"
     },
     {
       "id": "RO-02",
-      "title": "24 remaining assessment items are proposed only",
-      "status": "proposed",
-      "evidenceDate": "2026-10-26",
-      "detail": "Pause/resume (2), SSE (3), job queue (4), word timestamps and captions (5), compressed export (6), loudness (7), device selection (8), ONNX (9), accelerator selection (10), synthesis cache (11), languages (12), voice blending (13), lexicon (14), preprocessing and article extraction (15), hotkeys (16), extension a11y and configurable port (17), shared-secret auth (18), cloud engine streaming and fix for ElevenLabs voice ids (19), model distribution (20), telemetry (21), audio regression harness (22), pyproject and lint (23), signing and updates (24), document ingestion (25)."
+      "type": "bug",
+      "sev": "P2",
+      "title": "ElevenLabs voice names are sent as voice ids",
+      "detail": "engines/elevenlabs.py passes catalogue names such as Rachel into the /v1/text-to-speech/{id} URL; only the hardcoded default id works. Fix is part of assessment item 19.",
+      "files": [
+        "engines/elevenlabs.py"
+      ],
+      "evidence": "source read",
+      "phase": 2,
+      "status": "open"
+    },
+    {
+      "id": "RO-03",
+      "type": "gap",
+      "sev": "P3",
+      "title": "Accelerator never selected for Kokoro",
+      "detail": "KPipeline is built without a device argument, so Apple Silicon runs on CPU despite PYTORCH_ENABLE_MPS_FALLBACK in main.py. Assessment item 10.",
+      "files": [
+        "tts_engine.py",
+        "main.py"
+      ],
+      "evidence": "source read",
+      "phase": 2,
+      "status": "open"
+    },
+    {
+      "id": "RO-04",
+      "type": "gap",
+      "sev": "P3",
+      "title": "24 further assessment items proposed",
+      "detail": "Pause/resume, SSE, job queue, word timestamps/captions, compressed export, loudness, device selection, ONNX, cache, languages, blending, lexicon, preprocessing, hotkeys, extension a11y, shared-secret auth, cloud streaming, model distribution, telemetry, audio regression harness, pyproject/lint, signing/updates, document ingestion.",
+      "files": [],
+      "evidence": "session",
+      "phase": 2,
+      "status": "proposed"
     }
   ],
   "phases": [
-    { "name": "Assessment", "state": "done", "date": "2026-10-26" },
-    { "name": "Item 1 streaming playback (flagged)", "state": "implemented", "date": "2026-10-26" },
-    { "name": "Item 1 real-audio proof", "state": "pending" },
-    { "name": "Items 2 to 25", "state": "proposed" }
+    {
+      "name": "Phase 1: streaming playback (item 1)",
+      "goal": "Audio starts after the first sentence, behind a flag",
+      "items": [
+        "StreamPlayer and sentence-aware split",
+        "/status and /config exposure, /control switch",
+        "Unit tests with fake stream",
+        "Real-audio QA (pending)"
+      ],
+      "gate": "docs/QA.md 2b passes on real hardware; SP-1 answered"
+    },
+    {
+      "name": "Phase 2: compounding items (2 to 25)",
+      "goal": "Build the next assessment item after a scoped brief",
+      "items": [
+        "Pause/resume/position",
+        "Server-sent events",
+        "Job queue",
+        "Word timestamps and captions"
+      ],
+      "gate": "Each item has a brief, tests and a QA section before its flag flips"
+    }
   ],
   "decisionsForDave": [
-    {
-      "id": "SP-1",
-      "question": "Streaming playback default state",
-      "options": ["A: keep off until the real-audio harness measures underruns (recommended)", "B: on for macOS only", "C: on everywhere"],
-      "status": "open",
-      "unlocks": "Safe default flip with evidence"
-    },
-    {
-      "id": "SP-2",
-      "question": "Save semantics while streaming",
-      "options": ["A: wait for synthesis so saved_to stays in the /speak response (implemented, recommended)", "B: return at once and surface the path via /status"],
-      "status": "open",
-      "unlocks": "Whether the control panel needs a second poll for the saved path"
-    },
-    {
-      "id": "RO-NEXT",
-      "question": "Which assessment item to build next",
-      "options": ["A: item 2 pause/resume/position (recommended; compounds with 1 and unlocks 3 and 5)", "B: item 19 cloud engine streaming and ElevenLabs voice-id fix", "C: item 18 shared-secret auth (closes threat-model residual)"],
-      "status": "open",
-      "unlocks": "Next scoped brief"
-    }
+    "SP-1 [Open, 2026-10-26]: streaming playback default. A keep off until the real-audio harness measures underruns (recommended); B on for macOS only; C on everywhere. Unlocks a safe default flip.",
+    "SP-2 [Open, 2026-10-26]: save semantics while streaming. A wait for synthesis so saved_to stays in the /speak response (implemented, recommended); B return at once and expose the path via /status. Unlocks whether /control needs a second poll.",
+    "RO-NEXT [Open, 2026-10-26]: next assessment item. A item 2 pause/resume/position (recommended; builds on 1, unlocks 3 and 5); B item 19 cloud streaming and the ElevenLabs voice-id fix; C item 18 shared-secret auth. Unlocks the next brief."
   ],
   "files": [
     "tts_engine.py",
@@ -76,10 +128,18 @@
     "python -m pytest",
     "docs/QA.md section 2b on a real daemon"
   ],
-  "context": "Local-first desktop TTS (Kokoro on-device, OpenAI and ElevenLabs optional). FastAPI on 127.0.0.1:7778, Chrome extension, /control browser panel as the macOS UI.",
+  "context": [
+    "Local-first desktop TTS (Kokoro on-device, OpenAI and ElevenLabs optional). FastAPI on 127.0.0.1:7778, Chrome extension, /control browser panel as the macOS UI."
+  ],
   "links": [
-    { "label": "Repository", "url": "https://github.com/DaveHomeAssist/readout" },
-    { "label": "Tests CI", "url": "https://github.com/DaveHomeAssist/readout/actions/workflows/tests.yml" }
+    {
+      "label": "Repository",
+      "url": "https://github.com/DaveHomeAssist/readout"
+    },
+    {
+      "label": "Tests CI",
+      "url": "https://github.com/DaveHomeAssist/readout/actions/workflows/tests.yml"
+    }
   ],
   "kickoffPrompt": "Run docs/QA.md section 2b against a running ReadOut daemon with streaming_playback enabled on an M-series Mac, record time to first audio and /status.playback.underruns for a ten-paragraph text, and append the result to docs/BRIEF-streaming-playback.md under Observable acceptance.",
   "confidence": "medium",
