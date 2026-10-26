@@ -154,6 +154,7 @@ readout/
   "speed":              1.0,
   "lang_code":          "a",
   "always_save":        false,
+  "streaming_playback": false,
   "save_dir":           "~/Desktop/ReadOut",
   "port":               7778,
   "engine":             "kokoro",
@@ -166,6 +167,10 @@ readout/
 ```
 
 Edited live — no restart required.
+
+`streaming_playback` (off by default, Kokoro only) starts audio after the first
+sentence instead of after the whole text is synthesised. Toggle it from the
+`/control` Settings tab. Scope and open decisions: `docs/BRIEF-streaming-playback.md`.
 
 Recent-read history is off by default. When enabled from `/control`, it stores
 recent read text locally in `~/.readout/history.json` and can be cleared from

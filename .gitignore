@@ -7,3 +7,4 @@ build-macos.log
 *.egg-info/
 .DS_Store
 .pytest_cache/
+.agent-claim

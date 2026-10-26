@@ -1,0 +1,90 @@
+{
+  "id": "readout",
+  "name": "ReadOut (local TTS)",
+  "short": "ReadOut",
+  "repos": ["DaveHomeAssist/readout"],
+  "head": "Streaming synthesis into live playback implemented behind an off-by-default flag; real-audio proof pending",
+  "lastActivity": "2026-10-26",
+  "status": "amber",
+  "statusReason": "A 25-item engineering and audio-pipeline assessment was completed on 2026-10-26. Item 1 (streaming playback) is implemented in tts_engine.StreamPlayer behind config streaming_playback (default off), exposed on /status, PATCH /config and the /control Settings tab, with 15 new unit tests passing alongside the existing suite. No real-audio run has been performed yet, so underrun behaviour on target machines is unmeasured and the default stays off.",
+  "evidence": {
+    "streamingPlayback": {
+      "checkedOn": "2026-10-26",
+      "source": "docs/BRIEF-streaming-playback.md",
+      "scope": "Kokoro chunks play through a sounddevice OutputStream as the generator produces them; sentence-aware split in streaming mode; stop and cloud playback abort the live stream; save waits for synthesis so saved_to stays in the response.",
+      "verification": "python -m pytest passes locally on Python 3.12 (unit plus e2e; PowerShell release-tool tests skipped on macOS). Real audio, model download and underrun measurement are not covered by CI (docs/QA.md section 2b).",
+      "notDone": "No pause/resume/seek, no server-sent events, no job queue, no cloud-engine streaming, no loudness normalisation.",
+      "nextAction": "Run docs/QA.md section 2b against a real daemon on an M-series Mac and record underruns before answering SP-1."
+    }
+  },
+  "nextStep": "Run the manual streaming QA (docs/QA.md 2b) on real audio, then decide SP-1 (default state).",
+  "findings": [
+    {
+      "id": "RO-01",
+      "title": "Streaming playback flag implemented, unproven on real audio",
+      "status": "implemented",
+      "evidenceDate": "2026-10-26",
+      "detail": "StreamPlayer and _speak_streaming in tts_engine.py; tests/test_streaming_playback.py."
+    },
+    {
+      "id": "RO-02",
+      "title": "24 remaining assessment items are proposed only",
+      "status": "proposed",
+      "evidenceDate": "2026-10-26",
+      "detail": "Pause/resume (2), SSE (3), job queue (4), word timestamps and captions (5), compressed export (6), loudness (7), device selection (8), ONNX (9), accelerator selection (10), synthesis cache (11), languages (12), voice blending (13), lexicon (14), preprocessing and article extraction (15), hotkeys (16), extension a11y and configurable port (17), shared-secret auth (18), cloud engine streaming and fix for ElevenLabs voice ids (19), model distribution (20), telemetry (21), audio regression harness (22), pyproject and lint (23), signing and updates (24), document ingestion (25)."
+    }
+  ],
+  "phases": [
+    { "name": "Assessment", "state": "done", "date": "2026-10-26" },
+    { "name": "Item 1 streaming playback (flagged)", "state": "implemented", "date": "2026-10-26" },
+    { "name": "Item 1 real-audio proof", "state": "pending" },
+    { "name": "Items 2 to 25", "state": "proposed" }
+  ],
+  "decisionsForDave": [
+    {
+      "id": "SP-1",
+      "question": "Streaming playback default state",
+      "options": ["A: keep off until the real-audio harness measures underruns (recommended)", "B: on for macOS only", "C: on everywhere"],
+      "status": "open",
+      "unlocks": "Safe default flip with evidence"
+    },
+    {
+      "id": "SP-2",
+      "question": "Save semantics while streaming",
+      "options": ["A: wait for synthesis so saved_to stays in the /speak response (implemented, recommended)", "B: return at once and surface the path via /status"],
+      "status": "open",
+      "unlocks": "Whether the control panel needs a second poll for the saved path"
+    },
+    {
+      "id": "RO-NEXT",
+      "question": "Which assessment item to build next",
+      "options": ["A: item 2 pause/resume/position (recommended; compounds with 1 and unlocks 3 and 5)", "B: item 19 cloud engine streaming and ElevenLabs voice-id fix", "C: item 18 shared-secret auth (closes threat-model residual)"],
+      "status": "open",
+      "unlocks": "Next scoped brief"
+    }
+  ],
+  "files": [
+    "tts_engine.py",
+    "server.py",
+    "config.py",
+    "tests/test_streaming_playback.py",
+    "docs/BRIEF-streaming-playback.md",
+    "docs/QA.md",
+    "DECISION_LOG.md"
+  ],
+  "verify": [
+    "python -m pytest",
+    "docs/QA.md section 2b on a real daemon"
+  ],
+  "context": "Local-first desktop TTS (Kokoro on-device, OpenAI and ElevenLabs optional). FastAPI on 127.0.0.1:7778, Chrome extension, /control browser panel as the macOS UI.",
+  "links": [
+    { "label": "Repository", "url": "https://github.com/DaveHomeAssist/readout" },
+    { "label": "Tests CI", "url": "https://github.com/DaveHomeAssist/readout/actions/workflows/tests.yml" }
+  ],
+  "kickoffPrompt": "Run docs/QA.md section 2b against a running ReadOut daemon with streaming_playback enabled on an M-series Mac, record time to first audio and /status.playback.underruns for a ten-paragraph text, and append the result to docs/BRIEF-streaming-playback.md under Observable acceptance.",
+  "confidence": "medium",
+  "unknowns": [
+    "Underrun rate on CPU-only machines when a sentence synthesises slower than the previous one plays",
+    "Whether Kokoro chunk tensors land on an accelerator on any target (conversion handles cpu transfer but is untested there)"
+  ]
+}

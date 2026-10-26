@@ -798,6 +798,14 @@ CONTROL_PANEL_HTML = """<!doctype html>
               <label>API endpoint</label>
               <div class="kv"><span id="cfgEndpoint">&#8230;</span></div>
             </div>
+            <div class="field">
+              <label for="streamingPlayback">Streaming playback <span class="badge" id="streamingBadge" style="float:right;">Off</span></label>
+              <label class="switch">
+                <input type="checkbox" id="streamingPlayback" aria-label="Start playback after the first sentence (Kokoro)">
+                <span class="track" aria-hidden="true"></span><span class="knob" aria-hidden="true"></span>
+              </label>
+              <div class="hint">Kokoro only. Audio starts after the first sentence instead of after the whole text. Experimental.</div>
+            </div>
             <div class="toolbar" style="margin-top:14px;">
               <button class="btn" id="refreshBtn" type="button">Refresh status</button>
             </div>
@@ -852,6 +860,7 @@ CONTROL_PANEL_HTML = """<!doctype html>
       openaiField: $("openaiField"), elevenField: $("elevenField"),
       cfgEngine: $("cfgEngine"), cfgVoice: $("cfgVoice"),
       cfgModel: $("cfgModel"), cfgEndpoint: $("cfgEndpoint"),
+      streamingPlayback: $("streamingPlayback"), streamingBadge: $("streamingBadge"),
       apiBase: $("apiBase")
     };
     let online = false;
@@ -1012,6 +1021,10 @@ CONTROL_PANEL_HTML = """<!doctype html>
         els.speed.setAttribute("aria-valuetext", Number(els.speed.value).toFixed(1) + " times");
 
         if (typeof data.always_save === "boolean") els.alwaysSave.checked = data.always_save;
+        if (typeof data.streaming_playback === "boolean") {
+          els.streamingPlayback.checked = data.streaming_playback;
+          els.streamingBadge.textContent = data.streaming_playback ? "On" : "Off";
+        }
         els.saveDir.textContent = data.save_dir || "~/Desktop/ReadOut";
 
         setBadge(els.openaiBadge, data.openai_api_key);
@@ -1143,6 +1156,12 @@ CONTROL_PANEL_HTML = """<!doctype html>
       setFeedback(els.feedback, els.alwaysSave.checked ? "Always-save enabled." : "Always-save disabled.", "ok");
     });
 
+    els.streamingPlayback.addEventListener("change", async () => {
+      await patchConfig({ streaming_playback: els.streamingPlayback.checked });
+      els.streamingBadge.textContent = els.streamingPlayback.checked ? "On" : "Off";
+      setFeedback(els.settingsFeedback, els.streamingPlayback.checked ? "Streaming playback enabled." : "Streaming playback disabled.", "ok");
+    });
+
     els.historyEnabled.addEventListener("change", async () => {
       await patchConfig({ history_enabled: els.historyEnabled.checked });
       await refreshHistory();
@@ -1218,6 +1237,7 @@ class ConfigUpdate(BaseModel):
     voice:            str   | None = None
     speed:            float | None = None
     always_save:      bool  | None = None
+    streaming_playback: bool | None = None
     engine:           Literal["kokoro", "openai", "elevenlabs"] | None = None
     openai_api_key:   str   | None = None
     elevenlabs_api_key: str | None = None
@@ -1360,6 +1380,8 @@ def status():
         "voice":         cfg.get("voice"),
         "speed":         cfg.get("speed"),
         "always_save":   cfg.get("always_save"),
+        "streaming_playback": bool(cfg.get("streaming_playback", False)),
+        "playback":      tts_engine.playback_state(),
         "save_dir":      cfg.get("save_dir"),
         # API keys are never echoed — only a presence flag, mirroring _public_config().
         "openai_api_key":     bool(cfg.get("openai_api_key")),

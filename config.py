@@ -20,6 +20,7 @@ DEFAULTS: dict = {
     "speed":             1.0,
     "lang_code":         "a",          # 'a' = American EN, 'b' = British EN
     "always_save":       False,
+    "streaming_playback": False,       # play Kokoro chunks as they are synthesised (see docs/BRIEF-streaming-playback.md)
     "save_dir":          os.path.expanduser("~/Desktop/ReadOut"),
     "port":              7778,          # 7777 reserved for DaveLLM Router
     "openai_api_key":    "",

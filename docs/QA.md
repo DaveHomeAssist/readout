@@ -32,6 +32,18 @@ in CI. The `scripts/qa_probe.py` driver talks to the running daemon for you.
 - [ ] `--speed 1.5` is faster, `--speed 0.75` slower
 - [ ] While audio is playing, `qa_probe.py stop` (or a new `speak`) halts it promptly
 
+## 2b. Streaming playback (Kokoro, opt-in)
+
+Brief: `docs/BRIEF-streaming-playback.md`. Flag defaults off.
+
+- [ ] Enable: `PATCH /config {"streaming_playback": true}` (or the Settings switch on `/control`) → `qa_probe.py status` shows `"streaming_playback": true`
+- [ ] `qa_probe.py speak` with ten paragraphs → audio starts within ~1 s on an M-series Mac, well before synthesis finishes; response includes `"streaming": true`
+- [ ] While playing, `qa_probe.py stop` silences within one sentence
+- [ ] `qa_probe.py speak "..." --save` → `saved_to` present and the WAV contains the full text
+- [ ] `qa_probe.py status` → `playback.underruns` is `0` on an idle machine; `playback.state` is `playing` during a read and `idle` after
+- [ ] Switch to OpenAI and speak → the live stream stops and the cloud audio plays (no overlap)
+- [ ] Disable the flag → batch behaviour returns (no `"streaming"` key in the response)
+
 ## 3. File save
 
 - [ ] `qa_probe.py speak "save test" --save` → response has `saved_to`; a `.wav` exists there

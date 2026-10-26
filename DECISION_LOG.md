@@ -1,5 +1,15 @@
 # ReadOut Decision Log
 
+## 2026-10-26 - Streaming Playback (Open)
+
+### SP-1 - Streaming playback default state
+- **Status:** Open. Recommended: keep `streaming_playback` off until a real-audio harness measures underruns per target machine. Options and trade-offs in `docs/BRIEF-streaming-playback.md`.
+- **Revisit when:** Dave answers, or the audio regression harness exists.
+
+### SP-2 - Save semantics while streaming
+- **Status:** Open. Implemented as "wait for synthesis so `saved_to` stays in the `/speak` response"; alternative is return-at-once with the path exposed later via `/status`.
+- **Revisit when:** Server-sent events replace status polling.
+
 ## 2026-06-21 - Phase 1 UI Truthfulness Cleanup
 
 ### P1-A2 - Browser Engine Tab
