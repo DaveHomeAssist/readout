@@ -43,6 +43,7 @@ Brief: `docs/BRIEF-streaming-playback.md`. Flag defaults on (SP-1 = C, 2026-10-2
 - [ ] `qa_probe.py status` → `playback.underruns` is `0` on an idle machine; `playback.state` is `playing` during a read and `idle` after
 - [ ] Switch to OpenAI and speak → the live stream stops and the cloud audio plays (no overlap)
 - [ ] Disable the flag → batch behaviour returns (no `"streaming"` key in the response)
+- [ ] `playback.underruns` (distinct gaps), `starved_ms` and `xruns` stay at or near 0. On Linux without PipeWire/PulseAudio, the user must be able to open `/dev/snd` (`audio` group) or `/speak` returns 503 "Audio output unavailable".
 
 ## 3. File save
 

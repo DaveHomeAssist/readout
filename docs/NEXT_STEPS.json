@@ -5,26 +5,26 @@
   "repos": [
     "DaveHomeAssist/readout"
   ],
-  "head": "Streaming playback on by default everywhere (SP-1 = C, Dave 2026-10-26); real-audio QA passed on one M-series Mac",
+  "head": "Streaming playback on by default and verified on Mac, Windows and Linux; Duncan unmeasured",
   "lastActivity": "2026-10-26",
   "status": "green",
-  "statusReason": "Streaming playback (assessment item 1) shipped on by default after Dave answered SP-1 with C on 2026-10-26. Real-audio QA on a MacBook Air: 0.29 s to audio vs 27.29 s batch, 50/50 chunks, 0 underruns, stop 113 ms, save intact. Windows and Intel CPUs are unmeasured; the /control Settings switch is the opt-out.",
+  "statusReason": "Streaming playback (assessment item 1) is on by default (SP-1 = C, Dave 2026-10-26). Per-sentence chunks stuttered on Walter and Dominic, so commit 40e5c2f merges sentences into chunks of 100 or more characters. On that commit, Mac, Walter and Dominic played 21/21 chunks with 0, 0 and 1 (1 ms) gaps. First audio came in 1.09 s, 2.94 s and 3.73 s, against batch waits of 30.4 s, 88.8 s and 145.7 s. Dominic reported 6 ALSA xruns. A missing audio device now returns a 503 JSON error instead of a plain-text 500. Duncan was offline.",
   "evidence": {
     "checkedOn": "2026-10-26",
-    "sourceRevision": "33df36778720505e8c604719345691063e0aae40",
+    "sourceRevision": "40e5c2f",
     "note": "Local pytest pass on Python 3.12 (unit + e2e; PowerShell tool tests skipped on macOS). GitHub Actions tests and package-smoke runs were in progress at record time.",
     "streamingPlayback": {
       "checkedOn": "2026-10-26",
       "source": "docs/BRIEF-streaming-playback.md",
       "scope": "Kokoro chunks play through a sounddevice OutputStream as the generator produces them; sentence-aware split in streaming mode; stop and cloud playback abort the live stream; save waits for synthesis so saved_to stays in the response.",
-      "verification": "Local pytest green; GitHub tests workflow green. Real-audio run 2026-10-26 via scripts/qa_streaming.py on an M-series MacBook Air: 0.29 s to audio start (batch 27.29 s), 50/50 chunks, 0 underruns, stop 113 ms, 15.1 s WAV saved. Not listened to by a human.",
-      "notDone": "No pause/resume/seek, no server-sent events, no job queue, no cloud-engine streaming, no loudness normalisation.",
-      "nextAction": "Optional: run scripts/qa_streaming.py once on Windows (Duncan) to confirm no underruns there."
+      "verification": "scripts/qa_streaming.py on commit 40e5c2f, 2026-10-26. Mac M4: 1.09 s start, 0 gaps. Walter i7-10875H Windows: 2.94 s, 0 gaps, 0 xruns. Dominic i7-7820HQ Linux: 3.73 s, 1 gap of 1 ms, 6 xruns. Stop at most 112 ms, and save was intact on all three. No human listened.",
+      "notDone": "Duncan unmeasured (offline; Python 3.9 below Kokoro minimum). Dominic xruns not yet mitigated. Pause/resume, SSE, job queue and cloud streaming not started.",
+      "nextAction": "Optional: measure Duncan once it is powered on with Python 3.12; try latency='high' if Linux clicks are audible."
     }
   },
   "nextStep": {
     "title": "Pick the next assessment item (RO-NEXT)",
-    "why": "Item 1 is shipped and measured; the compounding items 2 (pause/resume/position), 3 (SSE) and 5 (word timestamps) build on it.",
+    "why": "Item 1 is shipped and verified on three machines; items 2 (pause/resume/position), 3 (SSE) and 5 (word timestamps) build on it.",
     "doneWhen": "Dave answers RO-NEXT and a scoped brief exists for the chosen item.",
     "effort": "S",
     "owner": "dave",
@@ -35,8 +35,8 @@
       "id": "RO-01",
       "type": "feature",
       "sev": "P2",
-      "title": "Streaming playback shipped on by default; proven on one Mac",
-      "detail": "StreamPlayer in tts_engine.py; 15 unit tests; real-audio 2b pass 2026-10-26 (0 underruns, 0.29 s vs 27.29 s). scripts/qa_streaming.py reproduces it.",
+      "title": "Streaming playback shipped on by default; verified on three machines",
+      "detail": "StreamPlayer and stream_chunks() in tts_engine.py. 100-character chunks fixed the start-of-read gap seen on slower CPUs. Results on 40e5c2f are in docs/BRIEF-streaming-playback.md. Device-open failures now return a 503 JSON error.",
       "files": [
         "tts_engine.py",
         "server.py",
@@ -46,6 +46,19 @@
       "evidence": "real-audio run",
       "phase": 1,
       "status": "shipped"
+    },
+    {
+      "id": "RO-05",
+      "type": "gap",
+      "sev": "P3",
+      "title": "ALSA xruns on Linux without a sound server",
+      "detail": "Dominic (raw ALSA, busy server) reported 6 driver underflows during a 226 s read. Candidate fix: OutputStream(latency='high'). Not yet measured as audible.",
+      "files": [
+        "tts_engine.py"
+      ],
+      "evidence": "real-audio run",
+      "phase": 2,
+      "status": "open"
     },
     {
       "id": "RO-02",
@@ -94,9 +107,9 @@
         "StreamPlayer and sentence-aware split",
         "/status and /config exposure, /control switch",
         "Unit tests with fake stream",
-        "Real-audio QA (passed on one Mac 2026-10-26)"
+        "Real-audio QA on Mac, Windows and Linux (passed 2026-10-26); Duncan pending"
       ],
-      "gate": "Passed: QA 2b on one Mac; SP-1 answered C"
+      "gate": "Passed: QA 2b on three machines; SP-1 answered C"
     },
     {
       "name": "Phase 2: compounding items (2 to 25)",
@@ -111,7 +124,7 @@
     }
   ],
   "decisionsForDave": [
-    "SP-1 [Answered C, 2026-10-26]: streaming playback on by default everywhere. Opt-out via /control Settings switch. Windows measurement still advisable.",
+    "SP-1 [Answered C, 2026-10-26]: streaming playback on by default everywhere. Verified on Mac, Walter (Windows) and Dominic (Linux) after the chunking fix; Duncan unmeasured.",
     "SP-2 [Open, 2026-10-26]: save semantics while streaming. A wait for synthesis so saved_to stays in the /speak response (implemented, recommended); B return at once and expose the path via /status. Unlocks whether /control needs a second poll.",
     "RO-NEXT [Open, 2026-10-26]: next assessment item. A item 2 pause/resume/position (recommended; builds on 1, unlocks 3 and 5); B item 19 cloud streaming and the ElevenLabs voice-id fix; C item 18 shared-secret auth. Unlocks the next brief."
   ],
@@ -145,7 +158,8 @@
   "kickoffPrompt": "Answer RO-NEXT in ReadOut docs/NEXT_STEPS.json, then write a scoped brief per NEXT-4 for the chosen assessment item before implementing.",
   "confidence": "medium",
   "unknowns": [
-    "Underrun rate on Windows and Intel CPUs (only one Apple Silicon run so far)",
+    "Duncan (Ryzen 7 3700X, Windows 10) behaviour; machine offline and on Python 3.9",
+    "Whether Dominic's 6 ALSA xruns are audible",
     "Whether Kokoro chunk tensors land on an accelerator on any target (conversion handles cpu transfer but is untested there)"
   ]
 }

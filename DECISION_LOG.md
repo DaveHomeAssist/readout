@@ -6,7 +6,8 @@
 - **Decision:** C, on by default everywhere (Dave, 2026-10-26). The `/control` Settings switch remains the opt-out.
 - **Reason:** Measured 2026-10-26 on an M-series MacBook Air: audio start 0.29 s streaming vs 27.29 s batch for 3,589 chars, 50/50 chunks, 0 underruns, stop 113 ms, save intact (`docs/BRIEF-streaming-playback.md`). Dave saw no reason to limit the default to macOS.
 - **Verification:** `config.DEFAULTS["streaming_playback"]` is `True`; `tests/test_streaming_playback.py` asserts the default and the opt-out via `PATCH /config`.
-- **Revisit when:** A Windows or Intel-CPU run of `scripts/qa_streaming.py` shows underruns.
+- **Follow-up evidence (2026-10-26):** Per-sentence chunks stuttered on Walter (Windows, i7-10875H) and Dominic (Linux, i7-7820HQ). After the 100-character chunk fix (commit 40e5c2f), all three machines played 21/21 chunks. Mac and Walter had 0 gaps; Dominic had one 1 ms gap and 6 ALSA xruns. First audio arrived in 1.09 s, 2.94 s and 3.73 s, against batch waits of 30.4 s, 88.8 s and 145.7 s. Duncan was offline and is unmeasured.
+- **Revisit when:** Duncan (Ryzen 7 3700X, Windows 10) is measured, or users report clicks on Linux without a sound server.
 
 ### SP-2 - Save semantics while streaming
 - **Status:** Open. Implemented as "wait for synthesis so `saved_to` stays in the `/speak` response"; alternative is return-at-once with the path exposed later via `/status`.

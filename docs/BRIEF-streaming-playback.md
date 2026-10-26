@@ -1,7 +1,7 @@
 # Brief: Streaming synthesis into live playback
 
 - **Project:** ReadOut
-- **Status:** Shipped on by default (SP-1 = C, Dave, 2026-10-26); unit-tested; real-audio QA passed on one M-series Mac
+- **Status:** Shipped on by default (SP-1 = C, Dave, 2026-10-26); unit-tested; real-audio QA passed on Mac, Windows and Linux (Duncan unmeasured)
 - **Source revision:** see git log for `feat: streaming synthesis into live playback`
 - **Evidence date:** 2026-10-26
 - **Owner:** Dave Robertson
@@ -39,8 +39,8 @@ unsynthesised text at once. Saving still produces one complete WAV.
 - `streaming_playback` config key, default `true` since SP-1, patchable via
   `PATCH /config` and a switch on the control panel Settings tab.
 - `StreamPlayer` in `tts_engine.py` with push, finish, stop, state.
-- Sentence-aware `split_pattern` in streaming mode only
-  (`(?<=[.!?])\s+|\n+`); batch mode keeps `\n+` for parity.
+- Streaming mode re-flows text into whole-sentence chunks of at least
+  100 characters (`stream_chunks()`); batch mode keeps `\n+` for parity.
 - `stop_audio()` and `play_audio()` (cloud engines) stop any live stream.
 - `/status` gains `streaming_playback` and `playback` (state, chunks queued,
   chunks played, underruns).
@@ -114,14 +114,50 @@ counters and the saved WAV are the evidence, so "audible" is inferred from
 50 chunks consumed by the PortAudio callback with zero underruns rather than
 confirmed by ear.
 
+### Multi-machine result, 2026-10-26 (three machines, commit 40e5c2f)
+
+The first pass above used per-sentence chunks. Run on two slower machines, it
+stuttered right after the start. The first chunk was the one-second sentence
+"Paragraph 1.", and the next sentence took longer than that to synthesise:
+
+| Machine (commit f654d9a or earlier) | Batch start | Streaming start | Starved callback ticks |
+| --- | --- | --- | --- |
+| Mac, Apple M4 | 27.29 s | 0.29 s | 0 |
+| Walter, i7-10875H, Windows 11, Focusrite USB | 101.24 s | 0.83 s | 26 |
+| Dominic, i7-7820HQ, Ubuntu, raw ALSA (HDA Intel PCH) | 145.97 s | 1.06 s | 104 |
+
+Commit 40e5c2f merges whole sentences into chunks of at least 100 characters
+(`stream_chunks()`), and changes the metric. `underruns` now counts distinct gaps,
+plus `starved_ms` for silence inserted and `xruns` for PortAudio driver flags.
+Same text and script, all three machines:
+
+| Machine (commit 40e5c2f) | Batch start | Streaming start | Chunks | Gaps | Silent | Driver xruns | Stop | Save |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mac, Apple M4 | 30.39 s | 1.09 s | 21/21 | 0 | 0 ms | 0 | 112 ms | ok |
+| Walter, i7-10875H, Windows | 88.75 s | 2.94 s | 21/21 | 0 | 0 ms | 0 | 63 ms | ok |
+| Dominic, i7-7820HQ, Linux | 145.66 s | 3.73 s | 21/21 | 1 | 1 ms | 6 | 5 ms | ok |
+
+Trade-off: the first audio is now one full sentence, so it starts 0.8 to
+2.7 s later than with per-sentence chunks. It is still 25 to 39 times sooner
+than batch, and there are no gaps. Dominic's 6 xruns are ALSA output underflows on a
+server with no sound server, running Jellyfin and camera ffmpeg streams. They
+may be faint clicks. A larger PortAudio buffer (`latency="high"`) is the
+candidate fix if they prove audible.
+
+Runner notes: Dominic's SSH user is not in the `audio` group. The test ran
+the daemon once through `sudo setpriv --groups=1000,29` without changing group
+membership. `libportaudio2` was installed with apt for `sounddevice`. Duncan was
+offline (no Tailscale connection) and remains unmeasured. It also has only
+Python 3.9, below Kokoro's 3.10 minimum.
+
 ## Decisions for Dave (NEXT-5)
 
 - **SP-1 Default state.** (A) Keep off until the real-audio harness
   (assessment item 22) measures underruns on each target machine.
   (B) Flip on now for macOS only. (C) Flip on everywhere.
-  Answered 2026-10-26 by Dave: C, on everywhere. Measured on one M-series
-  Mac (0 underruns over 50 chunks, 94x faster audio start); Windows and
-  Intel CPUs remain unmeasured, so the Settings switch stays as the opt-out.
+  Answered 2026-10-26 by Dave: C, on everywhere. Verified the same day on
+  Mac (M4), Walter (Windows, Intel) and Dominic (Linux, Intel) after the
+  chunk-coalescing fix; Duncan unmeasured. The Settings switch is the opt-out.
 - **SP-2 Save semantics in streaming mode.** (A) Wait for synthesis so
   `saved_to` stays in the response (implemented). (B) Return at once and
   surface the path later via `/status`. Recommended: A until SSE (item 3)
