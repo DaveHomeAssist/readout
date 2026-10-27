@@ -5,10 +5,10 @@
   "repos": [
     "DaveHomeAssist/readout"
   ],
-  "head": "Streaming playback on by default and verified on Mac, Windows and Linux; Duncan unmeasured",
+  "head": "Windows windowed startup fix validated on Walter; delivery pending",
   "lastActivity": "2026-10-26",
-  "status": "green",
-  "statusReason": "Streaming playback (assessment item 1) is on by default (SP-1 = C, Dave 2026-10-26). Per-sentence chunks stuttered on Walter and Dominic, so commit 40e5c2f merges sentences into chunks of 100 or more characters. On that commit, Mac, Walter and Dominic played 21/21 chunks with 0, 0 and 1 (1 ms) gaps. First audio came in 1.09 s, 2.94 s and 3.73 s, against batch waits of 30.4 s, 88.8 s and 145.7 s. Dominic reported 6 ALSA xruns. A missing audio device now returns a 503 JSON error instead of a plain-text 500. Duncan was offline.",
+  "status": "amber",
+  "statusReason": "The Windows prerelease can fail to start without console streams. A scoped fix supplies missing streams, passes 210 tests on Walter and starts a locally built package without redirection; merge and release remain pending. Existing streaming work and open decisions are preserved.",
   "evidence": {
     "checkedOn": "2026-10-26",
     "sourceRevision": "40e5c2f",
@@ -20,6 +20,14 @@
       "verification": "scripts/qa_streaming.py on commit 40e5c2f, 2026-10-26. Mac M4: 1.09 s start, 0 gaps. Walter i7-10875H Windows: 2.94 s, 0 gaps, 0 xruns. Dominic i7-7820HQ Linux: 3.73 s, 1 gap of 1 ms, 6 xruns. Stop at most 112 ms, and save was intact on all three. No human listened.",
       "notDone": "Duncan unmeasured (offline; Python 3.9 below Kokoro minimum). Dominic xruns not yet mitigated. Pause/resume, SSE, job queue and cloud streaming not started.",
       "nextAction": "Optional: measure Duncan once it is powered on with Python 3.12; try latency='high' if Linux clicks are audible."
+    },
+    "windowsPackageStartup": {
+      "checkedOn": "2026-10-26",
+      "baseRevision": "b86fda8446a2dc1311d7879e3bae7c4d255aeecb",
+      "originalReleaseRevision": "40e5c2fa380fe2a74f524f510de956736c62ffb0",
+      "diagnosis": "On Walter the original Windows package did not listen without redirected streams, but started when either stream was redirected. Uvicorn logging fails on a missing standard stream.",
+      "verification": "Walter Windows 11: 210 tests passed. A locally built Windows executable SHA256 1e2b37b572fcfeca33d344bc0f8b13925b902ba2f521b46f6399c4eada4fbe35 reached ready without redirected streams and reported a played audio chunk with zero underruns or xruns.",
+      "remaining": "This is a local test build, not a released artifact. CI, merge, release and complete installed-app acceptance remain unverified."
     }
   },
   "nextStep": {
@@ -31,6 +39,20 @@
     "blockedBy": []
   },
   "findings": [
+    {
+      "id": "RO-06",
+      "type": "bug",
+      "sev": "P1",
+      "title": "Windowed Windows startup without console streams",
+      "detail": "Provide missing output streams before initializing the application so Uvicorn logging can start without an attached console. Tested in a local Windows package on Walter; delivery is pending.",
+      "files": [
+        "main.py",
+        "tests/test_main_runtime.py"
+      ],
+      "evidence": "Walter no-redirection package launch and automated suite, 2026-10-26",
+      "phase": 1,
+      "status": "in progress"
+    },
     {
       "id": "RO-01",
       "type": "feature",
