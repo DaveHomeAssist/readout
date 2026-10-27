@@ -188,6 +188,7 @@ def speak(
 SAMPLE_RATE = 24000                      # Kokoro always outputs at 24 kHz
 STREAM_SPLIT_PATTERN = r"\n+"           # applied to text already re-flowed by stream_chunks()
 MIN_STREAM_CHUNK_CHARS = 100             # see stream_chunks(); measured on Walter 2026-10-26
+STREAM_CALLBACK_TIMEOUT_SEC = 5.0
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -241,7 +242,7 @@ class StreamPlayer:
     finish() was called and the queue is empty. stop() aborts immediately.
     """
 
-    def __init__(self, sd, samplerate: int = SAMPLE_RATE):
+    def __init__(self, sd, samplerate: int = SAMPLE_RATE, *, callback_timeout: float = STREAM_CALLBACK_TIMEOUT_SEC):
         self._sd = sd
         self.samplerate = samplerate
         self._queue: queue.Queue = queue.Queue()
@@ -250,6 +251,9 @@ class StreamPlayer:
         self._done = threading.Event()
         self._finished = threading.Event()   # stream drained or aborted
         self._stream = None
+        self._stop_lock = threading.Lock()
+        self._callback_timeout = callback_timeout
+        self._last_callback = time.monotonic()
         self.chunks_queued = 0
         self.chunks_played = 0
         self.underruns = 0                  # distinct gaps: queue ran dry while synthesis was still running
@@ -267,7 +271,21 @@ class StreamPlayer:
             callback=self._callback,
             finished_callback=self._finished.set,
         )
+        self._last_callback = time.monotonic()
         self._stream.start()
+        threading.Thread(target=self._watch_callbacks, name="readout-audio-watchdog", daemon=True).start()
+
+    def _watch_callbacks(self) -> None:
+        interval = min(0.5, self._callback_timeout / 4)
+        while not self._finished.wait(interval):
+            with self._stop_lock:
+                if self._stream is None or self._finished.is_set():
+                    return
+                if time.monotonic() - self._last_callback < self._callback_timeout:
+                    continue
+                self.error = "Audio output stopped responding. Check the selected output device and try again."
+                self._stop_locked()
+                return
 
     def push(self, chunk) -> None:
         self._queue.put(_to_samples(chunk))
@@ -281,6 +299,10 @@ class StreamPlayer:
         self._done.set()
 
     def stop(self) -> None:
+        with self._stop_lock:
+            self._stop_locked()
+
+    def _stop_locked(self) -> None:
         self._done.set()
         while True:
             try:
@@ -289,12 +311,14 @@ class StreamPlayer:
                 break
         self._pending = None
         stream, self._stream = self._stream, None
-        if stream is not None:
-            try:
-                stream.abort()
-            finally:
-                stream.close()
-        self._finished.set()
+        try:
+            if stream is not None:
+                try:
+                    stream.abort()
+                finally:
+                    stream.close()
+        finally:
+            self._finished.set()
 
     def wait(self, timeout: float | None = None) -> bool:
         return self._finished.wait(timeout)
@@ -305,6 +329,7 @@ class StreamPlayer:
 
     # ── PortAudio callback ──
     def _callback(self, outdata, frames, _time, status) -> None:
+        self._last_callback = time.monotonic()
         if status:
             self.xruns += 1
         filled = 0
@@ -353,7 +378,7 @@ def playback_state() -> dict:
     if player is None:
         return {"state": "idle", "streaming": False}
     return {
-        "state": "playing" if player.active else "idle",
+        "state": "playing" if player.active else ("error" if player.error else "idle"),
         "streaming": True,
         "chunks_queued": player.chunks_queued,
         "chunks_played": player.chunks_played,

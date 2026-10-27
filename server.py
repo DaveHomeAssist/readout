@@ -1042,6 +1042,8 @@ CONTROL_PANEL_HTML = """<!doctype html>
           setFeedback(els.feedback, `Dependency issue: ${issue.message} ${issue.fix}`, "error");
         } else if (data.load_error) {
           setFeedback(els.feedback, "Engine error: " + data.load_error, "error");
+        } else if (data.playback && data.playback.error) {
+          setFeedback(els.feedback, data.playback.error, "error");
         } else if (els.feedback.dataset.tone === "error" || !els.feedback.dataset.tone) {
           setFeedback(els.feedback,
             `Ready · ${engine} · ${data.voice || ""} · ${Number(data.speed || 1).toFixed(1)}×`, "");

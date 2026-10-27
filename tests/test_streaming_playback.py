@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 import types
 
 import pytest
@@ -185,6 +186,46 @@ def test_stop_drains_queue_and_aborts_stream():
     assert sd.streams[0].aborted and sd.streams[0].closed
     assert player.active is False
     assert player.wait(0) is True
+
+
+def test_stalled_device_aborts_and_reports_error(monkeypatch):
+    from fastapi.testclient import TestClient
+    import server
+
+    sd = FakeStreamingSoundDevice()
+    player = tts_engine.StreamPlayer(sd, callback_timeout=0.05)
+    monkeypatch.setattr(tts_engine, "_stream_player", player)
+    player.push([1, 2])
+    player.start()
+
+    assert player.wait(2)
+    assert sd.streams[0].aborted and sd.streams[0].closed
+    assert tts_engine.playback_state()["state"] == "error"
+    assert "stopped responding" in tts_engine.playback_state()["error"]
+    monkeypatch.setattr(server, "check_dependencies", lambda: [])
+    monkeypatch.setattr(tts_engine, "get_load_error", lambda: None)
+    client = TestClient(server.app)
+    assert client.get("/status").json()["playback"]["state"] == "error"
+    assert "data.playback.error" in client.get("/control").text
+
+
+def test_callbacks_prevent_timeout_and_normal_finish_stays_idle(monkeypatch):
+    sd = FakeStreamingSoundDevice()
+    player = tts_engine.StreamPlayer(sd, callback_timeout=0.25)
+    monkeypatch.setattr(tts_engine, "_stream_player", player)
+    player.start()
+    player.push([1] * 20)
+    for _ in range(8):
+        pump(sd.streams[0], 1)
+        time.sleep(0.05)
+    assert player.active and player.error is None
+    player.finish()
+    _, stopped = pump(sd.streams[0], 30)
+    assert stopped
+    sd.streams[0].finished_callback()
+    assert player.wait(1)
+    assert tts_engine.playback_state()["state"] == "idle"
+    player.stop()
 
 
 def test_stream_opened_with_kokoro_format():
