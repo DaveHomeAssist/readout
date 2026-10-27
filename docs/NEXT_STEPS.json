@@ -5,10 +5,10 @@
   "repos": [
     "DaveHomeAssist/readout"
   ],
-  "head": "Streaming device stall detected; fix under validation",
+  "head": "Stalled audio detection released; Walter Focusrite output remains unresponsive",
   "lastActivity": "2026-10-27",
   "status": "amber",
-  "statusReason": "The published Windows package remained playing when Walter's Focusrite audio output stopped delivering callbacks. A scoped fix aborts and reports a stalled device; source-level tests on Walter also completed normally on a separate Realtek output. Release and published-package retesting remain pending.",
+  "statusReason": "PR 6 prevents indefinite playing status when audio callbacks stall. The published Windows package on Walter reported the stalled Focusrite output and reset to idle after Stop. Direct source tests completed normally on Realtek; the reason the selected Focusrite output does not respond remains unknown.",
   "evidence": {
     "checkedOn": "2026-10-26",
     "sourceRevision": "40e5c2f",
@@ -37,15 +37,19 @@
       "checkedOn": "2026-10-27",
       "releasedRevision": "fe4e8c6e967f900c59b923bfa5a523a804653b5e",
       "diagnosis": "Walter Focusrite MME and DirectSound streams opened but did not deliver callbacks during a direct probe. Realtek MME completed the same silent stream. The underlying Focusrite or driver cause is unknown.",
-      "verification": "A source-level Walter test of the candidate aborted the stalled Focusrite stream with an explicit error after five seconds; the Realtek stream completed and returned idle.",
-      "remaining": "Candidate is not released. Published-package retest and human acceptance remain open; this safeguard does not repair the Focusrite device or change system output."
+      "verification": "Walter: published archive checksum matched GitHub; packaged app started without output redirection and its control page included the error path. On the selected Focusrite output it reported state error with zero chunks played and the stopped responding message; Stop returned state idle. Source-level Realtek MME completed normally. 213 tests passed locally and hosted tests and both package smoke jobs passed.",
+      "remaining": "Focusrite device or driver cause, audible output on the published package and full installed-app acceptance remain unverified.",
+      "releaseRevision": "8aa04b2b6612561e457bdb4342d61ce5dee92df0",
+      "releaseUrl": "https://github.com/DaveHomeAssist/readout/releases/tag/build-8aa04b2b6612561e457bdb4342d61ce5dee92df0-40460380215-1",
+      "workflowRun": "https://github.com/DaveHomeAssist/readout/actions/runs/40460380215",
+      "publishedWindowsArchiveSha256": "bc15b9fa8a343bda660627fc28cf6911fb1063d58e980658c37fad7b0e93b3ca"
     }
   },
   "nextStep": {
-    "title": "Pick the next assessment item (RO-NEXT)",
-    "why": "Item 1 is shipped and verified on three machines; items 2 (pause/resume/position), 3 (SSE) and 5 (word timestamps) build on it.",
-    "doneWhen": "Dave answers RO-NEXT and a scoped brief exists for the chosen item.",
-    "effort": "S",
+    "title": "Investigate Walter Focusrite output",
+    "why": "The selected output opens but does not deliver audio callbacks on the tested Windows paths.",
+    "doneWhen": "Identify and resolve the device or driver issue, then verify audible playback and normal completion in the published app.",
+    "effort": "M",
     "owner": "dave",
     "blockedBy": []
   },
@@ -55,15 +59,15 @@
       "type": "bug",
       "sev": "P1",
       "title": "Audio device callback stall leaves playback active",
-      "detail": "Detect missing audio callbacks, stop the affected stream and expose an actionable error instead of showing playing indefinitely. The reason the Focusrite device stopped delivering callbacks is not established.",
+      "detail": "The published app now detects missing callbacks, stops the stream and reports an audio-device error. The selected Focusrite output did not deliver callbacks; its device or driver cause is unknown.",
       "files": [
         "tts_engine.py",
         "server.py",
         "tests/test_streaming_playback.py"
       ],
-      "evidence": "Walter direct audio-device comparison, 2026-10-27",
+      "evidence": "PR 6; release run 40460380215; Walter published-package retest, 2026-10-27",
       "phase": 1,
-      "status": "in progress"
+      "status": "shipped"
     },
     {
       "id": "RO-06",
@@ -205,6 +209,10 @@
     {
       "label": "Windows startup release",
       "url": "https://github.com/DaveHomeAssist/readout/releases/tag/build-fe4e8c6e967f900c59b923bfa5a523a804653b5e-40428601392-1"
+    },
+    {
+      "label": "Audio stall release",
+      "url": "https://github.com/DaveHomeAssist/readout/releases/tag/build-8aa04b2b6612561e457bdb4342d61ce5dee92df0-40460380215-1"
     }
   ],
   "kickoffPrompt": "Answer RO-NEXT in ReadOut docs/NEXT_STEPS.json, then write a scoped brief per NEXT-4 for the chosen assessment item before implementing.",
