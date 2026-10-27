@@ -5,10 +5,10 @@
   "repos": [
     "DaveHomeAssist/readout"
   ],
-  "head": "Windows startup fix merged and published; Walter runtime verified",
-  "lastActivity": "2026-10-26",
+  "head": "Streaming device stall detected; fix under validation",
+  "lastActivity": "2026-10-27",
   "status": "amber",
-  "statusReason": "PR 4 fixed windowed Windows startup and replaced force-updated releases with unique build prereleases. The published Windows package started without redirected streams on Walter and reported playback with no underruns or xruns. Human listening and full installed-app acceptance remain open; existing product decisions remain open.",
+  "statusReason": "The published Windows package remained playing when Walter's Focusrite audio output stopped delivering callbacks. A scoped fix aborts and reports a stalled device; source-level tests on Walter also completed normally on a separate Realtek output. Release and published-package retesting remain pending.",
   "evidence": {
     "checkedOn": "2026-10-26",
     "sourceRevision": "40e5c2f",
@@ -32,6 +32,13 @@
       "releaseUrl": "https://github.com/DaveHomeAssist/readout/releases/tag/build-fe4e8c6e967f900c59b923bfa5a523a804653b5e-40428601392-1",
       "workflowRun": "https://github.com/DaveHomeAssist/readout/actions/runs/40428601392",
       "publishedWindowsArchiveSha256": "06168feb1dd47093a6f3da324fced5e5f50a1057721ebe17629eb12b70118b0d"
+    },
+    "audioCallbackStall": {
+      "checkedOn": "2026-10-27",
+      "releasedRevision": "fe4e8c6e967f900c59b923bfa5a523a804653b5e",
+      "diagnosis": "Walter Focusrite MME and DirectSound streams opened but did not deliver callbacks during a direct probe. Realtek MME completed the same silent stream. The underlying Focusrite or driver cause is unknown.",
+      "verification": "A source-level Walter test of the candidate aborted the stalled Focusrite stream with an explicit error after five seconds; the Realtek stream completed and returned idle.",
+      "remaining": "Candidate is not released. Published-package retest and human acceptance remain open; this safeguard does not repair the Focusrite device or change system output."
     }
   },
   "nextStep": {
@@ -43,6 +50,21 @@
     "blockedBy": []
   },
   "findings": [
+    {
+      "id": "RO-07",
+      "type": "bug",
+      "sev": "P1",
+      "title": "Audio device callback stall leaves playback active",
+      "detail": "Detect missing audio callbacks, stop the affected stream and expose an actionable error instead of showing playing indefinitely. The reason the Focusrite device stopped delivering callbacks is not established.",
+      "files": [
+        "tts_engine.py",
+        "server.py",
+        "tests/test_streaming_playback.py"
+      ],
+      "evidence": "Walter direct audio-device comparison, 2026-10-27",
+      "phase": 1,
+      "status": "in progress"
+    },
     {
       "id": "RO-06",
       "type": "bug",
