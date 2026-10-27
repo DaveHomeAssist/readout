@@ -5,10 +5,10 @@
   "repos": [
     "DaveHomeAssist/readout"
   ],
-  "head": "Windows windowed startup fix validated on Walter; delivery pending",
+  "head": "Windows startup fix merged and published; Walter runtime verified",
   "lastActivity": "2026-10-26",
   "status": "amber",
-  "statusReason": "The Windows prerelease can fail to start without console streams. A scoped fix supplies missing streams, passes 210 tests on Walter and starts a locally built package without redirection; merge and release remain pending. Existing streaming work and open decisions are preserved.",
+  "statusReason": "PR 4 fixed windowed Windows startup and replaced force-updated releases with unique build prereleases. The published Windows package started without redirected streams on Walter and reported playback with no underruns or xruns. Human listening and full installed-app acceptance remain open; existing product decisions remain open.",
   "evidence": {
     "checkedOn": "2026-10-26",
     "sourceRevision": "40e5c2f",
@@ -26,8 +26,12 @@
       "baseRevision": "b86fda8446a2dc1311d7879e3bae7c4d255aeecb",
       "originalReleaseRevision": "40e5c2fa380fe2a74f524f510de956736c62ffb0",
       "diagnosis": "On Walter the original Windows package did not listen without redirected streams, but started when either stream was redirected. Uvicorn logging fails on a missing standard stream.",
-      "verification": "Walter Windows 11: 210 tests passed. A locally built Windows executable SHA256 1e2b37b572fcfeca33d344bc0f8b13925b902ba2f521b46f6399c4eada4fbe35 reached ready without redirected streams and reported a played audio chunk with zero underruns or xruns.",
-      "remaining": "This is a local test build, not a released artifact. CI, merge, release and complete installed-app acceptance remain unverified."
+      "verification": "Walter Windows 11: downloaded published archive matched its release digest, started without redirected streams, reached ready, served /control, and reported one played audio chunk with zero underruns or xruns. Published executable SHA256 ed763ec7d64e09245f805d9711c9fc1752fc47c3012a6c308d28097a8dfdb04d. Merged revision tests and both hosted package smoke jobs passed.",
+      "remaining": "Audible listener confirmation and full installed-app acceptance remain open. The historical main-latest prerelease was not changed.",
+      "releaseRevision": "fe4e8c6e967f900c59b923bfa5a523a804653b5e",
+      "releaseUrl": "https://github.com/DaveHomeAssist/readout/releases/tag/build-fe4e8c6e967f900c59b923bfa5a523a804653b5e-40428601392-1",
+      "workflowRun": "https://github.com/DaveHomeAssist/readout/actions/runs/40428601392",
+      "publishedWindowsArchiveSha256": "06168feb1dd47093a6f3da324fced5e5f50a1057721ebe17629eb12b70118b0d"
     }
   },
   "nextStep": {
@@ -44,14 +48,14 @@
       "type": "bug",
       "sev": "P1",
       "title": "Windowed Windows startup without console streams",
-      "detail": "Provide missing output streams before initializing the application so Uvicorn logging can start without an attached console. Tested in a local Windows package on Walter; delivery is pending.",
+      "detail": "PR 4 supplies missing output streams before initialization and publishes builds without force-updating tags. The published Windows package started without redirected streams on Walter; human listening and full installed-app acceptance remain open.",
       "files": [
         "main.py",
         "tests/test_main_runtime.py"
       ],
-      "evidence": "Walter no-redirection package launch and automated suite, 2026-10-26",
+      "evidence": "PR 4; release run 40428601392; Walter published package runtime, 2026-10-26",
       "phase": 1,
-      "status": "in progress"
+      "status": "shipped"
     },
     {
       "id": "RO-01",
@@ -175,6 +179,10 @@
     {
       "label": "Tests CI",
       "url": "https://github.com/DaveHomeAssist/readout/actions/workflows/tests.yml"
+    },
+    {
+      "label": "Windows startup release",
+      "url": "https://github.com/DaveHomeAssist/readout/releases/tag/build-fe4e8c6e967f900c59b923bfa5a523a804653b5e-40428601392-1"
     }
   ],
   "kickoffPrompt": "Answer RO-NEXT in ReadOut docs/NEXT_STEPS.json, then write a scoped brief per NEXT-4 for the chosen assessment item before implementing.",
