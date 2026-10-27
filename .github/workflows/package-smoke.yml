@@ -134,12 +134,8 @@ jobs:
           if-no-files-found: warn
 
   publish-main-release:
-    # Durable evidence for main (audit M-3): ephemeral Actions artifacts
-    # expire, so every successful package smoke on main republishes the
-    # packaged apps and smoke evidence to the rolling `main-latest`
-    # prerelease. That keeps a retrievable packaged build attached to the
-    # exact current head of main.
-    name: Publish rolling main release
+    # Keep each successful main build and its evidence under a unique tag.
+    name: Publish main build prerelease
     needs: [windows-package-smoke, macos-package-smoke]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -164,18 +160,14 @@ jobs:
           cp artifacts/readout-windows-package-smoke/windows-package-smoke.md release-assets/
           ls -l release-assets
 
-      - name: Create or update main-latest release
+      - name: Create immutable build prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eo pipefail
-          tag="main-latest"
-          title="ReadOut main @ ${GITHUB_SHA::7}"
-          notes="$(printf 'Rolling packaged build from the latest successful package-smoke run on main.\nCommit: %s\nBuilt: %s\nEvidence run: %s/%s/actions/runs/%s' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
-          git push --force origin "HEAD:refs/tags/${tag}"
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --title "$title" --notes "$notes" --prerelease
-          else
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --title "$title" --notes "$notes" --prerelease
-          fi
-          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber release-assets/*
+          tag="build-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          title="ReadOut main @ ${GITHUB_SHA::7} (run ${GITHUB_RUN_ID}, attempt ${GITHUB_RUN_ATTEMPT})"
+          notes="$(printf 'Packaged build from a successful package-smoke run on main.\nCommit: %s\nBuilt: %s\nEvidence run: %s/%s/actions/runs/%s' "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          git tag "$tag" "$GITHUB_SHA"
+          git push origin "refs/tags/$tag"
+          gh release create "$tag" release-assets/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "$title" --notes "$notes" --prerelease

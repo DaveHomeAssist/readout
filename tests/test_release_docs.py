@@ -247,6 +247,16 @@ def test_package_smoke_workflow_builds_and_smokes_both_targets():
         assert required in text
 
 
+def test_package_releases_preserve_prior_tags_and_assets():
+    text = (ROOT / ".github" / "workflows" / "package-smoke.yml").read_text(encoding="utf-8")
+    assert 'build-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}' in text
+    assert 'git push origin "refs/tags/$tag"' in text
+    assert 'gh release create "$tag" release-assets/*' in text
+    assert "--verify-tag" in text
+    assert "--force" not in text
+    assert "--clobber" not in text
+
+
 def test_manual_smoke_validation_worksheet_covers_interactive_gates():
     text = (ROOT / "MANUAL_SMOKE_VALIDATION.md").read_text(encoding="utf-8")
     for required in [
