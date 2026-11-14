@@ -1,7 +1,7 @@
 # Brief: Streaming synthesis into live playback
 
 - **Project:** ReadOut
-- **Status:** Shipped on by default (SP-1 = C, Dave, 2026-10-26); unit-tested; real-audio QA passed on Mac, Windows and Linux (Duncan unmeasured)
+- **Status:** Shipped on by default (SP-1 = C, Dave, 2026-10-26); unit-tested; real-audio QA passed on all four machines (Mac, Walter, Dominic 2026-10-26; Duncan 2026-11-14)
 - **Source revision:** see git log for `feat: streaming synthesis into live playback`
 - **Evidence date:** 2026-10-26
 - **Owner:** Dave Robertson
@@ -136,6 +136,7 @@ Same text and script, all three machines:
 | Mac, Apple M4 | 30.39 s | 1.09 s | 21/21 | 0 | 0 ms | 0 | 112 ms | ok |
 | Walter, i7-10875H, Windows | 88.75 s | 2.94 s | 21/21 | 0 | 0 ms | 0 | 63 ms | ok |
 | Dominic, i7-7820HQ, Linux | 145.66 s | 3.73 s | 21/21 | 1 | 1 ms | 6 | 5 ms | ok |
+| Duncan, Ryzen 7 3700X, Windows 10 (2026-11-14, commit a1d57b3) | 67.25 s | 2.09 s | 21/21 | 0 | 0 ms | 0 | 47 ms | ok |
 
 Trade-off: the first audio is now one full sentence, so it starts 0.8 to
 2.7 s later than with per-sentence chunks. It is still 25 to 39 times sooner
@@ -147,8 +148,12 @@ candidate fix if they prove audible.
 Runner notes: Dominic's SSH user is not in the `audio` group. The test ran
 the daemon once through `sudo setpriv --groups=1000,29` without changing group
 membership. `libportaudio2` was installed with apt for `sounddevice`. Duncan was
-offline (no Tailscale connection) and remains unmeasured. It also has only
-Python 3.9, below Kokoro's 3.10 minimum.
+offline on 2026-10-26. It was measured on 2026-11-14 with its user-installed
+Python 3.12 (`py -3.12`), CPU torch 2.11.0, and the default MME output
+"Display (AMD High Definition Audio)", which is monitor audio. The run includes
+the later stall watchdog (PR 6). Duncan's row is on commit a1d57b3 and the other
+three are on 40e5c2f. The streaming path differs only by that watchdog. No human
+listened on Duncan either.
 
 ## Decisions for Dave (NEXT-5)
 
@@ -157,7 +162,8 @@ Python 3.9, below Kokoro's 3.10 minimum.
   (B) Flip on now for macOS only. (C) Flip on everywhere.
   Answered 2026-10-26 by Dave: C, on everywhere. Verified the same day on
   Mac (M4), Walter (Windows, Intel) and Dominic (Linux, Intel) after the
-  chunk-coalescing fix; Duncan unmeasured. The Settings switch is the opt-out.
+  chunk-coalescing fix, and on Duncan (Windows 10, AMD) on 2026-11-14. The
+  Settings switch is the opt-out.
 - **SP-2 Save semantics in streaming mode.** (A) Wait for synthesis so
   `saved_to` stays in the response (implemented). (B) Return at once and
   surface the path later via `/status`. Recommended: A until SSE (item 3)

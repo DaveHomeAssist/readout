@@ -6,7 +6,7 @@
     "DaveHomeAssist/readout"
   ],
   "head": "Stalled audio detection released; Walter Focusrite output remains unresponsive",
-  "lastActivity": "2026-10-27",
+  "lastActivity": "2026-11-14",
   "status": "amber",
   "statusReason": "PR 6 prevents indefinite playing status when audio callbacks stall. The published Windows package on Walter reported the stalled Focusrite output and reset to idle after Stop. Direct source tests completed normally on Realtek; the reason the selected Focusrite output does not respond remains unknown.",
   "evidence": {
@@ -43,6 +43,13 @@
       "releaseUrl": "https://github.com/DaveHomeAssist/readout/releases/tag/build-8aa04b2b6612561e457bdb4342d61ce5dee92df0-40460380215-1",
       "workflowRun": "https://github.com/DaveHomeAssist/readout/actions/runs/40460380215",
       "publishedWindowsArchiveSha256": "bc15b9fa8a343bda660627fc28cf6911fb1063d58e980658c37fad7b0e93b3ca"
+    },
+    "duncanStreaming": {
+      "checkedOn": "2026-11-14",
+      "sourceRevision": "a1d57b3",
+      "machine": "Duncan, AMD Ryzen 7 3700X, Windows 10 Home, Python 3.12 (user install), CPU torch 2.11.0, MME output Display (AMD High Definition Audio)",
+      "verification": "scripts/qa_streaming.py in a held-open SSH session: 2.09 s to audio start vs 67.25 s batch for 3,589 chars; 21/21 chunks; 0 gaps, 0 ms starved, 0 xruns; stop 47 ms; save intact (606,044-byte WAV); daemon log 0 errors. Not listened to by a human; output is monitor HDMI/DP audio.",
+      "checkout": "C:\\Users\\Dave RambleOn\\readout-streaming-qa-20261114 (QA-only clone and venv; log alongside)"
     }
   },
   "nextStep": {
@@ -87,8 +94,8 @@
       "id": "RO-01",
       "type": "feature",
       "sev": "P2",
-      "title": "Streaming playback shipped on by default; verified on three machines",
-      "detail": "StreamPlayer and stream_chunks() in tts_engine.py. 100-character chunks fixed the start-of-read gap seen on slower CPUs. Results on 40e5c2f are in docs/BRIEF-streaming-playback.md. Device-open failures now return a 503 JSON error.",
+      "title": "Streaming playback shipped on by default; verified on four machines",
+      "detail": "StreamPlayer and stream_chunks() in tts_engine.py. 100-character chunks fixed the start-of-read gap seen on slower CPUs. Results on 40e5c2f are in docs/BRIEF-streaming-playback.md. Device-open failures now return a 503 JSON error. Duncan added 2026-11-14: 2.09 s start, 0 gaps, 0 xruns.",
       "files": [
         "tts_engine.py",
         "server.py",
@@ -159,7 +166,7 @@
         "StreamPlayer and sentence-aware split",
         "/status and /config exposure, /control switch",
         "Unit tests with fake stream",
-        "Real-audio QA on Mac, Windows and Linux (passed 2026-10-26); Duncan pending"
+        "Real-audio QA on Mac, Walter, Dominic (2026-10-26) and Duncan (2026-11-14): passed"
       ],
       "gate": "Passed: QA 2b on three machines; SP-1 answered C"
     },
@@ -176,7 +183,7 @@
     }
   ],
   "decisionsForDave": [
-    "SP-1 [Answered C, 2026-10-26]: streaming playback on by default everywhere. Verified on Mac, Walter (Windows) and Dominic (Linux) after the chunking fix; Duncan unmeasured.",
+    "SP-1 [Answered C, 2026-10-26]: streaming playback on by default everywhere. Verified on Mac, Walter (Windows) and Dominic (Linux) on 2026-10-26 and Duncan (Windows 10, AMD) on 2026-11-14.",
     "SP-2 [Open, 2026-10-26]: save semantics while streaming. A wait for synthesis so saved_to stays in the /speak response (implemented, recommended); B return at once and expose the path via /status. Unlocks whether /control needs a second poll.",
     "RO-NEXT [Open, 2026-10-26]: next assessment item. A item 2 pause/resume/position (recommended; builds on 1, unlocks 3 and 5); B item 19 cloud streaming and the ElevenLabs voice-id fix; C item 18 shared-secret auth. Unlocks the next brief."
   ],
@@ -218,7 +225,6 @@
   "kickoffPrompt": "Answer RO-NEXT in ReadOut docs/NEXT_STEPS.json, then write a scoped brief per NEXT-4 for the chosen assessment item before implementing.",
   "confidence": "medium",
   "unknowns": [
-    "Duncan (Ryzen 7 3700X, Windows 10) behaviour; machine offline and on Python 3.9",
     "Whether Dominic's 6 ALSA xruns are audible",
     "Whether Kokoro chunk tensors land on an accelerator on any target (conversion handles cpu transfer but is untested there)"
   ]
