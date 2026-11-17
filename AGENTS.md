@@ -44,15 +44,10 @@ Before final response, run the most relevant available checks:
 - Codex owns implementation, refactors, tests, and packaging mechanics.
 - For each `P#-A#`, restate the done condition, touch only the required modules, run tests, and record evidence in the milestone log.
 
-## Status naming
+## Session naming
 
-Name work with one string everywhere (chat status title, session title, Notion
-Status Check Runs "Human Name"):
+Follow [Status Naming](https://github.com/DaveHomeAssist/skills/blob/master/status-naming.md), the canonical authority for the format, emoji registry, phases, time semantics and exceptions.
 
-`Project | 🚦 | Phase | Title → state, reason | MM-DD`
+`<group emoji> | PHASE | Durable Purpose | MM-DD h:mm AM/PM`
 
-- 🚦: 🟢 complete and verified · 🟡 partial · 🔴 not started, blocked or failed · ⚪ unverifiable.
-  Add ⏳ scheduled, 🙋 awaiting Dave or 🚧 blocked to 🟡/🔴/⚪, never to 🟢.
-- Phase: Research, Design, Build, Audit or Scheduled. MM-DD: date of the latest light change.
-- Every light change gets a new name: a `RENAME:` line in chat and the Notion row updated.
-- Canonical source: https://github.com/DaveHomeAssist/skills/blob/master/status-naming.md
+The time is the session's creation time in America/New_York and never changes. Status, traffic lights and "→ state" clauses never go in the title, and a status change never triggers a rename. Preserve Dave's manual titles and protected or uncertain sessions. Local instructions extend this rule only through a named, purposeful exception; they do not maintain a competing format.
